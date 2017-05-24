@@ -20,24 +20,11 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.math.BigDecimal;
-
 import org.apromore.anf.AnnotationType;
 import org.apromore.anf.GraphicsType;
-import org.apromore.pnml.AnnotationGraphisType;
-import org.apromore.pnml.ArcType;
-import org.apromore.pnml.DimensionType;
-import org.apromore.pnml.Fill;
-import org.apromore.pnml.Font;
-import org.apromore.pnml.GraphicsArcType;
-import org.apromore.pnml.GraphicsNodeType;
-import org.apromore.pnml.Line;
-import org.apromore.pnml.NodeNameType;
-import org.apromore.pnml.PlaceType;
-import org.apromore.pnml.PositionType;
-import org.apromore.pnml.TransitionResourceType;
-import org.apromore.pnml.TransitionType;
-import org.apromore.pnml.TriggerType;
+import org.apromore.pnml.*;
+
+import java.math.BigDecimal;
 
 public class TranslateNodeAnnotations {
 

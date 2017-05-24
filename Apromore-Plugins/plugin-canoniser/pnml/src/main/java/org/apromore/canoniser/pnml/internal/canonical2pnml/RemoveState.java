@@ -20,17 +20,12 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
+import org.apromore.cpf.*;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.apromore.cpf.CanonicalProcessType;
-import org.apromore.cpf.EdgeType;
-import org.apromore.cpf.EventType;
-import org.apromore.cpf.NetType;
-import org.apromore.cpf.NodeType;
-import org.apromore.cpf.StateType;
 
 public class RemoveState {
     DataHandler data;

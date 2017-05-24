@@ -20,18 +20,17 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.io.File;
+import org.apromore.anf.AnnotationsType;
+import org.apromore.cpf.CanonicalProcessType;
+import org.apromore.cpf.NetType;
+import org.apromore.pnml.NetType.Page;
+import org.apromore.pnml.TransitionType;
+
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBElement;
 import javax.xml.bind.JAXBException;
 import javax.xml.bind.Unmarshaller;
-
-import org.apromore.anf.AnnotationsType;
-import org.apromore.cpf.CanonicalProcessType;
-import org.apromore.cpf.NetType;
-import org.apromore.cpf.TypeAttribute;
-import org.apromore.pnml.NetType.Page;
-import org.apromore.pnml.TransitionType;
+import java.io.File;
 
 public class TranslateSubnet {
     DataHandler data = new DataHandler();

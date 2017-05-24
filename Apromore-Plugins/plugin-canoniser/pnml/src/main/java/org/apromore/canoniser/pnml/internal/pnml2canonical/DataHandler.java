@@ -20,12 +20,6 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import java.io.File;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import org.apromore.anf.AnnotationsType;
 import org.apromore.cpf.CanonicalProcessType;
 import org.apromore.cpf.EdgeType;
@@ -34,6 +28,12 @@ import org.apromore.cpf.ResourceTypeType;
 import org.apromore.pnml.ArcType;
 import org.apromore.pnml.NodeType;
 import org.apromore.pnml.PlaceType;
+
+import java.io.File;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public class DataHandler {
     private Map<String, String> id_map = new HashMap<String, String>();

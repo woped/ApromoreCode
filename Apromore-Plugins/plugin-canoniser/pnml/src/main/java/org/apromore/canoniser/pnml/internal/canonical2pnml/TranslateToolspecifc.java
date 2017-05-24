@@ -20,19 +20,10 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.math.BigDecimal;
-
 import org.apromore.anf.AnnotationsType;
-import org.apromore.pnml.DimensionType;
-import org.apromore.pnml.GraphicsSimpleType;
-import org.apromore.pnml.NetToolspecificType;
-import org.apromore.pnml.OrganizationUnitType;
-import org.apromore.pnml.PositionType;
-import org.apromore.pnml.ResourcesType;
-import org.apromore.pnml.RoleType;
-import org.apromore.pnml.SimulationsType;
-import org.apromore.pnml.TPartnerLinks;
-import org.apromore.pnml.TVariables;
+import org.apromore.pnml.*;
+
+import java.math.BigDecimal;
 
 public class TranslateToolspecifc {
     DataHandler data;

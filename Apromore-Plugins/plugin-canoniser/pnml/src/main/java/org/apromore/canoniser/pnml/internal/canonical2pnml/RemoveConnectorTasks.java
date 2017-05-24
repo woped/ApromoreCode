@@ -20,34 +20,16 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
+import org.apromore.cpf.*;
+import org.apromore.cpf.NetType;
+import org.apromore.cpf.NodeType;
+import org.apromore.pnml.*;
+
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.apromore.cpf.ANDJoinType;
-import org.apromore.cpf.ANDSplitType;
-import org.apromore.cpf.CanonicalProcessType;
-import org.apromore.cpf.EdgeType;
-import org.apromore.cpf.JoinType;
-import org.apromore.cpf.MessageType;
-import org.apromore.cpf.NetType;
-import org.apromore.cpf.NodeType;
-import org.apromore.cpf.ResourceTypeRefType;
-import org.apromore.cpf.ResourceTypeType;
-import org.apromore.cpf.SplitType;
-import org.apromore.cpf.TaskType;
-import org.apromore.cpf.TimerType;
-import org.apromore.cpf.WorkType;
-import org.apromore.cpf.XORJoinType;
-import org.apromore.cpf.XORSplitType;
-import org.apromore.pnml.DimensionType;
-import org.apromore.pnml.GraphicsSimpleType;
-import org.apromore.pnml.OrganizationUnitType;
-import org.apromore.pnml.RoleType;
-import org.apromore.pnml.TransitionResourceType;
-import org.apromore.pnml.TriggerType;
 
 public class RemoveConnectorTasks {
     DataHandler data;

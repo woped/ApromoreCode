@@ -20,15 +20,15 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.math.BigInteger;
-import java.util.logging.Logger;
-
 import org.apromore.cpf.EdgeType;
 import org.apromore.cpf.NodeType;
 import org.apromore.pnml.ArcNameType;
 import org.apromore.pnml.ArcType;
 import org.apromore.pnml.PlaceType;
 import org.apromore.pnml.TransitionType;
+
+import java.math.BigInteger;
+import java.util.logging.Logger;
 
 public class TranslateEdge {
 

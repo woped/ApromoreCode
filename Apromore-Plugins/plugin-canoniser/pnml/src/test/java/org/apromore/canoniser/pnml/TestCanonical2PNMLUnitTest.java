@@ -20,26 +20,6 @@
 
 package org.apromore.canoniser.pnml;
 
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.StringTokenizer;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-
-import org.apromore.cpf.CanonicalProcessType;
-
-import org.apromore.anf.AnnotationsType;
-import org.apromore.pnml.ObjectFactory;
-import org.apromore.pnml.PnmlType;
-import org.dom4j.io.OutputFormat;
-import org.dom4j.io.XMLWriter;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -47,11 +27,6 @@ import static org.junit.Assert.assertTrue;
 
 @Ignore
 public class TestCanonical2PNMLUnitTest {
-
-	File anf_file = null;
-	File cpf_file = null;
-	File foldersave = new File("Apromore-Core/apromore-service/src/test/resources/PNML_models/woped_cases_mapped_pnml");
-	File output = null;
 
     public TestCanonical2PNMLUnitTest() {}
 

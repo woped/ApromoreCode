@@ -20,15 +20,15 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-
 import org.apromore.cpf.CanonicalProcessType;
 import org.apromore.pnml.ArcType;
 import org.apromore.pnml.PlaceType;
 import org.apromore.pnml.TransitionType;
+
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 public class UpdateSpecialOperators {
     DataHandler data;

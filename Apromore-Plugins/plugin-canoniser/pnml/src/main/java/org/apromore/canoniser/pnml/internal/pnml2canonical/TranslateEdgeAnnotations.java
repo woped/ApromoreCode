@@ -20,11 +20,11 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import java.util.List;
-
 import org.apromore.anf.GraphicsType;
 import org.apromore.anf.LineType;
 import org.apromore.anf.PositionType;
+
+import java.util.List;
 
 
 public abstract class TranslateEdgeAnnotations {

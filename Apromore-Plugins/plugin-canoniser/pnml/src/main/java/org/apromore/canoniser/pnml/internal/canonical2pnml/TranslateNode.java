@@ -20,28 +20,12 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
+import org.apromore.cpf.*;
+import org.apromore.cpf.NodeType;
+import org.apromore.pnml.*;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
-import org.apromore.cpf.MessageType;
-import org.apromore.cpf.NodeType;
-import org.apromore.cpf.ResourceTypeRefType;
-import org.apromore.cpf.ResourceTypeType;
-import org.apromore.cpf.TaskType;
-import org.apromore.cpf.TimerType;
-import org.apromore.pnml.ArcType;
-import org.apromore.pnml.DimensionType;
-import org.apromore.pnml.GraphicsNodeType;
-import org.apromore.pnml.GraphicsSimpleType;
-import org.apromore.pnml.NodeNameType;
-import org.apromore.pnml.OrganizationUnitType;
-import org.apromore.pnml.PlaceType;
-import org.apromore.pnml.PositionType;
-import org.apromore.pnml.RoleType;
-import org.apromore.pnml.TransitionResourceType;
-import org.apromore.pnml.TransitionToolspecificType;
-import org.apromore.pnml.TransitionType;
-import org.apromore.pnml.TriggerType;
 
 public class TranslateNode {
 

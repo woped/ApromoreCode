@@ -20,13 +20,6 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import java.io.File;
-import java.util.List;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-
 import org.apromore.anf.AnnotationsType;
 import org.apromore.canoniser.exception.CanoniserException;
 import org.apromore.cpf.CanonicalProcessType;
@@ -34,6 +27,13 @@ import org.apromore.pnml.NetType;
 import org.apromore.pnml.NetType.Page;
 import org.apromore.pnml.PageType;
 import org.apromore.pnml.PnmlType;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Marshaller;
+import java.io.File;
+import java.util.List;
 
 public class CheckForSubnet {
 

@@ -20,18 +20,14 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Logger;
-
-import org.apromore.cpf.ANDJoinType;
-import org.apromore.cpf.CancellationRefType;
-import org.apromore.cpf.CpfObjectFactory;
-import org.apromore.cpf.EdgeType;
-import org.apromore.cpf.WorkType;
+import org.apromore.cpf.*;
 import org.apromore.pnml.ArcType;
 import org.apromore.pnml.ArcTypeType;
 import org.apromore.pnml.NodeType;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Logger;
 
 public abstract class TranslateArc {
 

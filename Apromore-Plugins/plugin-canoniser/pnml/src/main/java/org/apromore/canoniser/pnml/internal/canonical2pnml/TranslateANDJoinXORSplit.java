@@ -20,21 +20,11 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
+import org.apromore.cpf.NodeType;
+import org.apromore.pnml.*;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
-
-import org.apromore.cpf.NodeType;
-import org.apromore.pnml.ArcNameType;
-import org.apromore.pnml.ArcToolspecificType;
-import org.apromore.pnml.ArcType;
-import org.apromore.pnml.GraphicsArcType;
-import org.apromore.pnml.NodeNameType;
-import org.apromore.pnml.OperatorType;
-import org.apromore.pnml.PlaceToolspecificType;
-import org.apromore.pnml.PlaceType;
-import org.apromore.pnml.PositionType;
-import org.apromore.pnml.TransitionToolspecificType;
-import org.apromore.pnml.TransitionType;
 
 public class TranslateANDJoinXORSplit {
     DataHandler data;

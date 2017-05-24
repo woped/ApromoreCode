@@ -20,12 +20,7 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import org.apromore.cpf.ANDSplitType;
-import org.apromore.cpf.EdgeType;
-import org.apromore.cpf.MessageType;
-import org.apromore.cpf.TaskType;
-import org.apromore.cpf.TimerType;
-import org.apromore.cpf.XORSplitType;
+import org.apromore.cpf.*;
 import org.apromore.pnml.TransitionType;
 
 public abstract class TranslateSplits {

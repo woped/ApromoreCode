@@ -20,30 +20,16 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Logger;
-
 import org.apromore.anf.AnnotationsType;
-import org.apromore.cpf.ANDJoinType;
-import org.apromore.cpf.ANDSplitType;
-import org.apromore.cpf.CancellationRefType;
-import org.apromore.cpf.EdgeType;
-import org.apromore.cpf.EventType;
-import org.apromore.cpf.NetType;
-import org.apromore.cpf.NodeType;
-import org.apromore.cpf.ORJoinType;
-import org.apromore.cpf.ORSplitType;
-import org.apromore.cpf.RoutingType;
-import org.apromore.cpf.StateType;
-import org.apromore.cpf.TaskType;
-import org.apromore.cpf.WorkType;
-import org.apromore.cpf.XORJoinType;
-import org.apromore.cpf.XORSplitType;
+import org.apromore.cpf.*;
 import org.apromore.pnml.ArcType;
 import org.apromore.pnml.ArcTypeType;
 import org.apromore.pnml.PlaceType;
 import org.apromore.pnml.TransitionType;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Logger;
 
 public class TranslateNet {
 

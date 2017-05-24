@@ -20,18 +20,12 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.util.LinkedList;
-import java.util.List;
-
 import org.apromore.anf.AnnotationType;
 import org.apromore.anf.AnnotationsType;
-import org.apromore.cpf.ANDJoinType;
-import org.apromore.cpf.ANDSplitType;
-import org.apromore.cpf.CanonicalProcessType;
-import org.apromore.cpf.EdgeType;
-import org.apromore.cpf.NetType;
-import org.apromore.cpf.XORJoinType;
-import org.apromore.cpf.XORSplitType;
+import org.apromore.cpf.*;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public class RemoveSplitJoins {
     DataHandler data;

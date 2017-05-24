@@ -20,14 +20,10 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
+import org.apromore.pnml.*;
+
 import java.util.LinkedList;
 import java.util.List;
-
-import org.apromore.pnml.ArcType;
-import org.apromore.pnml.NodeType;
-import org.apromore.pnml.PlaceType;
-import org.apromore.pnml.PnmlType;
-import org.apromore.pnml.TransitionType;
 
 public abstract class RemoveDuplicateXORS {
 

@@ -20,20 +20,13 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.math.BigInteger;
-import java.util.logging.Logger;
-
-import org.apromore.cpf.ANDJoinType;
-import org.apromore.cpf.ANDSplitType;
-import org.apromore.cpf.NodeType;
-import org.apromore.cpf.ORJoinType;
-import org.apromore.cpf.ORSplitType;
-import org.apromore.cpf.XORJoinType;
-import org.apromore.cpf.XORSplitType;
-import org.apromore.pnml.NodeNameType;
+import org.apromore.cpf.*;
 import org.apromore.pnml.OperatorType;
 import org.apromore.pnml.TransitionToolspecificType;
 import org.apromore.pnml.TransitionType;
+
+import java.math.BigInteger;
+import java.util.logging.Logger;
 
 public class TranslateOperators {
 

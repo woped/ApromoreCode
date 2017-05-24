@@ -20,14 +20,14 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import java.util.List;
-
 import org.apromore.cpf.EdgeType;
 import org.apromore.cpf.MessageType;
 import org.apromore.cpf.TaskType;
 import org.apromore.cpf.TimerType;
 import org.apromore.pnml.TransitionToolspecificType;
 import org.apromore.pnml.TransitionType;
+
+import java.util.List;
 
 public abstract class TranslateTrigger {
 

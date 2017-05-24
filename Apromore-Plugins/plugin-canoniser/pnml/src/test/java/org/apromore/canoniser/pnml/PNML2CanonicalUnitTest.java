@@ -20,27 +20,11 @@
 
 package org.apromore.canoniser.pnml;
 
-import org.apromore.anf.AnnotationsType;
+import org.apromore.anf.*;
 import org.apromore.canoniser.pnml.internal.PNML2Canonical;
 import org.apromore.canoniser.pnml.internal.pnml2canonical.NamespaceFilter;
-import org.apromore.cpf.ANDJoinType;
-import org.apromore.cpf.ANDSplitType;
-import org.apromore.cpf.CanonicalProcessType;
-import org.apromore.cpf.CpfObjectFactory;
-import org.apromore.cpf.CPFSchema;
-import org.apromore.cpf.CPFValidator;
-import org.apromore.cpf.EdgeType;
-import org.apromore.cpf.EventType;
-import org.apromore.cpf.NetType;
-import org.apromore.cpf.NodeType;
-import org.apromore.cpf.ObjectFactory;
-import org.apromore.cpf.StateType;
-import org.apromore.cpf.TaskType;
-import org.apromore.cpf.WorkType;
+import org.apromore.cpf.*;
 import org.apromore.pnml.PnmlType;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,25 +33,17 @@ import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
 
+import javax.xml.bind.*;
+import javax.xml.transform.sax.SAXSource;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import static java.util.Collections.emptyList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.StringTokenizer;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.sax.SAXSource;
+import java.util.*;
 
-import static org.junit.Assert.assertTrue;
+import static java.util.Collections.emptyList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 public class PNML2CanonicalUnitTest {
 
@@ -279,7 +255,6 @@ public class PNML2CanonicalUnitTest {
     /**
      * Test that PNML reset arcs are canonized into CPF cancellation sets.
      *
-     * The added complication compared to {@link testReset1} is additional routing nodes around task <code>t2</code>.
      */
     @Test
     public void testReset2() throws Exception {
@@ -403,16 +378,11 @@ public class PNML2CanonicalUnitTest {
         assert foldersave.isDirectory();
         File folder = new File("src/test/resources/PNML_testcases/woped_cases_expected_pnml");
         assert folder.isDirectory();
-        FileFilter fileFilter = new FileFilter() {
-            public boolean accept(File file) {
-                return file.isFile();
-            }
-        };
+        FileFilter fileFilter = file -> file.isFile();
 
         int n = 0;
         File[] folderContent = folder.listFiles(fileFilter);
-        for (int i = 0; i < folderContent.length; i++) {
-            File file = folderContent[i];
+        for (File file : folderContent) {
             String filename = file.getName();
             StringTokenizer tokenizer = new StringTokenizer(filename, ".");
             String filename_without_path = tokenizer.nextToken();
@@ -421,16 +391,16 @@ public class PNML2CanonicalUnitTest {
             if (extension.compareTo("pnml") == 0) {
                 //LOGGER.debug("Analysing " + filename);
                 n++;
-                
+
                 // @ignore the following failing tests
-                if (java.util.Arrays.asList("03_Example.pnml",
-                                            "04_Example-Workflow.pnml",
-                                                // XOR-split (t0_op_1, t0_op_2) and -join transitions (t6_op_1, t6_op_2) are duplicated
-                                            "06_LoanApplication.pnml",
-                                            "07_LoanApplicationResources.pnml",
-                                                // MessageType event (id 37) created for node named "wait for reply"
-                                            "15_XorSplitJoin.pnml"
-                                                // Multiple transitions named "t1" confuse the test matcher
+                if (Arrays.asList("03_Example.pnml",
+                        "04_Example-Workflow.pnml",
+                        // XOR-split (t0_op_1, t0_op_2) and -join transitions (t6_op_1, t6_op_2) are duplicated
+                        "06_LoanApplication.pnml",
+                        "07_LoanApplicationResources.pnml",
+                        // MessageType event (id 37) created for node named "wait for reply"
+                        "15_XorSplitJoin.pnml"
+                        // Multiple transitions named "t1" confuse the test matcher
                 ).contains(filename)) {
                     LOGGER.info("Bypassing " + filename);
                     continue;
@@ -476,16 +446,11 @@ public class PNML2CanonicalUnitTest {
                     JAXBElement<AnnotationsType> annsRootElem = new org.apromore.anf.ObjectFactory().createAnnotations(pn.getANF());
                     m.marshal(annsRootElem, new File(foldersave, filename_without_path + ".anf"));
 
-                } catch (JAXBException e) {
-                    e.printStackTrace();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
-            } else {
-                //LOGGER.debug("Skipping " + filename);
             }
         }
         LOGGER.debug("Analysed " + n + " files.");
     }
-
 }
