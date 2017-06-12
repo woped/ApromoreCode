@@ -163,6 +163,19 @@ public class TranslateNode {
             startToRunning.setSource(tran);
             startToRunning.setTarget(running);
             data.getNet().getArc().add(startToRunning);
+            
+            //Create the transition which ends the task
+            TransitionType end = new TransitionType();
+            end.setId(String.valueOf(ids++));
+            end.setGraphics(newGraphicsNodeType(dummyPosition(), transitionDefaultDimension()));
+            data.getNet().getTransition().add(end);
+            
+            //Create the arc from the end transition to the running place
+            ArcType runningToEnd = new ArcType();
+            runningToEnd.setId(String.valueOf(ids++));
+            runningToEnd.setSource(running);
+            runningToEnd.setTarget(end);
+            data.getNet().getArc().add(runningToEnd);
 
             // Name the nodes (English naming convention)
             String taskName = task.getName();
@@ -175,11 +188,15 @@ public class TranslateNode {
                 // Running place named "<Task>"
                 name = new NodeNameType();
                 running.setName(name);
+                
+             // end transition named "<Task>"
+                name = new NodeNameType();
+                end.setName(name);
             }
 
             // Tell TranslateArc where to attach incoming and outgoing arcs
             data.getStartNodeMap().put(task, tran);
-            data.getEndNodeMap().put(task, running);
+            data.getEndNodeMap().put(task, end);
         }
     }
 
