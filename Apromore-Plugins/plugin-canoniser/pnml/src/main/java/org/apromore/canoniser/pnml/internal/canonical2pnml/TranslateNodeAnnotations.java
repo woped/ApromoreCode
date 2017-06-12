@@ -21,6 +21,8 @@
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 
 import org.apromore.anf.AnnotationType;
 import org.apromore.anf.GraphicsType;
@@ -108,9 +110,34 @@ public class TranslateNodeAnnotations {
 
         assert cGraphInfo != null;
         if (cGraphInfo.getPosition() != null && cGraphInfo.getPosition().size() > 0) {
-            pos.setX(cGraphInfo.getPosition().get(0).getX());
-            pos.setY(cGraphInfo.getPosition().get(0).getY());
+        //Neuer Code (MK&JR)
+            try{
+                BigDecimal dimx = ((GraphicsType) annotation).getSize().getWidth();
+                dimx = dimx.round(new MathContext(3, RoundingMode.HALF_UP));
+                dimx = dimx.subtract(BigDecimal.valueOf(40));
+                dimx = dimx.divide(BigDecimal.valueOf(2));
+                dimx = dimx.add(cGraphInfo.getPosition().get(0).getX());
+                dimx = dimx.round(new MathContext(3, RoundingMode.HALF_UP));
+
+                BigDecimal dimy = ((GraphicsType) annotation).getSize().getHeight();
+                dimy = dimy.round(new MathContext(3, RoundingMode.HALF_UP));
+                dimy = dimy.subtract(BigDecimal.valueOf(40));
+                dimy = dimy.divide(BigDecimal.valueOf(2));
+                dimy = dimy.add(cGraphInfo.getPosition().get(0).getY());
+                dimy = dimy.round(new MathContext(3, RoundingMode.HALF_UP));
+
+                //pos.setX(cGraphInfo.getPosition().get(0).getX());
+                pos.setX(dimx);
+                //pos.setY(cGraphInfo.getPosition().get(0).getY());
+                pos.setY(dimy);
+
+                System.out.println("tryasdf");
+            } catch (Exception e) {
+                System.out.println("catch");
+            }
+
         }
+        //
         graphics.setPosition(pos);
         graphics.setDimension(dim);
 
@@ -139,6 +166,15 @@ public class TranslateNodeAnnotations {
             }
             
             ((TransitionType) obj).setGraphics(graphics);
+
+            //Neuer Code (MK&JR)
+            try {
+                ((TransitionType) obj).setName(nnt);
+            } catch (Exception e){
+
+            }
+            //
+
             if (data.get_triggermap()!=null&&data.get_triggermap().containsKey(((TransitionType) obj).getName().getText())) {
                 TriggerType tt = (data.get_triggermap_value(((TransitionType) obj).getName().getText()));
                 PositionType pt = new PositionType();
