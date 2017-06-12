@@ -20,27 +20,8 @@
 
 package org.apromore.canoniser.pnml;
 
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileInputStream;
-import java.util.StringTokenizer;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.sax.SAXSource;
-
-import org.apromore.anf.AnnotationsType;
-
-import org.apromore.cpf.CanonicalProcessType;
-import org.apromore.pnml.PnmlType;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.xml.sax.InputSource;
-import org.xml.sax.XMLReader;
-import org.xml.sax.helpers.XMLReaderFactory;
 
 import static org.junit.Assert.assertTrue;
 

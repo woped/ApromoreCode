@@ -20,13 +20,13 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.math.BigInteger;
-
 import org.apromore.cpf.NodeType;
 import org.apromore.pnml.NodeNameType;
 import org.apromore.pnml.OperatorType;
 import org.apromore.pnml.TransitionToolspecificType;
 import org.apromore.pnml.TransitionType;
+
+import java.math.BigInteger;
 
 public class TranslateANDSplitJoin {
     DataHandler data;

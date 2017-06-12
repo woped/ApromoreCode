@@ -20,11 +20,9 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import org.apromore.anf.AnnotationsType;
 import org.apromore.canoniser.exception.CanoniserException;
 import org.apromore.cpf.CanonicalProcessType;
 import org.apromore.cpf.NetType;
-import org.apromore.cpf.TypeAttribute;
 import org.apromore.pnml.PnmlType;
 
 public class TranslateSubnet {

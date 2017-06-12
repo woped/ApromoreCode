@@ -20,12 +20,12 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import java.util.List;
-
 import org.apromore.cpf.ResourceTypeRefType;
 import org.apromore.cpf.TaskType;
 import org.apromore.pnml.TransitionToolspecificType;
 import org.apromore.pnml.TransitionType;
+
+import java.util.List;
 
 public abstract class TranslateTransition {
 

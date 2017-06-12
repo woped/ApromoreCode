@@ -20,52 +20,29 @@
 
 package org.apromore.canoniser.pnml;
 
+import org.apromore.anf.ANFSchema;
 import org.apromore.anf.AnnotationsType;
 import org.apromore.canoniser.pnml.internal.Canonical2PNML;
 import org.apromore.canoniser.pnml.internal.pnml2canonical.NamespaceFilter;
-import org.apromore.anf.ANFSchema;
-import org.apromore.anf.AnnotationsType;
-import org.apromore.cpf.CanonicalProcessType;
 import org.apromore.cpf.CPFSchema;
-import org.apromore.pnml.ArcType;
-import org.apromore.pnml.ObjectFactory;
-import org.apromore.pnml.PNMLSchema;
-import org.apromore.pnml.PlaceType;
-import org.apromore.pnml.PnmlType;
-import org.apromore.pnml.NetType;
-import org.apromore.pnml.TransitionType;
+import org.apromore.cpf.CanonicalProcessType;
+import org.apromore.pnml.*;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
-import static org.junit.Assert.assertEquals;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.File;
-import java.io.FileFilter;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.StringTokenizer;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
 import org.xml.sax.SAXException;
 
-import static org.junit.Assert.assertTrue;
+import javax.xml.bind.*;
+import java.io.*;
+import java.util.StringTokenizer;
+
+import static org.junit.Assert.assertEquals;
 
 public class Canonical2PNMLUnitTest {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Canonical2PNMLUnitTest.class.getName());
-
-    File anf_file = null;
-    File cpf_file = null;
-    File foldersave = new File("Apromore-Core/apromore-service/src/test/resources/PNML_models/woped_cases_mapped_pnml");
-    File output = null;
 
     /**
      * Decanonize <code>Basic.cpf</code>.

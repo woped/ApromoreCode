@@ -20,12 +20,12 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.math.BigDecimal;
-
 import org.apromore.anf.AnnotationType;
 import org.apromore.anf.SimulationType;
 import org.apromore.pnml.ArcType;
 import org.apromore.pnml.PositionType;
+
+import java.math.BigDecimal;
 
 //import org.apromore.anf.AdditionalEdgeInformationType;
 

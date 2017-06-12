@@ -43,17 +43,16 @@ import org.apromore.canoniser.pnml.internal.pnml2canonical.CheckForSubnet;
 import org.apromore.canoniser.pnml.internal.pnml2canonical.DataHandler;
 import org.apromore.canoniser.pnml.internal.pnml2canonical.RemoveDuplicateXORS;
 import org.apromore.canoniser.pnml.internal.pnml2canonical.TranslatePetriNet;
+import org.apromore.cpf.CPFSchema;
 import org.apromore.cpf.CanonicalProcessType;
 import org.apromore.cpf.CpfObjectFactory;
-import org.apromore.cpf.CPFSchema;
 import org.apromore.cpf.NetType;
-import org.apromore.cpf.TypeAttribute;
 import org.apromore.pnml.PNMLSchema;
 import org.apromore.pnml.PnmlType;
 
 public class PNML2Canonical {
 
-    DataHandler data = new DataHandler();
+    private DataHandler data = new DataHandler();
 
     public CanonicalProcessType getCPF() {
         return data.getCanonicalProcess();
@@ -98,9 +97,9 @@ public class PNML2Canonical {
         main(pnml, isCpfTaskPnmlTransition, isCpfEdgePnmlPlace);
     }
 
-    void main(final PnmlType pnml,
-              final boolean  isCpfTaskPnmlTransition,
-              final boolean  isCpfEdgePnmlPlace) throws CanoniserException {
+    private void main(final PnmlType pnml,
+                      final boolean  isCpfTaskPnmlTransition,
+                      final boolean  isCpfEdgePnmlPlace) throws CanoniserException {
 
         CanonicalProcessType cpf = CpfObjectFactory.getInstance().createCanonicalProcessType();
         cpf.setName("dummy");

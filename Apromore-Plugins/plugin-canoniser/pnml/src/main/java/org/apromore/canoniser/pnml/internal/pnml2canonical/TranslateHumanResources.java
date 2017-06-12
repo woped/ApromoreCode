@@ -20,17 +20,12 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apromore.cpf.HumanType;
 import org.apromore.cpf.ResourceTypeType;
-import org.apromore.pnml.NetToolspecificType;
-import org.apromore.pnml.OrganizationUnitType;
-import org.apromore.pnml.ResourceMappingType;
-import org.apromore.pnml.ResourceType;
-import org.apromore.pnml.ResourcesType;
-import org.apromore.pnml.RoleType;
+import org.apromore.pnml.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public abstract class TranslateHumanResources {
 

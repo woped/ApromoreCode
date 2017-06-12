@@ -20,19 +20,12 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import java.math.BigInteger;
-import java.util.List;
-
-import org.apromore.anf.CpfTypeEnum;
-import org.apromore.anf.FillType;
-import org.apromore.anf.FontType;
-import org.apromore.anf.GraphicsType;
-import org.apromore.anf.LineType;
-import org.apromore.anf.PositionType;
-import org.apromore.anf.SimulationType;
-import org.apromore.anf.SizeType;
+import org.apromore.anf.*;
 import org.apromore.pnml.Fill;
 import org.apromore.pnml.PlaceType;
+
+import java.math.BigInteger;
+import java.util.List;
 
 public abstract class TranslateNodeAnnotations {
 

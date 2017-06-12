@@ -20,11 +20,11 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import java.util.List;
-
 import org.apromore.anf.CpfTypeEnum;
 import org.apromore.anf.SimulationType;
 import org.apromore.pnml.ArcToolspecificType;
+
+import java.util.List;
 
 public abstract class TranslateArcToolspecific {
 

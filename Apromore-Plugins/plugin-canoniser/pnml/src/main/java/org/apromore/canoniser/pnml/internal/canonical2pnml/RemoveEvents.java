@@ -20,27 +20,18 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
+import org.apromore.anf.AnnotationType;
+import org.apromore.anf.AnnotationsType;
+import org.apromore.cpf.*;
+import org.apromore.pnml.DimensionType;
+import org.apromore.pnml.GraphicsSimpleType;
+import org.apromore.pnml.TriggerType;
+
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.apromore.anf.AnnotationType;
-import org.apromore.anf.AnnotationsType;
-import org.apromore.cpf.CanonicalProcessType;
-import org.apromore.cpf.EdgeType;
-import org.apromore.cpf.EventType;
-import org.apromore.cpf.JoinType;
-import org.apromore.cpf.MessageType;
-import org.apromore.cpf.NetType;
-import org.apromore.cpf.NodeType;
-import org.apromore.cpf.SplitType;
-import org.apromore.cpf.TaskType;
-import org.apromore.cpf.TimerType;
-import org.apromore.pnml.DimensionType;
-import org.apromore.pnml.GraphicsSimpleType;
-import org.apromore.pnml.TriggerType;
 
 public class RemoveEvents {
     DataHandler data;

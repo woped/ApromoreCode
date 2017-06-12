@@ -22,7 +22,6 @@ package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 
 public abstract class RemoveDuplicateListItems {
@@ -32,7 +31,7 @@ public abstract class RemoveDuplicateListItems {
      *
      * E.g. [a,b,r,a,c,a,d,a,b,r,a] becomes [a,a,a,a,b,r]
      *
-     * @param list  will be mutated, may not be <code>null</code>, must support the options {@link List.remove} operation
+     * @param list  will be mutated, may not be <code>null</code>, must support the {@link Iterator#remove} operation
      * @return <var>list</var>, redundantly since the parameter is mutated into the result as well
      */
     public static List<String> transform(List<String> list) {

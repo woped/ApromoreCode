@@ -20,23 +20,18 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Logger;
 import org.apromore.canoniser.exception.CanoniserException;
 import org.apromore.cpf.CancellationRefType;
 import org.apromore.cpf.CpfObjectFactory;
 import org.apromore.cpf.EdgeType;
 import org.apromore.cpf.WorkType;
-import org.apromore.pnml.ArcType;
-import org.apromore.pnml.NetToolspecificType;
-import org.apromore.pnml.NetType;
-import org.apromore.pnml.NodeType;
-import org.apromore.pnml.PlaceType;
-import org.apromore.pnml.TransitionToolspecificType;
-import org.apromore.pnml.TransitionType;
+import org.apromore.pnml.*;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.logging.Logger;
 
 public abstract class TranslatePetriNet {
 

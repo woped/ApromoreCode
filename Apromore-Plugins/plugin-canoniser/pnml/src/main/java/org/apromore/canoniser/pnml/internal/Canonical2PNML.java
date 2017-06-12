@@ -30,50 +30,31 @@
 
 package org.apromore.canoniser.pnml.internal;
 
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.logging.Logger;
-
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
-
 import org.apromore.anf.AnnotationsType;
-import org.apromore.canoniser.pnml.internal.canonical2pnml.AddXorOperators;
-import org.apromore.canoniser.pnml.internal.canonical2pnml.DataHandler;
-import org.apromore.pnml.NodeType;
-import org.apromore.canoniser.pnml.internal.canonical2pnml.RemoveConnectorTasks;
-import org.apromore.canoniser.pnml.internal.canonical2pnml.RemoveEvents;
-import org.apromore.canoniser.pnml.internal.canonical2pnml.RemoveSplitJoins;
-import org.apromore.canoniser.pnml.internal.canonical2pnml.RemoveState;
-import org.apromore.canoniser.pnml.internal.canonical2pnml.TranslateAnnotations;
-import org.apromore.canoniser.pnml.internal.canonical2pnml.TranslateHumanResources;
-import org.apromore.canoniser.pnml.internal.canonical2pnml.TranslateNet;
-import org.apromore.canoniser.pnml.internal.canonical2pnml.TranslateSubnet;
-import org.apromore.canoniser.pnml.internal.canonical2pnml.UpdateSpecialOperators;
-import org.apromore.cpf.CanonicalProcessType;
+import org.apromore.canoniser.pnml.internal.canonical2pnml.*;
 import org.apromore.cpf.CPFSchema;
+import org.apromore.cpf.CanonicalProcessType;
 import org.apromore.cpf.NetType;
 import org.apromore.cpf.ResourceTypeType;
-import org.apromore.pnml.ArcType;
-import org.apromore.pnml.PNMLSchema;
-import org.apromore.pnml.PlaceType;
-import org.apromore.pnml.PnmlType;
-//import org.apromore.pnml.PositionType;
-import org.apromore.pnml.TransitionType;
+import org.apromore.pnml.*;
+
+import java.math.BigDecimal;
+import java.util.HashSet;
+import java.util.logging.Logger;
 
 public class Canonical2PNML {
 
     static final private Logger LOGGER = Logger.getLogger(Canonical2PNML.class.getCanonicalName());
 
-    DataHandler data = new DataHandler();
-    RemoveConnectorTasks removeConnectorTasks = new RemoveConnectorTasks();
-    RemoveEvents removeEvents = new RemoveEvents();
-    RemoveState removeState = new RemoveState();
-    RemoveSplitJoins removeSplitJoins = new RemoveSplitJoins();
-    TranslateAnnotations ta = new TranslateAnnotations();
-    TranslateNet tn = new TranslateNet();
+    private DataHandler data = new DataHandler();
+    private RemoveConnectorTasks removeConnectorTasks = new RemoveConnectorTasks();
+    private RemoveEvents removeEvents = new RemoveEvents();
+    private RemoveState removeState = new RemoveState();
+    private RemoveSplitJoins removeSplitJoins = new RemoveSplitJoins();
+    private TranslateAnnotations ta = new TranslateAnnotations();
+    private TranslateNet tn = new TranslateNet();
     private long ids = 0;  //System.currentTimeMillis();
 
     public PnmlType getPNML() {

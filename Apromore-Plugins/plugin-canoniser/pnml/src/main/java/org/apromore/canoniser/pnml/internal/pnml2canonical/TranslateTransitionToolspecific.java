@@ -20,11 +20,6 @@
 
 package org.apromore.canoniser.pnml.internal.pnml2canonical;
 
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apromore.anf.SimulationType;
 import org.apromore.cpf.ResourceTypeRefType;
 import org.apromore.cpf.ResourceTypeType;
@@ -32,6 +27,9 @@ import org.apromore.cpf.WorkType;
 import org.apromore.pnml.OrganizationUnitType;
 import org.apromore.pnml.RoleType;
 import org.apromore.pnml.TransitionToolspecificType;
+
+import java.math.BigInteger;
+import java.util.List;
 
 public abstract class TranslateTransitionToolspecific {
 

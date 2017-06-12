@@ -20,10 +20,6 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.logging.Logger;
-
 import org.apromore.cpf.CanonicalProcessType;
 import org.apromore.cpf.EdgeType;
 import org.apromore.cpf.NetType;
@@ -33,15 +29,15 @@ import org.apromore.pnml.ArcType;
 import org.apromore.pnml.TransitionToolspecificType;
 import org.apromore.pnml.TransitionType;
 
+import java.util.LinkedList;
+import java.util.List;
+
 public class AddXorOperators {
 
-    static final private Logger LOGGER = Logger.getLogger(AddXorOperators.class.getCanonicalName());
-
-    DataHandler data;
-    long ids;
-    TransitionType trandouble;
-    CanonicalProcessType cproc;
-    List<ArcType> arcs;
+    protected DataHandler data;
+    protected long ids;
+    protected CanonicalProcessType cproc;
+    protected List<ArcType> arcs;
 
     public void setValues(DataHandler data, long ids) {
         this.data = data;
@@ -75,7 +71,7 @@ public class AddXorOperators {
                         }
                         data.getNet().getTransition().add(tran);
                         if (i == 1) {
-                            arcs = new LinkedList<ArcType>();
+                            arcs = new LinkedList<>();
                         }
                         ArcType newarc = null;
                         for (ArcType arc : data.getNet().getArc()) {
@@ -127,7 +123,7 @@ public class AddXorOperators {
                         }
                         data.getNet().getTransition().add(tran);
                         if (i == 1) {
-                            arcs = new LinkedList<ArcType>();
+                            arcs = new LinkedList<>();
                         }
                         ArcType newarc = null;
                         for (ArcType arc : data.getNet().getArc()) {

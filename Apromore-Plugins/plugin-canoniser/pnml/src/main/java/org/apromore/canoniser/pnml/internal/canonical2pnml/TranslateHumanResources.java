@@ -20,19 +20,15 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
+import org.apromore.cpf.CanonicalProcessType;
+import org.apromore.cpf.HumanType;
+import org.apromore.cpf.ResourceTypeType;
+import org.apromore.pnml.*;
+
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-
-import org.apromore.cpf.CanonicalProcessType;
-import org.apromore.cpf.HumanType;
-import org.apromore.cpf.ResourceTypeType;
-import org.apromore.pnml.NetToolspecificType;
-import org.apromore.pnml.OrganizationUnitType;
-import org.apromore.pnml.ResourceMappingType;
-import org.apromore.pnml.ResourceType;
-import org.apromore.pnml.RoleType;
 
 public class TranslateHumanResources {
     DataHandler data;

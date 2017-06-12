@@ -20,18 +20,6 @@
 
 package org.apromore.canoniser.pnml;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.util.Date;
-import java.util.List;
-
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBElement;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.Unmarshaller;
-import javax.xml.transform.sax.SAXSource;
-
 import org.apromore.anf.AnnotationsType;
 import org.apromore.canoniser.Canoniser;
 import org.apromore.canoniser.DefaultAbstractCanoniser;
@@ -53,8 +41,17 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
-import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.XMLReaderFactory;
+
+import javax.xml.bind.JAXBContext;
+import javax.xml.bind.JAXBElement;
+import javax.xml.bind.JAXBException;
+import javax.xml.bind.Unmarshaller;
+import javax.xml.transform.sax.SAXSource;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Date;
+import java.util.List;
 
 /**
  * PNML 1.3.2 Canoniser Plugin
@@ -77,10 +74,10 @@ public class PNML132Canoniser extends DefaultAbstractCanoniser {
     /**
      * Sole constructor.
      */
-    public PNML132Canoniser() {
+    PNML132Canoniser() {
         super();
 
-        CPF_TASK_TO_PNML_TRANSITION = new PluginParameterType<Boolean>(
+        CPF_TASK_TO_PNML_TRANSITION = new PluginParameterType<>(
             "isCpfTaskPnmlTransition",
             "Treat CPF Tasks as PNML Transitions?",
             "Treat CPF Tasks as PNML Transitions (i.e. with negligible duration)",
@@ -90,7 +87,7 @@ public class PNML132Canoniser extends DefaultAbstractCanoniser {
         );
         registerParameter(CPF_TASK_TO_PNML_TRANSITION);
 
-        PNML_TRANSITION_TO_CPF_TASK = new PluginParameterType<Boolean>(
+        PNML_TRANSITION_TO_CPF_TASK = new PluginParameterType<>(
             "isCpfTaskPnmlTransition",
             "Treat CPF Tasks as PNML Transitions?",
             "Treat CPF Tasks as PNML Transitions (i.e. with negligible duration)",
@@ -100,7 +97,7 @@ public class PNML132Canoniser extends DefaultAbstractCanoniser {
         );
         registerParameter(PNML_TRANSITION_TO_CPF_TASK);
 
-        CPF_EDGE_TO_PNML_PLACE = new PluginParameterType<Boolean>(
+        CPF_EDGE_TO_PNML_PLACE = new PluginParameterType<>(
             "isCpfEdgePnmlPlace",
             "Treat CPF Edges as PNML Places?",
             "Treat CPF Edges as PNML Places (i.e. with non-negligible duration)",
@@ -110,7 +107,7 @@ public class PNML132Canoniser extends DefaultAbstractCanoniser {
         );
         registerParameter(CPF_EDGE_TO_PNML_PLACE);
 
-        PNML_PLACE_TO_CPF_EDGE = new PluginParameterType<Boolean>(
+        PNML_PLACE_TO_CPF_EDGE = new PluginParameterType<>(
             "isCpfEdgePnmlPlace",
             "Treat CPF Edges as PNML Places?",
             "Treat CPF Edges as PNML Places (i.e. with non-negligible duration)",

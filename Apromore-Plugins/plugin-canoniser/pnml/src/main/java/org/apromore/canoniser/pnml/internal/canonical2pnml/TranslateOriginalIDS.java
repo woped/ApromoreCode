@@ -20,11 +20,11 @@
 
 package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
-import java.math.BigInteger;
-
 import org.apromore.pnml.ArcType;
 import org.apromore.pnml.PlaceType;
 import org.apromore.pnml.TransitionType;
+
+import java.math.BigInteger;
 
 public class TranslateOriginalIDS {
     DataHandler data;
