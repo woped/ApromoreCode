@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cpf:CanonicalProcess xmlns:cpf="http://www.apromore.org/CPF" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns4="http://www.processconfiguration.com" xmlns:ns5="http://www.omg.org/spec/DD/20100524/DI" xmlns:ns6="http://www.omg.org/spec/DD/20100524/DC" xmlns:ns7="http://www.omg.org/spec/BPMN/20100524/DI" name="">
+    <Net id="sid-6a1b238d-8dd3-4159-b695-65adeca73969">
+        <Node xsi:type="cpf:EventType" id="sid-28BFDF74-7C39-41F6-B9D0-1AD41876171E">
+            <name>E1</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:EventType" id="sid-808E8979-8E8C-4CB1-8323-91717BCF2309">
+            <name>E3</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:TimerType" id="sid-124DF19B-48E0-4E83-9B05-C43683555B53">
+            <name>E2</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Edge id="sid-E0264CD4-2F54-470F-8CFE-487B526155FD" default="false" sourceId="sid-124DF19B-48E0-4E83-9B05-C43683555B53" targetId="sid-808E8979-8E8C-4CB1-8323-91717BCF2309" originalID="sid-E0264CD4-2F54-470F-8CFE-487B526155FD">
+            <attribute name="name" value=""/>
+        </Edge>
+        <Edge id="sid-DAEFC36D-66D7-4F87-BE9F-F08CA6CB68BC" default="false" sourceId="sid-28BFDF74-7C39-41F6-B9D0-1AD41876171E" targetId="sid-124DF19B-48E0-4E83-9B05-C43683555B53" originalID="sid-DAEFC36D-66D7-4F87-BE9F-F08CA6CB68BC">
+            <attribute name="name" value=""/>
+        </Edge>
+    </Net>
+    <attribute name="BranchName" value="MAIN"/>
+    <attribute name="RootFragmentId" value="196"/>
+    <attribute name="VersionNumber" value="1.1"/>
+    <attribute name="ProcessName" value="Intermediateevent without Task"/>
+    <attribute name="PMVID" value="126"/>
+    <attribute name="BranchID" value="81"/>
+    <attribute name="IntialFormat" value="BPMN 2.0"/>
+</cpf:CanonicalProcess>

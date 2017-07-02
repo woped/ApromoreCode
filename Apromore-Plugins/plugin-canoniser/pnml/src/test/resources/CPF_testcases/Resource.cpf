@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cpf:CanonicalProcess xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:cpf="http://www.apromore.org/CPF" xmlns:ns4="http://www.omg.org/spec/DD/20100524/DI" xmlns:ns5="http://www.processconfiguration.com" xmlns:ns6="http://www.omg.org/spec/DD/20100524/DC" xmlns:ns7="http://www.omg.org/spec/BPMN/20100524/DI" name="" version="1.1" uri="">
+    <Net id="sid-ba440861-c0fa-44c5-9359-e83ed83dea43">
+        <Node xsi:type="cpf:EventType" id="sid-E1B9F7B2-2267-4C40-BBCB-5DC956CC97C2">
+            <name>E2</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:EventType" id="sid-8FCCDDB3-D974-4720-8B8F-F10BB7F125A1">
+            <name>E1</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:TaskType" id="sid-9431130B-B3C6-4C5C-95CA-8CBBFFD9D3DA">
+            <name>T1</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffcc"/>
+            </attribute>
+        </Node>
+        <Edge id="sid-B7947178-1FA0-4103-8030-56AE120025FB" default="false" sourceId="sid-9431130B-B3C6-4C5C-95CA-8CBBFFD9D3DA" targetId="sid-E1B9F7B2-2267-4C40-BBCB-5DC956CC97C2" originalID="sid-B7947178-1FA0-4103-8030-56AE120025FB">
+            <attribute name="name" value=""/>
+        </Edge>
+        <Edge id="sid-98154CF2-39B7-4DC9-BA29-A0794028EC78" default="false" sourceId="sid-8FCCDDB3-D974-4720-8B8F-F10BB7F125A1" targetId="sid-9431130B-B3C6-4C5C-95CA-8CBBFFD9D3DA" originalID="sid-98154CF2-39B7-4DC9-BA29-A0794028EC78">
+            <attribute name="name" value=""/>
+        </Edge>
+    </Net>
+    <attribute name="IntialFormat" value="BPMN 2.0"/>
+    <attribute name="ProcessName" value="Resource"/>
+    <attribute name="RootFragmentId" value="8"/>
+    <attribute name="BranchName" value="MAIN"/>
+    <attribute name="BranchID" value="4"/>
+    <attribute name="VersionNumber" value="1.2"/>
+    <attribute name="PMVID" value="8"/>
+</cpf:CanonicalProcess>

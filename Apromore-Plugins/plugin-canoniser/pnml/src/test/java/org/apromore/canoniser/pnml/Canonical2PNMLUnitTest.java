@@ -37,8 +37,10 @@ import org.xml.sax.SAXException;
 import javax.xml.bind.*;
 import java.io.*;
 import java.util.StringTokenizer;
+import java.math.BigDecimal;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import org.junit.Ignore;
 
 public class Canonical2PNMLUnitTest {
@@ -236,6 +238,206 @@ public class Canonical2PNMLUnitTest {
         assertEquals(20, net.getArc().size());  // 12 edges, 8 resets
         assertEquals(6, net.getPlace().size());  // 1 start, 1 task, 1 end, 1 timer event, 1 message event, 1 synthetic
         assertEquals(5, net.getTransition().size());  // 2 task, 1 timer event, 1 message event, 1 AND-split
+    }
+    
+    /**
+     * Decanonize <code>Standard.cpf</code>.
+     *
+     * this verifys that the graphics of the elements get adjusted correct
+     */
+    @Test
+    public void testGraphicalAdjustments() throws Exception {
+        PnmlType pnml = decanonise("Standard.cpf",   // input file
+                                   null,                       // no ANF file
+                                   "Standard.pnml",  // output file
+                                   true,                      // tasks have a (resettable) place while they execute
+                                   false);                     // don't generate addition places for the CPF edges
+
+        // Inspect the result
+        NetType net = pnml.getNet().get(0);
+        BigDecimal YPlace = net.getPlace().get(0).getGraphics().getPosition().getY();
+        BigDecimal YTransition = net.getTransition().get(0).getGraphics().getPosition().getY();
+        
+        assertEquals(YPlace, YTransition);
+       }
+    
+    /**
+     * Decanonize <code>Resource.cpf</code>.
+     *
+     * this verifys that the resource for example the bpmn pools/lanes get allocated correct
+     * 
+     */
+    @Ignore
+    @Test
+    public void testResourceAllocation() throws Exception {
+        PnmlType pnml = decanonise("Resource.cpf",   // input file
+                                   null,                       // no ANF file
+                                   "Resource.pnml",  // output file
+                                   true,                      // tasks have a (resettable) place while they execute
+                                   false);                     // don't generate addition places for the CPF edges
+
+        // Inspect the result
+        NetType net = pnml.getNet().get(0);
+        TransitionType transition = null;
+        for(int i=0; i< net.getTransition().size();i++){
+        	if(net.getTransition().get(i).getName().getText().equals("T1")){
+        		transition = net.getTransition().get(i);
+        	}
+        }
+        
+        assertEquals(transition.getToolspecific().get(0).getTransitionResource().getRoleName(), "L1");
+       }
+    
+    /**
+     * Decanonize <code>Multiple Tasks.cpf</code>.
+     *
+     * this verifys that Multiple tasks get a place between them
+     * 
+     */
+    @Test
+    public void testMultipleTasks() throws Exception {
+        PnmlType pnml = decanonise("Multiple Tasks.cpf",   // input file
+                                   null,            // no ANF file
+                                   "Multiple Tasks.pnml",  // output file
+                                   true,           // tasks have a (resettable) place while they execute
+                                   false);          // don't generate addition places for the CPF edges
+
+        // Inspect the result
+        assertEquals(1, pnml.getNet().size());
+        NetType net = pnml.getNet().get(0);
+        assertEquals(4, net.getArc().size());
+        assertEquals(3, net.getPlace().size());
+        assertEquals(2, net.getTransition().size());
+    }
+    
+    /**
+     * Decanonize <code>Nested operators.cpf</code>.
+     *
+     * this verifys that nested operators get translated correct
+     * 
+     */
+    @Test
+    public void testNestedOperators() throws Exception {
+        PnmlType pnml = decanonise("Nested operators.cpf",   // input file
+                                   null,            // no ANF file
+                                   "Nested operators.pnml",  // output file
+                                   true,           // tasks have a (resettable) place while they execute
+                                   false);          // don't generate addition places for the CPF edges
+
+        // Inspect the result
+        assertEquals(1, pnml.getNet().size());
+        NetType net = pnml.getNet().get(0);
+        assertEquals(14, net.getArc().size());
+        assertEquals(7, net.getPlace().size());
+        assertEquals(6, net.getTransition().size()); //4 Tasks, 2 AND & 2 XOR
+    }
+    
+    /**
+     * Decanonize <code>Missing Endevent.cpf</code>.
+     *
+     * this verifys that in case of an missing endevent one will be added
+     * 
+     * function not yet implemented 
+     * 
+     */
+    @Test
+    @Ignore
+    public void testMissingEndevent() throws Exception {
+        PnmlType pnml = decanonise("Missing Endevent.cpf",   // input file
+                                   null,            // no ANF file
+                                   "Missing Endevent.pnml",  // output file
+                                   true,           // tasks have a (resettable) place while they execute
+                                   false);          // don't generate addition places for the CPF edges
+
+        // Inspect the result
+        assertEquals(1, pnml.getNet().size());
+        NetType net = pnml.getNet().get(0);
+        assertEquals(2, net.getArc().size());
+        assertEquals(2, net.getPlace().size());
+        assertEquals(1, net.getTransition().size()); 
+    }
+    
+    /**
+     * Decanonize <code>Missing Startevent.cpf</code>.
+     *
+     * this verifys that in case of an missing StartEvent one will be added
+     * 
+     * function not yet implemented
+     * 
+     */
+    @Test
+    @Ignore
+    public void testMissingStartEvent() throws Exception {
+        PnmlType pnml = decanonise("Missing Startevent.cpf",   // input file
+                                   null,            // no ANF file
+                                   "Missing Startevent.pnml",  // output file
+                                   true,           // tasks have a (resettable) place while they execute
+                                   false);          // don't generate addition places for the CPF edges
+
+        // Inspect the result
+        assertEquals(1, pnml.getNet().size());
+        NetType net = pnml.getNet().get(0);
+        assertEquals(2, net.getArc().size());
+        assertEquals(2, net.getPlace().size());
+        assertEquals(1, net.getTransition().size()); 
+    }
+    
+    /**
+     * Decanonize <code>Subprocess.cpf</code>.
+     *
+     * this verifys that subprocesses get translated correct
+     * 
+     * function not yet implemented
+     * 
+     */
+    @Ignore
+    @Test
+    public void testSubprocess() throws Exception {
+        PnmlType pnml = decanonise("Subprocess.cpf",   // input file
+                                   null,            // no ANF file
+                                   "Subprocess.pnml",  // output file
+                                   true,           // tasks have a (resettable) place while they execute
+                                   false);          // don't generate addition places for the CPF edges
+
+        // Inspect the result
+        assertEquals(1, pnml.getNet().size());
+        NetType net = pnml.getNet().get(0);
+        assertEquals(1, net.getTransition().size());
+        assertEquals(1, net.getTransition().get(0).getToolspecific().size());
+        assertTrue(net.getTransition().get(0).getToolspecific().get(0).isSubprocess());
+        
+    }
+    
+    /**
+     * Decanonize <code>Subprocess expanded.cpf</code>.
+     *
+     * this verifys that expanded subprocesses get translated correct
+     * 
+     * function not yet implemented
+     * 
+     */
+    @Ignore
+    @Test
+    public void testSubprocessExpanded() throws Exception {
+        PnmlType pnml = decanonise("Subprocess expanded.cpf",   // input file
+                                   null,            // no ANF file
+                                   "Subprocess expanded.pnml",  // output file
+                                   true,           // tasks have a (resettable) place while they execute
+                                   false);          // don't generate addition places for the CPF edges
+
+        // Inspect the result
+        assertEquals(1, pnml.getNet().size());
+        NetType net = pnml.getNet().get(0);
+        assertEquals(2, net.getTransition().size());
+        TransitionType subProcess = null;
+        for(int i = 0; i<net.getTransition().size();i++){
+        	if(net.getTransition().get(i).getName().getText().equals("SP")){
+        		subProcess = net.getTransition().get(i);
+        	}
+        }
+        assertEquals(1, net.getTransition().get(0).getToolspecific().size());
+        assertTrue(subProcess.getToolspecific().get(0).isSubprocess());
+        
     }
 
 

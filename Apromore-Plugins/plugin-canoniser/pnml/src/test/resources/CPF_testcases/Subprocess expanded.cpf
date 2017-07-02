@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cpf:CanonicalProcess xmlns:cpf="http://www.apromore.org/CPF" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns4="http://www.processconfiguration.com" xmlns:ns5="http://www.omg.org/spec/DD/20100524/DI" xmlns:ns6="http://www.omg.org/spec/DD/20100524/DC" xmlns:ns7="http://www.omg.org/spec/BPMN/20100524/DI" name="" version="1.1" uri="">
+    <Net id="id-a34b60de-43db-489d-9cbf-37519390e064">
+        <Node xsi:type="cpf:EventType" id="sid-47CF2A9B-6DD4-4F69-A128-A8E238766613">
+            <name>E11</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:EventType" id="sid-FF1A4612-0195-46F7-A01F-0DF6F98A5A6C">
+            <name>E12</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:TaskType" id="sid-5BBF8C2C-2B61-4F74-9E12-7BB1CE68D832">
+            <name>T11</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffcc"/>
+            </attribute>
+        </Node>
+        <Edge id="sid-35825F63-C35F-4392-B889-52029C3212BC" default="false" sourceId="sid-5BBF8C2C-2B61-4F74-9E12-7BB1CE68D832" targetId="sid-FF1A4612-0195-46F7-A01F-0DF6F98A5A6C" originalID="sid-35825F63-C35F-4392-B889-52029C3212BC">
+            <attribute name="name" value=""/>
+        </Edge>
+        <Edge id="sid-E4F9173F-FF31-45CF-840D-D28C3F9CA928" default="false" sourceId="sid-47CF2A9B-6DD4-4F69-A128-A8E238766613" targetId="sid-5BBF8C2C-2B61-4F74-9E12-7BB1CE68D832" originalID="sid-E4F9173F-FF31-45CF-840D-D28C3F9CA928">
+            <attribute name="name" value=""/>
+        </Edge>
+    </Net>
+    <Net id="sid-66d693c0-d482-4cb3-b1b4-0cef56654eae">
+        <Node xsi:type="cpf:TaskType" id="sid-60886DED-D0EA-4FB3-BA29-F94BB79B6402">
+            <name>SP</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:EventType" id="sid-046841ED-9D47-4AB7-A2B6-449B128CF2F6">
+            <name>E2</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:EventType" id="sid-F354F43C-315B-4A0A-96A1-B235FF2173F5">
+            <name>E1</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Edge id="sid-82B203E5-5125-4DFA-9308-18AFE791F182" default="false" sourceId="sid-F354F43C-315B-4A0A-96A1-B235FF2173F5" targetId="sid-60886DED-D0EA-4FB3-BA29-F94BB79B6402" originalID="sid-82B203E5-5125-4DFA-9308-18AFE791F182">
+            <attribute name="name" value=""/>
+        </Edge>
+        <Edge id="sid-93B7D1AD-D06C-4C2D-BC8B-CAA02162FB61" default="false" sourceId="sid-60886DED-D0EA-4FB3-BA29-F94BB79B6402" targetId="sid-046841ED-9D47-4AB7-A2B6-449B128CF2F6" originalID="sid-93B7D1AD-D06C-4C2D-BC8B-CAA02162FB61">
+            <attribute name="name" value=""/>
+        </Edge>
+    </Net>
+    <attribute name="BranchName" value="MAIN"/>
+    <attribute name="RootFragmentId" value="209"/>
+    <attribute name="VersionNumber" value="1.1"/>
+    <attribute name="ProcessName" value="Subprocess expanded"/>
+    <attribute name="PMVID" value="133"/>
+    <attribute name="BranchID" value="86"/>
+    <attribute name="IntialFormat" value="BPMN 2.0"/>
+</cpf:CanonicalProcess>

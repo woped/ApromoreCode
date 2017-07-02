@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cpf:CanonicalProcess xmlns:cpf="http://www.apromore.org/CPF" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns4="http://www.processconfiguration.com" xmlns:ns5="http://www.omg.org/spec/DD/20100524/DI" xmlns:ns6="http://www.omg.org/spec/DD/20100524/DC" xmlns:ns7="http://www.omg.org/spec/BPMN/20100524/DI" name="" version="1.2" uri="">
+    <Net id="sid-9eee3cab-736b-4c45-b581-5403b33d4f68">
+        <Node xsi:type="cpf:TaskType" id="sid-3E56D35D-1E14-4274-B525-B068C860981E">
+            <name>T</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffcc"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:EventType" id="sid-72AB2B0D-84FD-449C-854C-EBD82F6456CC">
+            <name>E1</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Edge id="sid-1644981E-0DD6-425B-9E7D-053382BFDBC3" default="false" sourceId="sid-3E56D35D-1E14-4274-B525-B068C860981E" targetId="sid-72AB2B0D-84FD-449C-854C-EBD82F6456CC" originalID="sid-1644981E-0DD6-425B-9E7D-053382BFDBC3">
+            <attribute name="name" value=""/>
+        </Edge>
+    </Net>
+    <attribute name="BranchName" value="MAIN"/>
+    <attribute name="RootFragmentId" value="258"/>
+    <attribute name="VersionNumber" value="1.2"/>
+    <attribute name="ProcessName" value="Missing Startevent"/>
+    <attribute name="PMVID" value="144"/>
+    <attribute name="BranchID" value="74"/>
+    <attribute name="IntialFormat" value="BPMN 2.0"/>
+</cpf:CanonicalProcess>

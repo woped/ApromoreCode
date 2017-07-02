@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cpf:CanonicalProcess xmlns:cpf="http://www.apromore.org/CPF" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns4="http://www.processconfiguration.com" xmlns:ns5="http://www.omg.org/spec/DD/20100524/DI" xmlns:ns6="http://www.omg.org/spec/DD/20100524/DC" xmlns:ns7="http://www.omg.org/spec/BPMN/20100524/DI" name="" version="1.0" uri="">
+    <Net id="sid-718a2f45-12d7-4ed7-831e-494d93c84a21">
+        <Node xsi:type="cpf:TaskType" id="sid-756FFD51-05C8-4147-BD9C-382AFE5D7AE8">
+            <name>T1</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffcc"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:TaskType" id="sid-AC343A1E-669A-4B3F-B5F3-2DF6120D14A7">
+            <name>T2</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffcc"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:EventType" id="sid-DC4C8E03-3FBF-4BEC-833D-02B9EE39040A">
+            <name>E1</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:EventType" id="sid-FE88DB94-5E3A-4EBC-85DA-BD40F6C1FFB0">
+            <name>E2</name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Edge id="sid-893D040C-5383-4D7C-8CBE-6D5E9ECB2FE8" default="false" sourceId="sid-756FFD51-05C8-4147-BD9C-382AFE5D7AE8" targetId="sid-AC343A1E-669A-4B3F-B5F3-2DF6120D14A7" originalID="sid-893D040C-5383-4D7C-8CBE-6D5E9ECB2FE8">
+            <attribute name="name" value=""/>
+        </Edge>
+        <Edge id="sid-4EB198A0-B164-4255-AC32-532A0CA7DCF6" default="false" sourceId="sid-DC4C8E03-3FBF-4BEC-833D-02B9EE39040A" targetId="sid-756FFD51-05C8-4147-BD9C-382AFE5D7AE8" originalID="sid-4EB198A0-B164-4255-AC32-532A0CA7DCF6">
+            <attribute name="name" value=""/>
+        </Edge>
+        <Edge id="sid-87D84E13-22F3-435A-A7FD-63AB4D7CE4DF" default="false" sourceId="sid-AC343A1E-669A-4B3F-B5F3-2DF6120D14A7" targetId="sid-FE88DB94-5E3A-4EBC-85DA-BD40F6C1FFB0" originalID="sid-87D84E13-22F3-435A-A7FD-63AB4D7CE4DF">
+            <attribute name="name" value=""/>
+        </Edge>
+    </Net>
+    <attribute name="BranchName" value="MAIN"/>
+    <attribute name="RootFragmentId" value="197"/>
+    <attribute name="VersionNumber" value="1.0"/>
+    <attribute name="ProcessName" value="Multiple Tasks"/>
+    <attribute name="PMVID" value="127"/>
+    <attribute name="BranchID" value="83"/>
+    <attribute name="IntialFormat" value="BPMN 2.0"/>
+</cpf:CanonicalProcess>

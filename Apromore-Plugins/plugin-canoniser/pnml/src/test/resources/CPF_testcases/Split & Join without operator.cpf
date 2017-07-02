@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<cpf:CanonicalProcess xmlns:cpf="http://www.apromore.org/CPF" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ns4="http://www.processconfiguration.com" xmlns:ns5="http://www.omg.org/spec/DD/20100524/DI" xmlns:ns6="http://www.omg.org/spec/DD/20100524/DC" xmlns:ns7="http://www.omg.org/spec/BPMN/20100524/DI" name="">
+    <Net id="sid-008c2b82-f98a-4ca7-a470-c7987eb17702">
+        <Node xsi:type="cpf:TaskType" id="sid-43AB3FC2-0207-40FB-BBA7-E81BA0D45F3B">
+            <name></name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffcc"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:EventType" id="sid-7AFECB3E-BA40-4808-B56D-9F2CD33AE1EC">
+            <name></name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:TaskType" id="sid-1DC32408-2749-43CE-AA01-20F8CBA32B71">
+            <name></name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffcc"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:EventType" id="sid-15F10466-B7A6-4066-BEB1-CDA4BAA94BDE">
+            <name></name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffff"/>
+            </attribute>
+        </Node>
+        <Node xsi:type="cpf:ANDSplitType" id="sid-43AB3FC2-0207-40FB-BBA7-E81BA0D45F3B_implicit_split">
+            <name></name>
+        </Node>
+        <Node xsi:type="cpf:XORJoinType" id="sid-7AFECB3E-BA40-4808-B56D-9F2CD33AE1EC_implicit_join">
+            <name></name>
+        </Node>
+        <Node xsi:type="cpf:TaskType" id="sid-9E2BF064-E732-4A3E-B2A3-A83F7164D263">
+            <name></name>
+            <attribute name="bpmn_cpf/extensions">
+                <ns6:signavioMetaData xmlns:ns6="http://www.signavio.com" metaKey="bgcolor" metaValue="#ffffcc"/>
+            </attribute>
+        </Node>
+        <Edge id="sid-43AB3FC2-0207-40FB-BBA7-E81BA0D45F3B_implicit_split_edge" default="false" sourceId="sid-43AB3FC2-0207-40FB-BBA7-E81BA0D45F3B" targetId="sid-43AB3FC2-0207-40FB-BBA7-E81BA0D45F3B_implicit_split" originalID="sid-43AB3FC2-0207-40FB-BBA7-E81BA0D45F3B_implicit_split_edge">
+            <attribute name="name"/>
+        </Edge>
+        <Edge id="sid-7AFECB3E-BA40-4808-B56D-9F2CD33AE1EC_implicit_join_edge" default="false" sourceId="sid-7AFECB3E-BA40-4808-B56D-9F2CD33AE1EC_implicit_join" targetId="sid-7AFECB3E-BA40-4808-B56D-9F2CD33AE1EC" originalID="sid-7AFECB3E-BA40-4808-B56D-9F2CD33AE1EC_implicit_join_edge">
+            <attribute name="name"/>
+        </Edge>
+        <Edge id="sid-6A1F713A-8D7B-4770-BF6B-E7BD6C23E055" default="false" sourceId="sid-43AB3FC2-0207-40FB-BBA7-E81BA0D45F3B_implicit_split" targetId="sid-9E2BF064-E732-4A3E-B2A3-A83F7164D263" originalID="sid-6A1F713A-8D7B-4770-BF6B-E7BD6C23E055">
+            <attribute name="name" value=""/>
+        </Edge>
+        <Edge id="sid-78DEBFA5-33FF-4D92-846D-72BD8CD457CD" default="false" sourceId="sid-15F10466-B7A6-4066-BEB1-CDA4BAA94BDE" targetId="sid-43AB3FC2-0207-40FB-BBA7-E81BA0D45F3B" originalID="sid-78DEBFA5-33FF-4D92-846D-72BD8CD457CD">
+            <attribute name="name" value=""/>
+        </Edge>
+        <Edge id="sid-7F33813E-F575-43CA-9C15-5D70AFBD2CAA" default="false" sourceId="sid-9E2BF064-E732-4A3E-B2A3-A83F7164D263" targetId="sid-7AFECB3E-BA40-4808-B56D-9F2CD33AE1EC_implicit_join" originalID="sid-7F33813E-F575-43CA-9C15-5D70AFBD2CAA">
+            <attribute name="name" value=""/>
+        </Edge>
+        <Edge id="sid-2012140F-0DCA-4DA0-A317-2D5CE037C58D" default="false" sourceId="sid-43AB3FC2-0207-40FB-BBA7-E81BA0D45F3B_implicit_split" targetId="sid-1DC32408-2749-43CE-AA01-20F8CBA32B71" originalID="sid-2012140F-0DCA-4DA0-A317-2D5CE037C58D">
+            <attribute name="name" value=""/>
+        </Edge>
+        <Edge id="sid-C6E11A0E-4310-4A4C-A605-564FF00021B5" default="false" sourceId="sid-1DC32408-2749-43CE-AA01-20F8CBA32B71" targetId="sid-7AFECB3E-BA40-4808-B56D-9F2CD33AE1EC_implicit_join" originalID="sid-C6E11A0E-4310-4A4C-A605-564FF00021B5">
+            <attribute name="name" value=""/>
+        </Edge>
+    </Net>
+    <attribute name="BranchName" value="MAIN"/>
+    <attribute name="RootFragmentId" value="188"/>
+    <attribute name="VersionNumber" value="1.0"/>
+    <attribute name="ProcessName" value="Split &amp; Join without operator"/>
+    <attribute name="PMVID" value="119"/>
+    <attribute name="BranchID" value="76"/>
+    <attribute name="IntialFormat" value="BPMN 2.0"/>
+</cpf:CanonicalProcess>
