@@ -256,9 +256,9 @@ public class Canonical2PNMLUnitTest {
         // Inspect the result
         NetType net = pnml.getNet().get(0);
         BigDecimal YPlace = net.getPlace().get(0).getGraphics().getPosition().getY();
-        BigDecimal YTransition = net.getTransition().get(0).getGraphics().getPosition().getY();
+        BigDecimal YPlace2 = net.getPlace().get(1).getGraphics().getPosition().getY();
         
-        assertEquals(YPlace, YTransition);
+        assertEquals(YPlace.intValue(), YPlace2.intValue());
        }
     
     /**

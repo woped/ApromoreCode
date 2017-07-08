@@ -187,10 +187,12 @@ public class TranslateNode {
 
                 // Running place named "<Task>"
                 name = new NodeNameType();
+                name.setText(taskName);
                 running.setName(name);
                 
              // end transition named "<Task>"
                 name = new NodeNameType();
+                name.setText(taskName);
                 end.setName(name);
             }
 
@@ -213,8 +215,9 @@ public class TranslateNode {
 
     static PositionType dummyPosition() {
         PositionType dummyPosition = new PositionType();
-        dummyPosition.setX(BigDecimal.valueOf(100));
-        dummyPosition.setY(BigDecimal.valueOf(400));
+        dummyPosition.setX(BigDecimal.valueOf(0));
+        dummyPosition.setY(BigDecimal.valueOf(0));
+        dummyPosition.setInsertedNode(true);
         return dummyPosition;
     }
 

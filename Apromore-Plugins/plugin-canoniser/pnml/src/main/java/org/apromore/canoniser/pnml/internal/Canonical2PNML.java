@@ -38,10 +38,16 @@ import org.apromore.cpf.CPFSchema;
 import org.apromore.cpf.CanonicalProcessType;
 import org.apromore.cpf.NetType;
 import org.apromore.cpf.ResourceTypeType;
+import org.apromore.pnml.PositionType;
 import org.apromore.pnml.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Logger;
 
 public class Canonical2PNML {
@@ -160,7 +166,7 @@ public class Canonical2PNML {
      * @since 1.0
      */
     private void decanonise(CanonicalProcessType cproc, AnnotationsType annotations) {
-    	for (NetType net : cproc.getNet()) {        	
+    	for (NetType net : cproc.getNet()) {
             tn.setValues(data, ids, annotations);
             tn.translateNet(net);
             ids = tn.getIds();
@@ -172,7 +178,7 @@ public class Canonical2PNML {
 
         data.getNet().setId("noID");
         data.getNet().setType("http://www.informatik.hu-berlin.de/top/pntd/ptNetb");
-        data.getPnml().getNet().add(data.getNet());     
+        data.getPnml().getNet().add(data.getNet());
     }
 
     private void simplify() {
@@ -186,7 +192,7 @@ public class Canonical2PNML {
             incomingArcMultimap.put((org.apromore.pnml.NodeType) arc.getTarget(), arc);
             outgoingArcMultimap.put((org.apromore.pnml.NodeType) arc.getSource(), arc);
         }
-        
+
         // When a synthetic place occurs adjacent to a silent transition on a branch, collapse them
         for (PlaceType place: data.getSynthesizedPlaces()) {
             if (incomingArcMultimap.get(place).size() == 1 &&
@@ -238,63 +244,122 @@ public class Canonical2PNML {
         }
         data.getSynthesizedPlaces().clear();
         //LOGGER.info("Performed structural simplifications");      
+
         
-        // Logic to correct position of process elements        
-        PlaceType place = null;
-        TransitionType transition = null;
-        BigDecimal TranX, TranY, PlaceX, PlaceY;
-        int offset1 = 0;
-		int offset2 = 0;
-		
-		for (int i = 0; i < 2; i++) {
-			for (ArcType arc : data.getNet().getArc()) {
-
-				if (arc.getSource() instanceof PlaceType) {
-					place = (PlaceType) arc.getSource();
-					transition = (TransitionType) arc.getTarget();
-					offset1 = -75;
-					offset2 = +75;
-				} else if (arc.getSource() instanceof TransitionType) {
-					place = (PlaceType) arc.getTarget();
-					transition = (TransitionType) arc.getSource();
-					offset1 = +75;
-					offset2 = -75;
-				}
-
-				TranX = transition.getGraphics().getPosition().getX();
-				TranY = transition.getGraphics().getPosition().getY();
-				PlaceX = place.getGraphics().getPosition().getX();
-				PlaceY = place.getGraphics().getPosition().getY();
-
-				if ((Double.parseDouble(String.valueOf(PlaceX)) == 100
-						&& Double.parseDouble(String.valueOf(PlaceY)) == 400)
-						&& (Double.parseDouble(String.valueOf(TranX)) == 100
-								&& Double.parseDouble(String.valueOf(TranY)) == 400)) {
-					; // do nothing
-				} else {
-
-					if (Double.parseDouble(String.valueOf(PlaceX)) == 100
-							&& Double.parseDouble(String.valueOf(PlaceY)) == 400) {
-						place.getGraphics().getPosition()
-								.setX(BigDecimal.valueOf(Double.parseDouble(String.valueOf(TranX)) + offset1));
-						place.getGraphics().getPosition().setY(TranY);
-					} else if (Double.parseDouble(String.valueOf(TranX)) == 100
-							&& Double.parseDouble(String.valueOf(TranY)) == 400) {
-						transition.getGraphics().getPosition()
-								.setX(BigDecimal.valueOf(Double.parseDouble(String.valueOf(PlaceX)) + offset2));
-						transition.getGraphics().getPosition().setY(PlaceY);
-					}
-				}
-
-				if (arc.getGraphics() != null) {
-					if (arc.getGraphics().getPosition() != null) {
-						arc.getGraphics().getPosition().clear();
-					}
-				}
-			}
-		}
+      //layout optimization
+        ArrayList<NodeType> allNodes = new ArrayList<>();
+        java.util.List<NodeType> insertedNodes = Collections.synchronizedList(new ArrayList<>());
+        allNodes.addAll(getPNML().getNet().get(0).getPlace());
+        allNodes.addAll(getPNML().getNet().get(0).getTransition());
+        Collections.sort(allNodes, new NodeTypeComparator());
+        final int value1 = 80;
+        
+        int firstNonInsertedNode = 0;
+        //find first non inserted node
+        while(firstNonInsertedNode < allNodes.size()-1 && allNodes.get(firstNonInsertedNode).getGraphics().getPosition().isInsertedNode()){
+        	firstNonInsertedNode += 1;
+        }
+        
+        if(firstNonInsertedNode != 0){
+            //search for inserted nodes in correct order
+            NodeType nonInsertedNode = allNodes.get(firstNonInsertedNode);
+            traverseNodes(nonInsertedNode, insertedNodes, outgoingArcMultimap, incomingArcMultimap);
+        }
+        
+        //correct arc positions
+        for(int i = 0; i< getPNML().getNet().get(0).getArc().size(); i++){
+        	if(getPNML().getNet().get(0).getArc().get(i).getGraphics() != null)
+        		if(getPNML().getNet().get(0).getArc().get(i).getGraphics().getPosition() != null)
+        			getPNML().getNet().get(0).getArc().get(i).getGraphics().getPosition().clear();
+        }
+        
 	}
 
+    private void traverseNodes(NodeType node,java.util.List<NodeType> insertedNodesList, SetMultimap<org.apromore.pnml.NodeType, ArcType> outgoingArcMultimap,SetMultimap<org.apromore.pnml.NodeType, ArcType> incomingArcMultimap){
+    	
+    	final BigDecimal minDistance = new BigDecimal(70);
+    	final BigDecimal minDistanceY = new BigDecimal(80);
+    	Set<ArcType> tempArcs = outgoingArcMultimap.get(node);
+    	Set<ArcType> tempInArcs = incomingArcMultimap.get(node);
+    	
+    	if(!tempArcs.isEmpty()){
+    		for(ArcType arc: tempArcs){
+    			NodeType nodeTemp = (NodeType) arc.getTarget();
+    			BigDecimal biggestX = new BigDecimal(0);
+    			
+    			if(nodeTemp.getGraphics().getPosition().isInsertedNode()){   
+    				//x
+    				Set<ArcType> inGoingArcs = incomingArcMultimap.get(nodeTemp);
+    				for(ArcType inArc : inGoingArcs){
+    					NodeType inNode = (NodeType) inArc.getSource();
+    					if(inNode.getGraphics().getPosition().getX().compareTo(biggestX) == 1){
+    						biggestX = inNode.getGraphics().getPosition().getX();
+    					}
+    				}
+    				
+    				//set X of inserted nodes
+    				nodeTemp.getGraphics().getPosition().setX(node.getGraphics().getPosition().getX().add(minDistance));
+    				
+    				//y
+    				if(tempInArcs.size() > 1){
+    					
+    					BigDecimal averageY = new BigDecimal(0);
+    					
+    					for(ArcType a: tempInArcs){
+    						averageY = averageY.add(((NodeType) a.getSource()).getGraphics().getPosition().getY());
+    					}
+    					node.getGraphics().getPosition().setY(averageY.divide(new BigDecimal(tempInArcs.size()), 2, RoundingMode.HALF_UP));
+    				}
+    				
+    				double x = 0;
+    	
+    				if(tempArcs.size() >1){
+    					
+    					if (tempArcs.size()%2 == 0){
+    						
+    						x = tempArcs.size()/2;
+    						
+    						for (ArcType a: tempArcs){
+    							NodeType n = (NodeType)a.getTarget();
+    							n.getGraphics().getPosition().setY(node.getGraphics().getPosition().getY().add(minDistanceY.multiply(new BigDecimal(x-0.5))));
+    							x--;
+    						}
+    						
+    					} else {
+    						
+    						x = Math.floor(tempArcs.size()/2);
+    						
+    						for (ArcType a: tempArcs){
+    							NodeType n = (NodeType)a.getTarget();
+    							n.getGraphics().getPosition().setY(node.getGraphics().getPosition().getY().add(minDistanceY.multiply(new BigDecimal(x))));
+    							x--;
+    						}
+   						
+    					}
+    					
+    					
+    				}else{
+    					nodeTemp.getGraphics().getPosition().setY(node.getGraphics().getPosition().getY());
+    				}
+    				
+    			}
+    			
+				//move next nodes if mindistance is greater 
+				Set<ArcType> outgoingArcs = outgoingArcMultimap.get(nodeTemp);
+				for(ArcType outArc : outgoingArcs){
+					NodeType outNode = (NodeType) outArc.getTarget();
+					
+					if(outNode.getGraphics().getPosition().getX().subtract(nodeTemp.getGraphics().getPosition().getX()).compareTo(minDistance.add(new BigDecimal(40))) == -1){
+						outNode.getGraphics().getPosition().setX(nodeTemp.getGraphics().getPosition().getX().add(minDistance.add(new BigDecimal(40))));
+					}
+				}	
+    		}
+    		
+    		for(ArcType arc: tempArcs){
+    			traverseNodes((NodeType) arc.getTarget(), insertedNodesList, outgoingArcMultimap, incomingArcMultimap);
+    		}
+    	}    	
+    }
     /**
      * @param transition
      * @return whether <var>transition</var> is silent

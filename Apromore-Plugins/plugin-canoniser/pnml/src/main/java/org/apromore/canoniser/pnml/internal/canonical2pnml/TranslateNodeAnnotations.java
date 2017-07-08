@@ -22,11 +22,14 @@ package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
 import org.apromore.anf.AnnotationType;
 import org.apromore.anf.GraphicsType;
+import org.apromore.anf.SizeType;
 import org.apromore.pnml.*;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
 import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.Collections;
 
 public class TranslateNodeAnnotations {
 
@@ -78,6 +81,7 @@ public class TranslateNodeAnnotations {
         DimensionType dim = new DimensionType();
         
         // Always use standard dimension of 40 for Tool WoPeD
+        SizeType size = ((GraphicsType) annotation).getSize();
         dim.setX(BigDecimal.valueOf(Long.valueOf(40)));
         dim.setY(BigDecimal.valueOf(Long.valueOf(40)));
         
@@ -99,13 +103,6 @@ public class TranslateNodeAnnotations {
         if (cGraphInfo.getPosition() != null && cGraphInfo.getPosition().size() > 0) {
         //Neuer Code (MK&JR)
             try{
-                BigDecimal dimx = ((GraphicsType) annotation).getSize().getWidth();
-                dimx = dimx.round(new MathContext(3, RoundingMode.HALF_UP));
-                dimx = dimx.subtract(BigDecimal.valueOf(40));
-                dimx = dimx.divide(BigDecimal.valueOf(2));
-                dimx = dimx.add(cGraphInfo.getPosition().get(0).getX());
-                dimx = dimx.round(new MathContext(3, RoundingMode.HALF_UP));
-
                 BigDecimal dimy = ((GraphicsType) annotation).getSize().getHeight();
                 dimy = dimy.round(new MathContext(3, RoundingMode.HALF_UP));
                 dimy = dimy.subtract(BigDecimal.valueOf(40));
@@ -113,14 +110,11 @@ public class TranslateNodeAnnotations {
                 dimy = dimy.add(cGraphInfo.getPosition().get(0).getY());
                 dimy = dimy.round(new MathContext(3, RoundingMode.HALF_UP));
 
-                //pos.setX(cGraphInfo.getPosition().get(0).getX());
-                pos.setX(dimx);
+                pos.setX(cGraphInfo.getPosition().get(0).getX());
                 //pos.setY(cGraphInfo.getPosition().get(0).getY());
                 pos.setY(dimy);
-
-                System.out.println("tryasdf");
             } catch (Exception e) {
-                System.out.println("catch");
+                /*Do nothing*/
             }
 
         }
@@ -152,6 +146,9 @@ public class TranslateNodeAnnotations {
                 ((TransitionType) obj).setName(nnt);
             }
             
+            if(((TransitionType) obj).getGraphics().getPosition().isInsertedNode()){
+                graphics.getPosition().setInsertedNode(true);
+            }
             ((TransitionType) obj).setGraphics(graphics);
 
             //Neuer Code (MK&JR)

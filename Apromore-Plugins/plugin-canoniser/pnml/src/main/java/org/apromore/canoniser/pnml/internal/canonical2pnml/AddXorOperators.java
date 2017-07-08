@@ -26,9 +26,13 @@ import org.apromore.cpf.NetType;
 import org.apromore.cpf.NodeType;
 import org.apromore.pnml.ArcToolspecificType;
 import org.apromore.pnml.ArcType;
+import org.apromore.pnml.DimensionType;
+import org.apromore.pnml.GraphicsNodeType;
+import org.apromore.pnml.PositionType;
 import org.apromore.pnml.TransitionToolspecificType;
 import org.apromore.pnml.TransitionType;
 
+import java.math.BigDecimal;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -64,7 +68,12 @@ public class AddXorOperators {
                         String id = node.getId() + "_join_source_" + String.valueOf(i);
                         tran.setId(id);
                         tran.setName(oldtran.getName());
-                        tran.setGraphics(oldtran.getGraphics());
+                        
+                        GraphicsNodeType graphics = new GraphicsNodeType();
+                        graphics.setDimension(transitionDefaultDimension());
+                        graphics.setPosition(dummyPosition());
+                        tran.setGraphics(graphics);
+                        
                         for (TransitionToolspecificType oldttt : oldtran
                                 .getToolspecific()) {
                             tran.getToolspecific().add(oldttt);
@@ -116,7 +125,12 @@ public class AddXorOperators {
                         String id = node.getId() + "_split_target_" + String.valueOf(i);
                         tran.setId(id);
                         tran.setName(oldtran.getName());
-                        tran.setGraphics(oldtran.getGraphics());
+                        
+                        GraphicsNodeType graphics = new GraphicsNodeType();
+                        graphics.setDimension(transitionDefaultDimension());
+                        graphics.setPosition(dummyPosition());      
+                        tran.setGraphics(graphics);
+                        
                         for (TransitionToolspecificType oldttt : oldtran
                                 .getToolspecific()) {
                             tran.getToolspecific().add(oldttt);
@@ -157,6 +171,21 @@ public class AddXorOperators {
 
             }
         }
+    }
+    
+    static PositionType dummyPosition() {
+        PositionType dummyPosition = new PositionType();
+        dummyPosition.setX(BigDecimal.valueOf(0));
+        dummyPosition.setY(BigDecimal.valueOf(0));
+        dummyPosition.setInsertedNode(true);
+        return dummyPosition;
+    }
+
+    static DimensionType transitionDefaultDimension() {
+        DimensionType d = new DimensionType();
+        d.setX(BigDecimal.valueOf(40)); //changed to 40 for WoPeD (orig: 50)
+        d.setY(BigDecimal.valueOf(40)); //changed to 40 for WoPeD (orig: 50)
+        return d;
     }
 
     public long getIds() {
