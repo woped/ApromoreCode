@@ -93,7 +93,7 @@ ORYX.Plugins.IBPStruct = ORYX.Plugins.AbstractPlugin.extend({
         if (this.getDiagramType() != 'bpmn') {
                     Ext.Msg.show({
                         title: "Info",
-                        msg: "The process must be a BPMN model, current model is " + this.getDiagramType(),
+                        msg: "The process must be a BPMN model, current model is " + this.getDiagramType().toUpperCase(),
                         buttons: Ext.Msg.OK,
                         icon: Ext.Msg.INFO
                     }).getDialog().syncSize();
@@ -186,7 +186,7 @@ ORYX.Plugins.IBPStruct = ORYX.Plugins.AbstractPlugin.extend({
             case "http://b3mn.org/stencilset/yawl2.2#":
                 return("yawl");
             default:
-                return("");
+                return this.facade.getCanvas().getStencil().namespace();
         }
     },
 
