@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -97,6 +97,15 @@ public class EventLogServiceImpl implements EventLogService {
         log.setUser(userSrv.findUserByLogin(username));
         logRepo.saveAndFlush(log);
         return log;
+    }
+
+
+    @Override
+    public void updateLogMetaData(Integer logId, String logName, boolean isPublic) {
+        Log log = logRepo.findUniqueByID(logId);
+        log.setName(logName);
+        log.setPublicLog(isPublic);
+        logRepo.saveAndFlush(log);
     }
 
     @Override

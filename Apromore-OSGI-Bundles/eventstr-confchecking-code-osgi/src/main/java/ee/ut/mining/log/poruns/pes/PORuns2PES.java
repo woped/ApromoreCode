@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -36,8 +36,11 @@ import ee.ut.org.processmining.framework.util.Pair;
 
 public class PORuns2PES {
 	public static PrimeEventStructure<Integer> getPrimeEventStructure(PORuns runs, String modelName) {
-		return getPrimeEventStructure(runs.getSuccessors(), runs.getConcurrency(), runs.getSources(),
+		PrimeEventStructure<Integer> pes = getPrimeEventStructure(runs.getSuccessors(), runs.getConcurrency(), runs.getSources(),
 				runs.getSinks(), runs.getLabels(), runs.getEquivalenceClasses());
+		pes.setTraceInfo(runs.getEvtsTracesMerged());
+
+		return pes;
 	}
 
 
@@ -95,7 +98,7 @@ public class PORuns2PES {
 		PrimeEventStructure<Integer> pes = 
 				new PrimeEventStructure<Integer>(labels, causality, dcausality, invcausality,
 						concurrency, conflict, sources, sinks, occurrences, fmatrix);
-		
+
 		return pes;
 	}
 	

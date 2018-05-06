@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright © 2009-2017 The Apromore Initiative.
+  ~ Copyright © 2009-2018 The Apromore Initiative.
   ~
   ~ This file is part of "Apromore".
   ~
@@ -72,7 +72,7 @@
                     }
 
                     ORYX.CONFIG.PANEL_LEFT_COLLAPSED = true;
-                    ORYX.CONFIG.WINDOW_HEIGHT        = 600;
+                    ORYX.CONFIG.WINDOW_HEIGHT        = 800;
 
                     // Replace any current model in oryxEditor1 with 
                     function reloadJSON(json) {
@@ -85,7 +85,7 @@
                         oryxEditor1.importJSON(json, true);
                     };
 
-                    ORYX.Editor.prototype.displayMLDifference = function(buttonIndex, type, start, a, b, newTasks, end, greys) {
+                    ORYX.Editor.prototype.displayMLDifference = function(buttonIndex, type, start, a, b, newTasks, end, start2, end2, greys, annotations) {
 
                         // Find the shapes corresponding to the function arguments resource IDs
                         function indexJSON(json) {
@@ -100,7 +100,7 @@
                         var shapes = indexJSON(json);
 
                         function uuid() {
-                            return "uuid-" + Math.random().toString();
+                            return "uuid-" + Math.floor((Math.random() * 1000000) + 1).toString();
                         }
 
                         function addFlowNode(id, stencilId, x, y, w, h) {
@@ -123,6 +123,45 @@
                             json.childShapes.push(addition);
                             shapes[id] = addition;
                             return addition;
+                        };
+
+                        function addAssociation(id, source, target, waypoints) {
+                            id = uuid();
+
+                            function findCenter(shape) {
+                                return { x: (shape.bounds.lowerRight.x - shape.bounds.upperLeft.x)/2, y: (shape.bounds.lowerRight.y - shape.bounds.upperLeft.y)/2 }; 
+                            };
+
+                            function findLeftEdge(shape) {
+                                return { x: 0, y: (shape.bounds.lowerRight.y - shape.bounds.upperLeft.y)/2 }; 
+                            };
+
+                            var addition = {
+                                "childShapes": [],
+                                "dockers": [
+                                    findCenter(shapes[source]),
+                                    findLeftEdge(shapes[target])
+                                ],
+                                "incoming": [],
+                                "labels": [],
+                                "outgoing": [
+                                    { "resourceId": target }
+                                ],
+                                "properties": {
+                                    "bordercolor": "#FF0000"
+                                },
+                                "resourceId": id,
+                                "stencil": { "id": "Association_Undirected" },
+                                "source": { "resourceId": source },
+                                "target": { "resourceId": target }
+                            };
+                            if (waypoints) {
+                                var endpoint = addition.dockers.pop();
+                                addition.dockers = addition.dockers.concat(waypoints);
+                                addition.dockers.push(endpoint);
+                            }
+                            json.childShapes.push(addition);
+                            shapes[source].outgoing.push({ resourceId: id });
                         };
 
                         function addSequenceFlow(id, source, target, waypoints) {
@@ -248,19 +287,61 @@
                         case "TASKABS4":
                         case "TASKABSLog":
                         case "TASKSUB":
+                            if (message = validate(["start.length == 1", "newTasks.length >= 1", "end.length == 1"])) { alert(message); }
+                            var cs = shapeCenter(shapes[start[0]]);
+                            var ce = shapeCenter(shapes[end[0]]);
+                            var cm = lagrangePoint(cs, ce, 130, +1);
+                            
+                            var newTasksBPMN = {};
+                            var loc = cm.x
+                            for(var i = 0; i < newTasks.length; i++){
+                                var middle = addFlowNode("sid-a", "Task", loc, cm.y, 100, 80);
+                                middle.properties.tasktype = "None";
+                                middle["properties"]["name"] = newTasks[i];
+                                middle["properties"]["bgcolor"] = "white";
+
+                                newTasksBPMN[i] = middle;
+                                loc = loc + 130;
+                                if(i > 0)
+                                    addSequenceFlow("sid-start-ab", newTasksBPMN[i-1].resourceId, newTasksBPMN[i].resourceId);
+                            }
+
+                            addSequenceFlow("sid-start-a", start[0], newTasksBPMN[0].resourceId);
+                            addSequenceFlow("sid-a-end", newTasksBPMN[newTasks.length-1].resourceId, end[0]);
+
+                            //var middle = addFlowNode("sid-a", "Task", cm.x, cm.y, 100, 80);
+                            //middle.properties.tasktype = "None";
+                            //middle["properties"]["name"] = newTasks[0];
+                            //middle["properties"]["bgcolor"] = "white";
+
+                            //addSequenceFlow("sid-start-a", start[0], middle.resourceId);
+                            //addSequenceFlow("sid-a-end", middle.resourceId, end[0]);
+                            break;
+
                         case "TASKRELOC":
-                            if (message = validate(["start.length == 1", "newTasks.length == 1", "end.length == 1"])) { alert(message); }
+                         if (message = validate(["start.length == 1", "newTasks.length >= 1", "end.length == 1"])) { alert(message); }
                             var cs = shapeCenter(shapes[start[0]]);
                             var ce = shapeCenter(shapes[end[0]]);
                             var cm = lagrangePoint(cs, ce, 130, +1);
 
-                            var middle = addFlowNode("sid-a", "Task", cm.x, cm.y, 100, 80);
-                            middle.properties.tasktype = "None";
-                            middle["properties"]["name"] = newTasks[0];
-                            middle["properties"]["bgcolor"] = "white";
+                            var newTasksBPMN = {};
+                            var loc = cm.x
+                            for(var i = 0; i < newTasks.length; i++){
+                                var middle = addFlowNode("sid-a", "Task", loc, cm.y, 100, 80);
+                                middle.properties.tasktype = "None";
+                                middle["properties"]["name"] = newTasks[i];
+                                middle["properties"]["bgcolor"] = "white";
 
-                            addSequenceFlow("sid-start-a", start[0], middle.resourceId);
-                            addSequenceFlow("sid-a-end", middle.resourceId, end[0]);
+                                newTasksBPMN[i] = middle;
+                                loc = loc + 130;
+                                if(i > 0)
+                                    addSequenceFlow("sid-start-ab", newTasksBPMN[i-1].resourceId, newTasksBPMN[i].resourceId);
+                            }
+
+                            addSequenceFlow("sid-start-a", start[0], newTasksBPMN[0].resourceId);
+                            addSequenceFlow("sid-a-end", newTasksBPMN[newTasks.length-1].resourceId, end[0]);
+
+                            addSequenceFlow("sid-start-se", start2[0], end2[0]);
                             break;
 
                         case "TASKSKIP1":
@@ -286,14 +367,38 @@
 
                         case "TASKSKIP2":
                         case "UNOBSCYCLICINTER":
-                            if (message = validate(["start.length == 1", "a.length >= 1", "end.length == 1"])) { alert(message); }
-                            addSequenceFlow("sid-start-a", start[0], a[0]);
+                            //if (message = validate(["start.length == 1", "a.length >= 1", "end.length == 1"])) { alert(message); }
+                            if(start.length > 0)
+                                addSequenceFlow("sid-start-a", start[0], a[0]);
                             highlight(shapes[a[0]]);
                             for (i=1; i < a.length; i++) {
-                                addSequenceFlow("sid-link-" + 1, a[i-1], a[i]);
+                                // addSequenceFlow("sid-link-" + 1, a[i-1], a[i]);
                                 highlight(shapes[a[i]]);
                             }
-                            addSequenceFlow("sid-a-end", a[a.length - 1], end[0]);
+
+                            if(end.length > 0)
+                                addSequenceFlow("sid-a-end", a[a.length - 1], end[0]);
+                            break;
+                            
+                        case "UNMREPETITION2":
+                            if (message = validate(["start.length == 1", "a.length >= 1", "end.length == 1"])) { alert(message); }
+                            var cs = shapeCenter(shapes[start[0]]);
+                            var cm1 = shapeCenter(shapes[a[0]]);
+                            var cm2 = shapeCenter(shapes[a[a.length - 1]]);
+                            var ce = shapeCenter(shapes[end[0]]);
+                            var g1 = lagrangePoint(cs, cm1, 90, +1);
+                            var g2 = lagrangePoint(cm2, ce, 90, +1);
+
+                            var startplus = addFlowNode("sid-startplus", "Exclusive_Databased_Gateway", g1.x, g1.y, 40, 40).resourceId;
+                            var endplus = addFlowNode("sid-endplus", "Exclusive_Databased_Gateway", g2.x, g2.y, 40, 40).resourceId;
+                            addSequenceFlow("sid-startplus-endplus", endplus, startplus);
+                            addSequenceFlow("sid-start-startplus", start[0], startplus);
+                            addSequenceFlow("sid-startplus-a", startplus, a[0]);
+                            for (i=0; i < a.length; i++) {
+                                highlight(shapes[a[i]]);
+                            }
+                            addSequenceFlow("sid-a-endplus", a[a.length - 1], endplus);
+                            addSequenceFlow("sid-endplus-end", endplus, end[0]);
                             break;
 
                         case "UNMREPETITION":
@@ -317,6 +422,30 @@
                             addSequenceFlow("sid-repeating-xor", repeating.resourceId, middle.resourceId, [lagrangePoint(cr, rm, 0, -1), lagrangePoint(rm, cm, 0, -1)]);
                             break;
 
+                        case "UNMREPETITIONINTERVAL":
+                            if (message = validate(["start.length == 1", "end.length == 1"])) { alert(message); }
+                            var cs = shapeCenter(shapes[start[0]]);
+                            var ce = shapeCenter(shapes[end[0]]);
+                            var cm = lagrangePoint(cs, ce, 130, +1);
+
+                            var newTasksBPMN = {};
+                            var loc = cm.x
+                            for(var i = 0; i < newTasks.length; i++){
+                                var middle = addFlowNode("sid-a", "Task", loc, cm.y, 100, 80);
+                                middle.properties.tasktype = "None";
+                                middle["properties"]["name"] = newTasks[i];
+                                middle["properties"]["bgcolor"] = "white";
+
+                                newTasksBPMN[i] = middle;
+                                loc = loc + 130;
+                                if(i > 0)
+                                    addSequenceFlow("sid-start-ab", newTasksBPMN[i-1].resourceId, newTasksBPMN[i].resourceId);
+                            }
+
+                            addSequenceFlow("sid-start-a", start[0], newTasksBPMN[0].resourceId);
+                            addSequenceFlow("sid-a-end", newTasksBPMN[newTasks.length-1].resourceId, end[0]);
+                            break;
+
                         case "TASKSWAP":
                             if (message = validate(["start.length == 1", "a.length == 1", "b.length == 1", "end.length == 1"])) { alert(message); }
                             var cs = shapeCenter(shapes[start[0]]);
@@ -332,18 +461,26 @@
                             addSequenceFlow("sid-a-end", a[0], end[0], [ae]);
                             break;
 
-			default:
+			            default:
                             alert("Unsupported difference type \"" + type + "\"");
                             return;
                         }
 
-                        reloadJSON(json);
+                        // Add annotation text
+                        if (annotations) {
+                            var anchor = shapeCenter(shapes[annotations[0]]);
+                            var balloon = addFlowNode("sid-balloon", "TextAnnotation", anchor.x + 100, anchor.y - 100, 100, 50);
+                            balloon["properties"]["text"] = annotations[1];
+                            addAssociation("sid-anchor-balloon", annotations[0], balloon.resourceId);
+                        }
 
+                        reloadJSON(json);
                         // Reduce the opacity of greyed-out elements
                         shapes = indexJSON(this._canvas.toJSON());
                         for (var i = greys.length; i--;) {
                             shapes[greys[i]].getShape().node.setAttributeNS(null, "style", "opacity: 0.25");
                         }
+
                         console.dir(json);
 
                         ORYX.Editor.prototype.repairMLDifference = function() {
@@ -380,29 +517,28 @@
                             function stringify(obj) {
 
                                 var t = typeof (obj);
-	                        if (t != "object" || obj === null) {
+	                            if (t != "object" || obj === null) {
 
-		                    // simple data type
-		                    if (t == "string") obj = '"'+obj+'"';
-		                    return String(obj);
+                                    // simple data type
+                                    if (t == "string") obj = '"'+obj+'"';
+                                    return String(obj);
 
-	                        }
-	                        else {
+	                            }
+                                else {
+                                    // recurse array or object
+                                    var n, v, json = [], arr = (obj && obj.constructor == Array);
 
-		                    // recurse array or object
-		                    var n, v, json = [], arr = (obj && obj.constructor == Array);
+                                    for (n in obj) {
+                                        v = obj[n]; t = typeof(v);
 
-		                    for (n in obj) {
-			                v = obj[n]; t = typeof(v);
-
-			                if (t == "string") v = '"'+v+'"';
-			                else if (t == "object" && v !== null) v = stringify(v);
+                                        if (t == "string") v = '"'+v+'"';
+                                        else if (t == "object" && v !== null) v = stringify(v);
 
                                         if (t != "function") json.push((arr ? "" : '"' + n + '":') + String(v));
-		                    }
+                                    }
 
-		                    return (arr ? "[" : "{") + String(json) + (arr ? "]" : "}");
-	                        }
+                                    return (arr ? "[" : "{") + String(json) + (arr ? "]" : "}");
+                                }
                             };
 
                             // Convert the repaired model from JSON to BPMN and re-invoke the comparison logic
@@ -437,15 +573,15 @@
                     window.onOryxResourcesLoaded = function() {
                         var createEditor = function(id, jsonData) {
                             var editor = new ORYX.Editor ({
-				model : {
-				    id: id,
-				    stencilset : {
+				                model : {
+				                    id: id,
+				                    stencilset : {
                                         url : '${arg.url}',
                                         namespace : '${arg.url}'
                                     },
-				},
-				fullscreen : false
-			    });
+				                },
+				                fullscreen : false
+			                });
 
                             // Import new process model
                             new Ajax.Request('${arg.importPath}', {
@@ -490,7 +626,7 @@
                             return editor;
                         };
 
-			oryxEditor1 = createEditor('oryx-canvas1', '${arg.jsonData}');
+			            oryxEditor1 = createEditor('oryx-canvas1', '${arg.jsonData}');
 
                         Ext.select('svg').setVisible(false);
 
@@ -540,9 +676,10 @@
         </n:span>
     </n:div>
 
-    <n:table>
+    <n:table width="100%">
         <n:tr>
-            <n:td style="vertical-align: top" width="20%">
+            <n:td style="vertical-align: top">
+                <n:div id="alignments" style="overflow:scroll; height:95vh; width:40vh">
                 <vbox hflex="1">
                     <toolbar id="differences" hflex="1">
                         <label hflex="1">Differences</label>
@@ -550,8 +687,9 @@
                     </toolbar>
                     <label>Baz</label>
                 </vbox>
+                </n:div>
             </n:td>
-            <n:td valign="top"><n:div id="oryx-canvas1"></n:div></n:td>
+            <n:td valign="top"><n:div id="oryx-canvas1" style="overflow:scroll; height:100vh; width:160vh"></n:div></n:td>
         </n:tr>
     </n:table>
 </window>

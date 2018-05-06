@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright © 2009-2017 The Apromore Initiative.
+  ~ Copyright © 2009-2018 The Apromore Initiative.
   ~
   ~ This file is part of "Apromore".
   ~
@@ -384,14 +384,13 @@
         </xs:complexType>
     </xs:element>
     <xs:complexType name="dimensionType">
-    	<xs:attribute name="x" type="xs:decimal" use="required" />
-    	<xs:attribute name="y" type="xs:decimal" use="required" />
-
+        <xs:attribute name="x" type="xs:decimal" use="required"/>
+        <xs:attribute name="y" type="xs:decimal" use="required"/>
     </xs:complexType>
     <xs:complexType name="positionType">
-    	<xs:attribute name="x" type="xs:decimal" use="required" />
-    	<xs:attribute name="y" type="xs:decimal" use="required" />
-    	<xsd:attribute name="insertedNode" type="xs:boolean" use="optional" default="false"></xsd:attribute>
+    	<xs:attribute name="x" type="xs:decimal" use="required"/>
+    	<xs:attribute name="y" type="xs:decimal" use="required"/>
+    	<xsd:attribute name="insertedNode" type="xs:boolean" use="optional" default="false"/>
     </xs:complexType>
     <xs:complexType name="pageType">
         <xs:annotation>

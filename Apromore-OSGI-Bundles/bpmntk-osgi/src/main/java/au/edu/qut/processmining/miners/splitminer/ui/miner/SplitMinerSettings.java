@@ -19,19 +19,18 @@ import java.util.LinkedList;
 public class SplitMinerSettings extends ProMPropertiesPanel {
 
     private static final long serialVersionUID = 1L;
-    private static final String DIALOG_NAME = "Select SplitMiner Params";
+    private static final String DIALOG_NAME = "Select Split Miner Params";
 
     final SplitMinerUIResult result;
 
-//    NiceDoubleSlider frequencyThreshold;
-    NiceDoubleSlider parallelismsThreshold;
     JCheckBox replaceIORs;
+    JCheckBox removeSelfLoops;
 //    ProMComboBox structuring;
 
     public SplitMinerSettings() {
         super(DIALOG_NAME);
 
-        HMPItemListener hmpil = new HMPItemListener();
+        SMPItemListener smpil = new SMPItemListener();
 
         LinkedList<String> structuringTime = new LinkedList<>();
         structuringTime.addLast("NONE");
@@ -41,24 +40,16 @@ public class SplitMinerSettings extends ProMPropertiesPanel {
         result = new SplitMinerUIResult();
 
 //        structuring = this.addComboBox("Structuring Time", structuringTime);
-//        structuring.addActionListener(hmpil);
+//        structuring.addActionListener(smpil);
 
-        replaceIORs = this.addCheckBox("Replace IORs", true);
-        replaceIORs.addChangeListener(hmpil);
+        replaceIORs = this.addCheckBox("Remove OR-joins", false);
+        replaceIORs.addChangeListener(smpil);
 
-//        frequencyThreshold = SlickerFactory.instance().createNiceDoubleSlider("Frequency Threshold", 0.00, 1.00, DFGPUIResult.FREQUENCY_THRESHOLD, NiceSlider.Orientation.HORIZONTAL);
-//        frequencyThreshold.addChangeListener(hmpil);
-//        this.add(frequencyThreshold);
-//        frequencyThreshold.setVisible(true);
+        removeSelfLoops = this.addCheckBox("Remove Self-loops", true);
+        removeSelfLoops.addChangeListener(smpil);
 
-        parallelismsThreshold = SlickerFactory.instance().createNiceDoubleSlider("Parallelisms Threshold", 0.00, 1.00, DFGPUIResult.PARALLELISMS_THRESHOLD, NiceSlider.Orientation.HORIZONTAL);
-        parallelismsThreshold.addChangeListener(hmpil);
-        this.add(parallelismsThreshold);
-        parallelismsThreshold.setVisible(true);
-
-        result.setFrequencyThreshold(DFGPUIResult.FREQUENCY_THRESHOLD);
-        result.setParallelismsThreshold(DFGPUIResult.PARALLELISMS_THRESHOLD);
         result.setReplaceIORs(replaceIORs.isSelected());
+        result.setRemoveSelfLoops(removeSelfLoops.isSelected());
         result.setStructuringTime(SplitMinerUIResult.STRUCT_POLICY);
     }
 
@@ -66,13 +57,12 @@ public class SplitMinerSettings extends ProMPropertiesPanel {
         return result;
     }
 
-    private class HMPItemListener implements ChangeListener, ActionListener {
+    private class SMPItemListener implements ChangeListener, ActionListener {
 
         @Override
         public void stateChanged(ChangeEvent e) {
-//            result.setFrequencyThreshold(frequencyThreshold.getValue());
-            result.setParallelismsThreshold(parallelismsThreshold.getValue());
             result.setReplaceIORs(replaceIORs.isSelected());
+            result.setRemoveSelfLoops(removeSelfLoops.isSelected());
         }
 
         @Override

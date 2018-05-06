@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -49,7 +49,7 @@ public class CompareServiceImpl implements CompareService {
     @Override
     public DifferencesML discoverBPMNModel(ModelAbstractions model, XLog log, HashSet<String> obs) throws Exception {
         ApromoreCompareML comparator = new ApromoreCompareML();
-        DiffMLGraphicalVerbalizer verbalizer = comparator.analyzeDifferences(model, log, obs);
+        DiffMLGraphicalVerbalizerNew verbalizer = comparator.analyzeDifferences(model, log, obs);
         verbalizer.verbalize();
         return verbalizer.getDifferences();
     }

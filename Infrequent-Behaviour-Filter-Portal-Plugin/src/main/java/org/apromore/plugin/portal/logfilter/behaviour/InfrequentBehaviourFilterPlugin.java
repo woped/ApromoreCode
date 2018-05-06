@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -62,7 +62,7 @@ public class InfrequentBehaviourFilterPlugin extends PluginCustomGui {
 
     @Override
     public String getLabel(Locale locale) {
-        return "Filter Out Infrequent Behaviour";
+        return "Filter Out Infrequent Behavior";
     }
 
     @Override

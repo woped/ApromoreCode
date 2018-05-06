@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -814,6 +814,24 @@ public class ManagerServiceClient implements ManagerService {
         } else {
             return response.getValue().getImportLogResult();
         }
+    }
+
+    @Override
+    public void editLogData(Integer logId, String logName, String username, boolean isPublic) throws Exception {
+        LOGGER.debug("Preparing EditLogDataRequest.....");
+
+        EditLogDataInputMsgType msg = new EditLogDataInputMsgType();
+        msg.setId(logId);
+        msg.setLogName(logName);
+        msg.setMakePublic(isPublic);
+
+        JAXBElement<EditLogDataInputMsgType> request = WS_CLIENT_FACTORY.createEditLogDataRequest(msg);
+
+        JAXBElement<EditLogDataOutputMsgType> response = (JAXBElement<EditLogDataOutputMsgType>) webServiceTemplate.marshalSendAndReceive(request);
+        if (response.getValue().getResult().getCode() == -1) {
+            throw new Exception(response.getValue().getResult().getMessage());
+        }
+
     }
 
 

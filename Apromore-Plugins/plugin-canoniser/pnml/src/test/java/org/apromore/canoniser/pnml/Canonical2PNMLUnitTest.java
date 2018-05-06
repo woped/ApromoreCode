@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -442,7 +442,7 @@ public class Canonical2PNMLUnitTest {
 
 
     // Internal methods
-    
+
     private PnmlType decanonise(final String  cpfFileName,
                                 final String  anfFileName,
                                 final String  pnmlFileName,

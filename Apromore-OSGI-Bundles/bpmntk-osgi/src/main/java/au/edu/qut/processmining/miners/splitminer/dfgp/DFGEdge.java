@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -57,9 +57,15 @@ public class DFGEdge extends LogEdge {
     @Override
     public String toString() { return Integer.toString(frequency); }
 
+    public String print() { return getSourceCode() + " > " + getTargetCode() + " [" + getFrequency() + "]"; }
+
     @Override
     public int compareTo(Object o) {
-        if( (o instanceof DFGEdge) ) return frequency - ((DFGEdge) o).frequency;
-        else return -1;
+        if( (o instanceof DFGEdge) ) {
+            if( frequency == (((DFGEdge) o).frequency) ) {
+                if( getSourceCode() == ((DFGEdge) o).getSourceCode() ) return getTargetCode() - ((DFGEdge) o).getTargetCode();
+                else return getSourceCode() - ((DFGEdge) o).getSourceCode();
+            } else return frequency - ((DFGEdge) o).frequency;
+        } else return -1;
     }
 }

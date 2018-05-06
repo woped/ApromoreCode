@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -28,6 +28,7 @@ import au.edu.qut.processmining.log.SimpleLog;
 import au.edu.qut.processmining.miners.splitminer.dfgp.DirectlyFollowGraphPlus;
 import au.edu.qut.processmining.miners.splitminer.oracle.Oracle;
 import au.edu.qut.processmining.miners.splitminer.oracle.OracleItem;
+import au.edu.qut.processmining.miners.splitminer.ui.dfgp.DFGPUIResult;
 import au.edu.qut.processmining.miners.splitminer.ui.miner.SplitMinerUIResult;
 import de.hpi.bpt.graph.DirectedEdge;
 import de.hpi.bpt.graph.DirectedGraph;
@@ -36,6 +37,7 @@ import de.hpi.bpt.graph.algo.rpst.RPST;
 import de.hpi.bpt.graph.algo.rpst.RPSTNode;
 import de.hpi.bpt.graph.algo.tctree.TCType;
 import de.hpi.bpt.hypergraph.abs.Vertex;
+import org.deckfour.xes.classification.XEventClassifier;
 import org.deckfour.xes.model.XLog;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagramImpl;
@@ -55,6 +57,7 @@ public class SplitMiner {
     private BPMNDiagram bpmnDiagram;
 
     private boolean replaceIORs;
+    private boolean removeSelfLoops;
     private SplitMinerUIResult.StructuringTime structuringTime;
 
     private int gateCounter;
@@ -66,33 +69,40 @@ public class SplitMiner {
 
     public SplitMiner() {}
 
-    public DirectlyFollowGraphPlus getDfgp() { return dfgp; }
+    public DirectlyFollowGraphPlus getDFGP() { return dfgp; }
 
     public BPMNDiagram getBPMNDiagram() { return bpmnDiagram; }
 
-    public BPMNDiagram mineBPMNModel(XLog log, double frequencyThreshold, double parallelismsThreshold,
-                                     boolean replaceIORs, SplitMinerUIResult.StructuringTime structuringTime)
+    public BPMNDiagram mineBPMNModel(XLog log, XEventClassifier xEventClassifier, double percentileFrequencyThreshold, double parallelismsThreshold,
+                                     DFGPUIResult.FilterType filterType, boolean percentileOnBest,
+                                     boolean replaceIORs, boolean removeSelfLoops, SplitMinerUIResult.StructuringTime structuringTime)
     {
 //        System.out.println("SplitMiner - starting ...");
 //        System.out.println("SplitMiner - [Settings] replace IORs: " + replaceIORs);
 //        System.out.println("SplitMiner - [Settings] structuring: " + structuringTime);
 
         this.replaceIORs = replaceIORs;
+        this.removeSelfLoops = removeSelfLoops;
         this.structuringTime = structuringTime;
 
-        this.log = LogParser.getSimpleLog(log);
+        this.log = LogParser.getSimpleLog(log, xEventClassifier);
 //        System.out.println("SplitMiner - log parsed successfully");
 
-        generateDFGP(frequencyThreshold, parallelismsThreshold);
-        transformDFGPintoBPMN();
-
-        if( structuringTime == SplitMinerUIResult.StructuringTime.POST ) structure();
+        generateDFGP(percentileFrequencyThreshold, parallelismsThreshold, filterType, percentileOnBest);
+        try {
+            transformDFGPintoBPMN();
+            if (structuringTime == SplitMinerUIResult.StructuringTime.POST) structure();
+        } catch(Exception e) {
+            System.out.println("ERROR - something went wrong translating DFG to BPMN");
+            e.printStackTrace();
+            return dfgp.convertIntoBPMNDiagram();
+        }
 
         return bpmnDiagram;
     }
 
-    private void generateDFGP(double frequencyThreshold, double parallelismsThreshold) {
-        dfgp = new DirectlyFollowGraphPlus(log, frequencyThreshold, parallelismsThreshold);
+    private void generateDFGP(double percentileFrequencyThreshold, double parallelismsThreshold, DFGPUIResult.FilterType filterType, boolean percentileOnBest) {
+        dfgp = new DirectlyFollowGraphPlus(log, percentileFrequencyThreshold, parallelismsThreshold, filterType, percentileOnBest);
         dfgp.buildDFGP();
     }
 
@@ -216,7 +226,6 @@ public class SplitMiner {
 //        System.out.println("SplitMiner - generating inner joins ...");
         generateInnerJoins();
 
-
         if( structuringTime == SplitMinerUIResult.StructuringTime.PRE ) structure();
         helper.fixSoundness(bpmnDiagram);
 
@@ -225,6 +234,16 @@ public class SplitMiner {
         replaceIORs();
 
         updateLabels(this.log.getEvents());
+
+        if(!removeSelfLoops) helper.removeSelfLoopMarkers(bpmnDiagram);
+
+        if( replaceIORs ) {
+//            helper.expandSplitGateways(bpmnDiagram);
+        } else {
+            helper.collapseSplitGateways(bpmnDiagram);
+            helper.collapseJoinGateways(bpmnDiagram);
+        }
+
 //        System.out.println("SplitMiner - bpmn diagram generated successfully");
     }
 

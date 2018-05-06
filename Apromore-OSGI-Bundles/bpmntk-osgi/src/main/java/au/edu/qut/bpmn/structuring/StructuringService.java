@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -106,8 +106,8 @@ public class StructuringService {
                                         boolean keepBisimulation,
                                         boolean forceStructuring) {
 
-        this.diagram = diagramHandler.copyDiagram(diagram);
-//        this.diagram = diagram;
+//        this.diagram = diagramHandler.copyDiagram(diagram);
+        this.diagram = diagram;
         this.policy = policy;
         this.maxDepth = maxDepth;
         this.maxSolutions = maxSolutions;

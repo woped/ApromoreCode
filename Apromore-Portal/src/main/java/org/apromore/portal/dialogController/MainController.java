@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -25,12 +25,14 @@ import org.apromore.model.*;
 import org.apromore.model.Detail;
 import org.apromore.plugin.portal.MainControllerInterface;
 import org.apromore.plugin.portal.PortalContext;
+import org.apromore.plugin.portal.PortalPlugin;
 import org.apromore.plugin.portal.SessionTab;
 import org.apromore.plugin.property.RequestParameterType;
 import org.apromore.portal.common.Constants;
 import org.apromore.portal.common.TabQuery;
 import org.apromore.portal.common.UserSessionManager;
 import org.apromore.portal.context.PluginPortalContext;
+import org.apromore.portal.context.PortalPluginResolver;
 import org.apromore.portal.custom.gui.tab.PortalTab;
 import org.apromore.portal.dialogController.dto.SignavioSession;
 import org.apromore.portal.dialogController.dto.VersionDetailType;
@@ -84,8 +86,11 @@ public class MainController extends BaseController implements MainControllerInte
     private Paginal pg;
 
     private String host;
-    private String versionNumber;
+    private String majorVersionNumber;
+    private String minorVersionNumber;
     private String buildDate;
+
+    private PortalPlugin logVisualizerPlugin = null;
 	
 	public static MainController getController() {
         return controller;
@@ -117,7 +122,7 @@ public class MainController extends BaseController implements MainControllerInte
             Toolbarbutton signoutButton = (Toolbarbutton) this.getFellow("signoutButton");
             Toolbarbutton installedPluginsButton = (Toolbarbutton) this.getFellow("installedPlugins");
             Toolbarbutton webDavButton = (Toolbarbutton) this.getFellow("webDav");
-            Toolbarbutton developerResourcesButton = (Toolbarbutton) this.getFellow("developerResources");
+//            Toolbarbutton developerResourcesButton = (Toolbarbutton) this.getFellow("developerResources");
 
 
             setHeaderText(releaseNotes);
@@ -155,12 +160,12 @@ public class MainController extends BaseController implements MainControllerInte
                             displayWebDav();
                         }
                     });
-            developerResourcesButton.addEventListener("onClick",
-                    new EventListener<Event>() {
-                        public void onEvent(final Event event) throws Exception {
-                            displayDeveloperResources();
-                        }
-                    });
+//            developerResourcesButton.addEventListener("onClick",
+//                    new EventListener<Event>() {
+//                        public void onEvent(final Event event) throws Exception {
+//                            displayDeveloperResources();
+//                        }
+//                    });
             qe.subscribe(
                     new EventListener<Event>() {
                         @Override
@@ -434,6 +439,20 @@ public class MainController extends BaseController implements MainControllerInte
         }
     }
 
+    public void visualizeLog() {
+        if(logVisualizerPlugin == null) {
+            for (final PortalPlugin plugin : PortalPluginResolver.resolve()) {
+                if (plugin.getName().equals("Log Visualizer")) {
+                    logVisualizerPlugin = plugin;
+                    break;
+                }
+            }
+        }
+        if(logVisualizerPlugin != null) {
+            logVisualizerPlugin.execute(new PluginPortalContext(this));
+        }
+    }
+
     public void displayMessage(final String mes) {
         this.shortmessageC.displayMessage(mes);
     }
@@ -640,14 +659,14 @@ public class MainController extends BaseController implements MainControllerInte
         Clients.evalJavaScript(instruction);
     }
 
-    @Command
-    protected void displayDeveloperResources() {
-        String instruction;
-        int offsetH = 100, offsetV = 200;
-        instruction = "window.open('" + Constants.DEVELOPER_RESOURCES + "','','top=" + offsetH + ",left=" + offsetV
-                + ",height=600,width=800,scrollbars=1,resizable=1'); ";
-        Clients.evalJavaScript(instruction);
-    }
+//    @Command
+//    protected void displayDeveloperResources() {
+//        String instruction;
+//        int offsetH = 100, offsetV = 200;
+//        instruction = "window.open('" + Constants.DEVELOPER_RESOURCES + "','','top=" + offsetH + ",left=" + offsetV
+//                + ",height=600,width=800,scrollbars=1,resizable=1'); ";
+//        Clients.evalJavaScript(instruction);
+//    }
 
 
 
@@ -766,13 +785,24 @@ public class MainController extends BaseController implements MainControllerInte
     /* Load the props for this app. */
     private void loadProperties() throws IOException {
         setHost("http://" + config.getSiteExternalHost() + ":" + config.getSiteExternalPort());
-        setVersionNumber(config.getVersionNumber());
+        String date = config.getVersionBuildDate();
+        date = date.substring(0, date.indexOf("@") - 1);
+        String subversion = "";
+        StringTokenizer st = new StringTokenizer(date, ".");
+        while (st.hasMoreTokens()) {
+            String token = st.nextToken();
+            if(token.length() == 4) token = token.substring(2);
+            subversion = token + subversion;
+        }
+        setMajorVersionNumber(config.getMajorVersionNumber() + "." + subversion);
+        setMinorVersionNumber(config.getMinorVersionNumber());
         setBuildDate(config.getVersionBuildDate());
     }
 
     /* From the data in the properties automagically update the label in the header. */
     private void setHeaderText(Toolbarbutton releaseNotes) {
-        releaseNotes.setLabel(String.format(WELCOME_TEXT, UserSessionManager.getCurrentUser().getFirstName(), versionNumber));
+        releaseNotes.setLabel(String.format(WELCOME_TEXT, UserSessionManager.getCurrentUser().getFirstName(), majorVersionNumber));
+        releaseNotes.setTooltiptext("Apromore version: " + majorVersionNumber + "." + minorVersionNumber);
     }
 
     /* From a list of version summary types find the max version number. */
@@ -812,12 +842,20 @@ public class MainController extends BaseController implements MainControllerInte
         host = newHost;
     }
 
-    public String getVersionNumber() {
-        return versionNumber;
+    public String getMajorVersionNumber() {
+        return majorVersionNumber;
     }
 
-    public void setVersionNumber(final String newVersionNumber) {
-        versionNumber = newVersionNumber;
+    public void setMajorVersionNumber(final String newMajorVersionNumber) {
+        majorVersionNumber = newMajorVersionNumber;
+    }
+
+    public String getMinorVersionNumber() {
+        return majorVersionNumber;
+    }
+
+    public void setMinorVersionNumber(final String newMinorVersionNumber) {
+        minorVersionNumber = newMinorVersionNumber;
     }
 
     public String getBuildDate() {

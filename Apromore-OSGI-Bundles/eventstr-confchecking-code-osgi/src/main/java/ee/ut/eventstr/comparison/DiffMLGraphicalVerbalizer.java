@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -159,9 +159,10 @@ public class DiffMLGraphicalVerbalizer {
 		PORuns runs = new PORuns();
 		Set<Integer> eventlength = new HashSet<Integer>();
 		Set<Integer> succ;
+		int i = 0;
 
 		for (XTrace trace : log) {
-			PORun porun = new PORun(alphaRelations, trace);
+			PORun porun = new PORun(alphaRelations, trace, (i++) + "");
 			runs.add(porun);
 
 			succ = new HashSet<Integer>(porun.asSuccessorsList().values());
@@ -207,7 +208,7 @@ public class DiffMLGraphicalVerbalizer {
 			addPSPBranchToGlobalPSP(opSeq);
 		prune();
 
-		Map<Pair<Operation, Operation>, Pair<State, State>> pending = new HashMap<>();
+        Map<Pair<Operation, Operation>, Pair<State, State>> pending = new HashMap<>();
 		findCausalityConcurrencyMismatches(root, new HashSet<Pair<State,Operation>>(), new HashSet<State>(), new LinkedList<Operation>(), pending);
 
 //		if (!pending.isEmpty())

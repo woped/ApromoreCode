@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -48,7 +48,7 @@ import java.util.*;
 
 /**
  * implementation of the org.apromore.dao.LogRepositoryCustom interface.
- * @author <a href="mailto:raffaele.conforti@qut.edu.au">Raffaele Conforti</a>
+ * @author <a href="mailto:raffaele.conforti@unimelb.edu.au">Raffaele Conforti</a>
  */
 public class LogRepositoryCustomImpl implements LogRepositoryCustom {
 
@@ -61,7 +61,7 @@ public class LogRepositoryCustomImpl implements LogRepositoryCustom {
 
     private static final String GET_ALL_LOGS_JPA = "SELECT l FROM Log l ";
     private static final String GET_ALL_LOGS_FOLDER_JPA = "SELECT l FROM Log l JOIN l.folder f ";
-    private static final String GET_ALL_PUBLIC_JPA = "l.publicModel = true ";
+    private static final String GET_ALL_PUBLIC_JPA = "l.publicLog = true ";
     private static final String GET_ALL_FOLDER_JPA = "f.id = ";
     private static final String GET_ALL_SORT_JPA = " ORDER by l.id";
 
@@ -103,14 +103,16 @@ public class LogRepositoryCustomImpl implements LogRepositoryCustom {
             strQry.append(" WHERE ").append(conditions);
             strQry.append(" AND ").append(GET_ALL_PUBLIC_JPA);
             whereAdded = true;
-        } //else {
-        //   strQry.append(" WHERE ").append(GET_ALL_PUBLIC_JPA);
-        //}
-        if (whereAdded) {
-            strQry.append(" AND ");
-        } else {
-            strQry.append(" WHERE ");
         }
+        else {
+           strQry.append(" WHERE ").append(GET_ALL_PUBLIC_JPA);
+        }
+//        if (whereAdded) {
+            strQry.append(" AND ");
+//        } else {
+//            strQry.append(" WHERE ");
+//        }
+
         strQry.append(GET_ALL_FOLDER_JPA).append(folderId);
         strQry.append(GET_ALL_SORT_JPA);
 

@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -281,6 +281,7 @@ public class ModelToLogComparisonController extends BaseController {
         if (applyButton != null) {
             // The repairMLDifference function will send an onRepair event to the ZK asynchronous updater when it completes
             applyButton.setWidgetListener("onClick", "oryxEditor1.repairMLDifference()");
+
         }
     }
 
@@ -295,7 +296,10 @@ public class ModelToLogComparisonController extends BaseController {
                     difference.optJSONArray("b")        + "," +
                     difference.optJSONArray("newTasks") + "," +
                     difference.optJSONArray("end")      + "," +
-                    difference.optJSONArray("greys")    + ")";
+                    difference.optJSONArray("start2")   + "," +
+                    difference.optJSONArray("end2")     + "," +
+                    difference.optJSONArray("greys")    + "," +
+                    difference.optJSONArray("annotations") + ")";
     }
 
     /**

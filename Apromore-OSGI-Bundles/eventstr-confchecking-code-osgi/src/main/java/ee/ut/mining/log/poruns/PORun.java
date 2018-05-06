@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.deckfour.xes.extension.std.XConceptExtension;
 import org.deckfour.xes.extension.std.XLifecycleExtension;
+import org.deckfour.xes.model.XAttribute;
 import org.deckfour.xes.model.XAttributeMap;
 import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XTrace;
@@ -51,18 +52,24 @@ public class PORun implements PORunConst {
 	protected List<Integer> vertices;
 	protected Map<Integer, Integer> vertexIndexMap;
 	private Multimap<Integer, Integer> predList = null;
+	private String idTrace;
 
-	public PORun(ConcurrencyRelations alphaRelations, XTrace trace) {
-		this(alphaRelations, trace, null);
+	public PORun(ConcurrencyRelations alphaRelations, XTrace trace, String id) {
+		this(alphaRelations, trace, null, id);
 	}
 	
-	public PORun(ConcurrencyRelations alphaRelations, XTrace trace, Map<Integer, Pair<XEvent,String>> xeventMap) {
+	public PORun(ConcurrencyRelations alphaRelations, XTrace trace, Map<Integer, Pair<XEvent,String>> xeventMap, String idLog) {
 		this.labels = new HashMap<>();	
 		this.vertices = new ArrayList<>();
 		this.vertexIndexMap = new HashMap<>();
 		this.concurrency = HashMultimap.create();
-		
-		String traceId = trace.getAttributes().get("concept:name").toString();
+		this.idTrace = idLog;
+
+		XAttribute nameXML = trace.getAttributes().get("concept:name");
+        String traceId = "case" + idLog;
+        if(nameXML != null)
+            traceId = nameXML.toString();
+
 		// === Map events to local identifiers
 		Integer id = nextId.getAndIncrement();
 		vertices.add(id);
@@ -106,7 +113,7 @@ public class PORun implements PORunConst {
 			for (int j = i + 1; j < size - 1; j++) {
 				Integer vertex2 = vertices.get(j);
 				String label2 = labels.get(vertex2);
-				if (alphaRelations.areConcurrent(label1, label2)) {
+				if (!label1.equals(label2) && alphaRelations.areConcurrent(label1, label2)) {
 					adjmatrix[i][j] = false;
 					concurrency.put(vertex1, vertex2);
 					concurrency.put(vertex2, vertex1);
@@ -116,7 +123,9 @@ public class PORun implements PORunConst {
 		
 		MatrixBasedTransitivity.transitiveReduction(adjmatrix);
 	}
-	
+
+	public String getIdTrace(){ return idTrace; }
+
 	private String getEventName(XEvent e) {
 		return e.getAttributes().get(XConceptExtension.KEY_NAME).toString();
 	}

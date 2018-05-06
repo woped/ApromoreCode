@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -36,8 +36,8 @@ import ee.ut.mining.log.ConcurrencyRelations;
 
 public class Abstracting12LoopsPORun extends PORun {
 	
-	public Abstracting12LoopsPORun(ConcurrencyRelations alphaRelations, XTrace trace) {
-		super(alphaRelations, trace);
+	public Abstracting12LoopsPORun(ConcurrencyRelations alphaRelations, XTrace trace, String traceId) {
+		super(alphaRelations, trace, traceId);
 		Multimap<Integer, Integer> successors = asSuccessorsList();
 		Multimap<Integer, Integer> predecessors = asPredecessorsList();
 		Stack<Integer> open = new Stack<>();

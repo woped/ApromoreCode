@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -27,6 +27,7 @@ import javax.xml.datatype.DatatypeFactory;
 import com.raffaeleconforti.bpmnminer.subprocessminer.selection.SelectMinerResult;
 import com.raffaeleconforti.foreignkeydiscovery.functionaldependencies.Data;
 import com.raffaeleconforti.foreignkeydiscovery.functionaldependencies.NoEntityException;
+import com.raffaeleconforti.wrappers.settings.MiningSettings;
 import org.apromore.model.LogSummaryType;
 import org.apromore.model.SummaryType;
 import org.apromore.model.VersionSummaryType;
@@ -53,6 +54,7 @@ import org.apromore.service.CanoniserService;
 import org.apromore.service.DomainService;
 import org.apromore.service.ProcessService;
 import org.apromore.service.helper.UserInterfaceHelper;
+
 
 /**
  * Created by conforti on 10/04/15.
@@ -95,6 +97,8 @@ public class BPMNMinerController {
     private Slider timerEventPercentage;
     private Slider timerEventTolerance;
     private Slider noiseThreshold;
+
+    private MiningSettings params;
 
     private XLog log;
     private DiscoverERmodel erModel;
@@ -151,7 +155,7 @@ public class BPMNMinerController {
             }
 
             // At least 2 process versions must be selected. Not necessarily of different processes
-            if (selectedLogSummaryType.size() == 0) {
+            if (elements.size() == 0) {
                 this.bpmnMinerW = (Window) portalContext.getUI().createComponent(getClass().getClassLoader(), "zul/bpmnMinerInput.zul", null, null);
                 this.l = (Label) this.bpmnMinerW.getFellow("fileName");
                 this.uploadLog = (Button) this.bpmnMinerW.getFellow("bpmnMinerUpload");
@@ -175,10 +179,31 @@ public class BPMNMinerController {
             this.miningAlgorithms.setModel(listModelArray);
 
             this.flatModel = (Radiogroup) this.bpmnMinerW.getFellow("bpmnMinerFlat");
+//            this.flatModel = new Radiogroup();
+//            flatModel.appendChild(this.bpmnMinerW.getFellow("flat"));
+//            flatModel.appendChild(this.bpmnMinerW.getFellow("hierarchical"));
+
             this.dependencyAlgorithms = (Radiogroup) this.bpmnMinerW.getFellow("bpmnMinerDependencyAlgorithm");
+//            this.dependencyAlgorithms = new Radiogroup();
+//            dependencyAlgorithms.appendChild(this.bpmnMinerW.getFellow("normal"));
+//            dependencyAlgorithms.appendChild(this.bpmnMinerW.getFellow("noiseTolerant"));
+
             this.filterLog = (Radiogroup) this.bpmnMinerW.getFellow("noiseFilter");
+//            this.filterLog = new Radiogroup();
+//            this.filterLog.appendChild(this.bpmnMinerW.getFellow("filtered"));
+//            this.filterLog.appendChild(this.bpmnMinerW.getFellow("notFiltered"));
+
             this.sortLog = (Radiogroup) this.bpmnMinerW.getFellow("bpmnMinerSort");
+//            this.sortLog = new Radiogroup();
+//            this.sortLog.appendChild(this.bpmnMinerW.getFellow("sort"));
+//            this.sortLog.appendChild(this.bpmnMinerW.getFellow("notSort"));
+
             this.structProcess = (Radiogroup) this.bpmnMinerW.getFellow("bpmnMinerStructProcess");
+//            this.structProcess = new Radiogroup();
+//            this.structProcess.appendChild(this.bpmnMinerW.getFellow("structured"));
+//            this.structProcess.appendChild(this.bpmnMinerW.getFellow("notStructured"));
+
+
             this.interruptingEventTolerance = (Slider) this.bpmnMinerW.getFellow("bpmnMinerInterruptingEventTolerance");
             this.multiInstancePercentage = (Slider) this.bpmnMinerW.getFellow("bpmnMinerMultiInstancePercentage");
             this.multiInstanceTolerance = (Slider) this.bpmnMinerW.getFellow("bpmnMinerMultiInstanceTolerance");
@@ -196,7 +221,7 @@ public class BPMNMinerController {
             });
             this.okButton.addEventListener("onClick", new EventListener<Event>() {
                 public void onEvent(Event event) throws Exception {
-                    createCanditatesEntity();
+                    setupMiningAlgorithm();
                 }
             });
             this.bpmnMinerW.doModal();
@@ -278,6 +303,15 @@ public class BPMNMinerController {
         this.bpmnMinerW.detach();
     }
 
+    protected void setupMiningAlgorithm() {
+        bpmnMinerW.detach();
+        new MiningSettingsController(this, getSelectedAlgorithm());
+    }
+
+    public void setMiningSettings(MiningSettings params) {
+        this.params = params;
+    }
+
     protected void createCanditatesEntity() {
         try {
             if(log == null) {
@@ -343,7 +377,7 @@ public class BPMNMinerController {
                 log = infrequentBehaviourFilterService.filterLog(log);
             }
 
-            String model = bpmnMinerService.discoverBPMNModel(log, sortLog.getSelectedIndex()==0?true:false, structProcess.getSelectedIndex()==0?true:false, getSelectedAlgorithm(), dependencyAlgorithms.getSelectedIndex()+1,
+            String model = bpmnMinerService.discoverBPMNModel(log, sortLog.getSelectedIndex()==0?true:false, structProcess.getSelectedIndex()==0?true:false, getSelectedAlgorithm(), params, dependencyAlgorithms.getSelectedIndex()+1,
                     ((double) interruptingEventTolerance.getCurpos())/100.0, ((double) timerEventPercentage.getCurpos())/100.0, ((double) timerEventTolerance.getCurpos())/100.0,
                     ((double) multiInstancePercentage.getCurpos())/100.0, ((double) multiInstanceTolerance.getCurpos())/100.0, ((double) noiseThreshold.getCurpos())/100.0,
                     listCandidates, group);

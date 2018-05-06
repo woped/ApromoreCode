@@ -20,43 +20,65 @@
 
 package org.apromore.service.logvisualizer.impl;
 
+import com.raffaeleconforti.log.util.LogImporter;
 import org.apromore.plugin.DefaultParameterAwarePlugin;
 import org.apromore.service.logvisualizer.LogVisualizerService;
-import org.apromore.service.logvisualizer.fuzzyminer.model.*;
-import org.apromore.service.logvisualizer.fuzzyminer.transformer.*;
 import org.deckfour.xes.classification.XEventAndClassifier;
 import org.deckfour.xes.classification.XEventClassifier;
 import org.deckfour.xes.classification.XEventLifeTransClassifier;
 import org.deckfour.xes.classification.XEventNameClassifier;
 import org.deckfour.xes.extension.std.XConceptExtension;
 import org.deckfour.xes.extension.std.XLifecycleExtension;
+import org.deckfour.xes.extension.std.XTimeExtension;
 import org.deckfour.xes.factory.XFactoryNaiveImpl;
-import org.deckfour.xes.info.XLogInfo;
-import org.deckfour.xes.info.XLogInfoFactory;
 import org.deckfour.xes.model.XEvent;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
+import org.deckfour.xes.model.impl.XLogImpl;
+import org.eclipse.collections.api.iterator.MutableIntIterator;
+import org.eclipse.collections.api.list.MutableList;
+import org.eclipse.collections.api.list.primitive.IntList;
+import org.eclipse.collections.api.list.primitive.LongList;
+import org.eclipse.collections.api.tuple.Pair;
+import org.eclipse.collections.api.tuple.primitive.IntIntPair;
+import org.eclipse.collections.api.tuple.primitive.ObjectIntPair;
+import org.eclipse.collections.impl.bimap.mutable.HashBiMap;
+import org.eclipse.collections.impl.list.mutable.primitive.IntArrayList;
+import org.eclipse.collections.impl.list.mutable.primitive.LongArrayList;
+import org.eclipse.collections.impl.map.mutable.UnifiedMap;
+import org.eclipse.collections.impl.map.mutable.primitive.IntIntHashMap;
+import org.eclipse.collections.impl.map.mutable.primitive.IntObjectHashMap;
+import org.eclipse.collections.impl.map.mutable.primitive.ObjectIntHashMap;
+import org.eclipse.collections.impl.set.mutable.primitive.IntHashSet;
+import org.eclipse.collections.impl.tuple.Tuples;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.processmining.contexts.uitopia.UIContext;
 import org.processmining.contexts.uitopia.UIPluginContext;
-import org.processmining.framework.plugin.PluginContext;
-import org.processmining.framework.util.Pair;
-import org.processmining.models.graphbased.AttributeMap;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagramImpl;
+import org.processmining.models.graphbased.directed.bpmn.BPMNEdge;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
-import org.processmining.models.graphbased.directed.bpmn.elements.Activity;
+import org.processmining.models.graphbased.directed.bpmn.elements.Gateway;
 import org.processmining.models.graphbased.directed.bpmn.elements.Event;
-import org.processmining.models.graphbased.directed.bpmn.elements.Flow;
-import org.processmining.models.graphbased.directed.fuzzymodel.attenuation.Attenuation;
-import org.processmining.models.graphbased.directed.fuzzymodel.attenuation.NRootAttenuation;
-import org.processmining.models.graphbased.directed.fuzzymodel.metrics.MetricsRepository;
 import org.processmining.plugins.bpmn.BpmnDefinitions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import javax.swing.*;
+import java.awt.*;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.text.DecimalFormat;
 import java.util.*;
+import java.util.List;
+
+//import org.jgrapht.ext.*;
+//import org.jgrapht.graph.DefaultDirectedGraph;
+//import java.io.FileWriter;
+//import java.io.IOException;
 
 /**
  * Created by Raffaele Conforti on 01/12/2016.
@@ -65,51 +87,136 @@ import java.util.*;
 public class LogVisualizerServiceImpl extends DefaultParameterAwarePlugin implements LogVisualizerService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LogVisualizerServiceImpl.class);
 
-//    public static void main(String[] args) {
-//        LogVisualizerServiceImpl l = new LogVisualizerServiceImpl();
-//        XLog log = null;
+    private XEventClassifier full_classifier = new XEventAndClassifier(new XEventNameClassifier(), new XEventLifeTransClassifier());
+    private XEventClassifier name_classifier = new XEventNameClassifier();
+    private XEventClassifier lifecycle_classifier = new XEventLifeTransClassifier();
+    private XTimeExtension xte = XTimeExtension.instance();
+
+    private DecimalFormat decimalFormat = new DecimalFormat("#.0");
+    private boolean contain_start_events = false;
+
+    private HashBiMap<String, Integer> simplified_names;
+
+    private MutableList<IntIntPair> sorted_activity_frequency;
+    private IntIntHashMap real_activity_frequency;
+
+    private IntIntHashMap activity_frequency;
+    private IntIntHashMap activity_max_frequency;
+    private IntIntHashMap activity_min_frequency;
+
+    private ObjectIntHashMap<Pair<Integer, Integer>> arcs_frequency;
+    private ObjectIntHashMap<Pair<Integer, Integer>> arcs_max_frequency;
+    private ObjectIntHashMap<Pair<Integer, Integer>> arcs_min_frequency;
+
+    private Map<Pair<Integer, Integer>, LongArrayList> arcs_duration_set;
+
+    private MutableList<ObjectIntPair<Pair<Integer, Integer>>> sorted_arcs_frequency;
+
+    private IntHashSet retained_activities;
+    private Set<Pair<Integer, Integer>> retained_arcs;
+
+    private String start_name = "|>";
+    private String end_name = "[]";
+    private int start = 1;
+    private int end = 2;
+
+    public final static boolean FREQUENCY = true;
+    public final static boolean DURATION = false;
+
+    public final static int TOTAL = 0;
+    public final static int MEAN = 1;
+    public final static int MEDIAN = 2;
+    public final static int MAX = 3;
+    public final static int MIN = 4;
+
+    private final String START = "#C1C9B0";
+    private final String END = "#C0A3A1";
+
+    private final String BLUE_1 = "#F1EEF6";
+    private final String BLUE_2 = "#BDC9E1";
+    private final String BLUE_3 = "#74A9CF";
+    private final String BLUE_4 = "#2B8CBE";
+    private final String BLUE_5 = "#045A8D";
+
+    private final String RED_1 = "#FEF0D9";
+    private final String RED_2 = "#FDCC8A";
+    private final String RED_3 = "#FC8D59";
+    private final String RED_4 = "#E34A33";
+    private final String RED_5 = "#B30000";
+
+    private final String EDGE_START_COLOR_FREQUENCY = "#646464";
+    private final String EDGE_END_COLOR_FREQUENCY  = "#292929";
+    private final String EDGE_START_COLOR_DURATION  = "#646464";
+    private final String EDGE_END_COLOR_DURATION  = "#8B0000";
+
+    private final ColorGradient activity_frequency_gradient = new ColorGradient(new Color(241, 238, 246), new Color(4, 90, 141));
+    private final ColorGradient activity_duration_gradient = new ColorGradient(new Color(254,240,217), new Color(179, 0, 0));
+    private final ColorGradient arc_frequency_gradient = new ColorGradient(new Color(100, 100, 100), new Color(41, 41, 41));
+    private final ColorGradient arc_duration_gradient = new ColorGradient(new Color(100, 100, 100), new Color(139, 0, 0));
+
+    public static void main(String[] args) {
+        LogVisualizerServiceImpl l = new LogVisualizerServiceImpl();
+        XLog log = null;
+        try {
+//            log = ImportEventLog.importFromFile(new XFactoryNaiveImpl(), "/Volumes/Data/IdeaProjects/ApromoreCodeServerNew/Compare-Logic/src/test/resources/CAUSCONC-1/bpLog3.xes");
+//            log = LogImporter.importFromFile(new XFactoryNaiveImpl(), "/Volumes/Data/SharedFolder/Logs/Raw data after import.xes.gz");
+//            log = LogImporter.importFromFile(new XFactoryNaiveImpl(), "/Users/conforti/Downloads/BPIC13_i.xes.gz");
+            log = LogImporter.importFromFile(new XFactoryNaiveImpl(), "/Volumes/Data/Dropbox/Demonstration examples/Discover Process Model/Synthetic Log with Subprocesses.xes.gz");
+//            log = LogImporter.importFromFile(new XFactoryNaiveImpl(), "/Volumes/Data/SharedFolder/Logs/BPI2017 - Loan Application (NoiseFilter).xes.gz");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        XLog flog = l.generateFilteredLog(log, 0, 100);
+//        JSONArray s = l.generateJSONArrayFromLog(log, 0, 100, FREQUENCY, MEAN);
+//        JSONArray s1 = l.generateJSONArrayFromLog(log, 0.4, 0, true);
+//        System.out.println(s);
+//        System.out.println(s1);
+//        System.out.println(l.visualizeLog(log, 0.34, 0));
+//        l.generateDOTFromLog(log, 0.0, 0.36);
+    }
+
+//    public void generateDOTFromLog(XLog log, double activities, double arcs) {
 //        try {
-////            log = ImportEventLog.importFromFile(new XFactoryNaiveImpl(), "/Volumes/Data/IdeaProjects/ApromoreCodeServerNew/Compare-Logic/src/test/resources/CAUSCONC-1/bpLog3.xes");
-//            log = ImportEventLog.importFromFile(new XFactoryNaiveImpl(), "/Volumes/Data/IdeaProjects/Models/Zip/Logs/BPI Challenge - 2012.xes.gz");
+//            BPMNDiagram bpmnDiagram = generateDiagramFromLog(log, activities, arcs, FREQUENCY, MIN);
+//            generateDOTFromBPMN(bpmnDiagram);
 //        } catch (Exception e) {
 //            e.printStackTrace();
 //        }
-//        String s = l.visualizeLog(log, 0.5, 0.5);
-//        System.out.println();
+//    }
+//
+//    private void generateDOTFromBPMN(BPMNDiagram bpmnDiagram) throws JSONException, IOException {
+//        IntegerNameProvider integerNameProvider = new IntegerNameProvider();
+//        StringNameProvider stringNameProvider = new StringNameProvider();
+//        ComponentAttributeProvider vertexAttributeProvider = new ComponentAttributeProvider() {
+//            @Override
+//            public Map<String, String> getComponentAttributes(Object o) {
+//                return new HashMap<>();
+//            }
+//        };
+//        ComponentAttributeProvider edgeAttributeProvider = new ComponentAttributeProvider() {
+//            @Override
+//            public Map<String, String> getComponentAttributes(Object o) {
+//                return new HashMap<>();
+//            }
+//        };
+//        DOTExporter dotExporter = new DOTExporter(integerNameProvider, stringNameProvider, null, vertexAttributeProvider, edgeAttributeProvider);
+//        DefaultDirectedGraph graph = new DefaultDirectedGraph(String.class);
+//
+//        for(BPMNNode node : getNodes(bpmnDiagram)) {
+//            graph.addVertex(node.getLabel());
+//        }
+//
+//        for(BPMNEdge<? extends BPMNNode, ? extends BPMNNode> edge : getEdges(bpmnDiagram)) {
+//            graph.addEdge(edge.getSource().getLabel(), edge.getTarget().getLabel(), edge.getSource().getLabel() + " " + edge.getTarget().getLabel());
+//        }
+//
+//        dotExporter.export(new FileWriter("dot.dot"), graph);
 //    }
 
     @Override
     public String visualizeLog(XLog log, double activities, double arcs) {
         try {
-            XEventClassifier classifier = new XEventAndClassifier(new XEventNameClassifier(), new XEventLifeTransClassifier());
-            MutableFuzzyGraph mutableFuzzyGraph = discoverFuzzyGraph(log, activities, arcs, classifier);
-
-            Set<FMNode> nodes = mutableFuzzyGraph.getNodes();
-            BPMNDiagram bpmnDiagram = new BPMNDiagramImpl("Fuzzy Model");
-            Map<String, BPMNNode> nodesMap = new HashMap<>();
-
-            for (FMNode node : nodes) {
-                createNode(nodesMap, bpmnDiagram, node);
-            }
-
-            Map<FMEdge<? extends FMNode, ? extends FMNode>, Integer> cache = new HashMap<>();
-            Set<Pair<String, String>> addedEdges = new HashSet<>();
-            Set<FMEdge<? extends FMNode, ? extends FMNode>> originalEdges = mutableFuzzyGraph.getEdges();
-
-            populateExistsInLogCache(log, originalEdges, cache);
-
-            selectCandidateEdges(bpmnDiagram, arcs, nodesMap, originalEdges, addedEdges, cache);
-
-            Event start = insertStart(log, bpmnDiagram, nodesMap);
-
-            addEdgesToEnsureStartReachablility(bpmnDiagram, start, nodesMap, originalEdges, addedEdges, cache);
-
-            Event end = insertEnd(log, bpmnDiagram, nodesMap);
-
-            addEdgesToEnsureEndReachablility(bpmnDiagram, end, nodesMap, originalEdges, addedEdges, cache);
-
-            insertEdgeFrequency(bpmnDiagram, cache);
-            insertActivityFrequency(bpmnDiagram, log);
+            BPMNDiagram bpmnDiagram = generateDiagramFromLog(log, activities, arcs, FREQUENCY, MEAN);
 
             UIContext context = new UIContext();
             UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
@@ -135,369 +242,886 @@ public class LogVisualizerServiceImpl extends DefaultParameterAwarePlugin implem
         return null;
     }
 
-    private MutableFuzzyGraph discoverFuzzyGraph(XLog log, double activities, double arcs, XEventClassifier classifier) throws Exception {
-        XLogInfo logInfo = XLogInfoFactory.createLogInfo(log, classifier);
-        MetricsRepository metrics = MetricsRepository.createRepository(logInfo);
-        Attenuation attenuation = new NRootAttenuation(2.7, 5);
-        int maxDistance = 4;
-        UIContext uiContext = new UIContext();
-        PluginContext pluginContext = uiContext.getMainPluginContext();
-        metrics.apply(log, attenuation, maxDistance, pluginContext);
-        MutableFuzzyGraph mutableFuzzyGraph = new FuzzyModelPanel(pluginContext, metrics).getExportFuzzyGraphObjects();
-        mutableFuzzyGraph.initializeGraph();
-        mutableFuzzyGraph.setEdgeImpls();
-
-        ConcurrencyEdgeTransformer concurrencyEdgeTransformer = new ConcurrencyEdgeTransformer();
-        concurrencyEdgeTransformer.setPreserveThreshold(arcs);
-        concurrencyEdgeTransformer.setRatioThreshold(arcs);
-
-        FuzzyEdgeTransformer fuzzyEdgeTransformer = new FuzzyEdgeTransformer();
-        fuzzyEdgeTransformer.setPreservePercentage(arcs);
-        fuzzyEdgeTransformer.setSignificanceCorrelationRatio(arcs);
-
-        FastTransformer nodeFilter = new FastTransformer();
-        nodeFilter.addPreTransformer(fuzzyEdgeTransformer);
-        nodeFilter.setThreshold(activities);
-        nodeFilter.transform(mutableFuzzyGraph);
-        return mutableFuzzyGraph;
-    }
-
-    private void createNode(Map<String, BPMNNode> nodesMap, BPMNDiagram bpmnDiagram, FMNode node) {
-        if(node instanceof FMClusterNode) {
-            FMClusterNode clusterNode = (FMClusterNode) node;
-            clusterNode.setLabel(clusterNode.getElementName().replaceAll(" ", "") + " " + clusterNode.getEventType() + " " + clusterNode.getSignificance());
-        }
-        String nodeLabel = standardizeName(node.getLabel());
-        if(nodesMap.get(nodeLabel) == null) {
-            if (node instanceof FMClusterNode) {
-                FMClusterNode clusterNode = (FMClusterNode) node;
-                Set<FMNode> primitives = clusterNode.getPrimitives();
-                double best = 0;
-                String name = "";
-                for (FMNode primitive : primitives) {
-                    if (best < primitive.getSignificance()) {
-                        best = primitive.getSignificance();
-                        name = standardizeName(primitive.getLabel());
-                    }
-                }
-                Activity activity = bpmnDiagram.addActivity(name, false, false, false, false, false);
-                nodesMap.put(nodeLabel, activity);
-                for (FMNode primitive : primitives) {
-                    name = standardizeName(primitive.getLabel());
-                    nodesMap.put(name, activity);
-                }
-            } else {
-                nodesMap.put(nodeLabel, bpmnDiagram.addActivity(nodeLabel, false, false, false, false, false));
-            }
-        }
-    }
-
-    private String standardizeName(String name) {
+    @Override
+    public JSONArray generateJSONArrayFromLog(XLog log, double activities, double arcs, boolean frequency_vs_duration, int avg_vs_min_vs_max) {
         try {
-            Double.parseDouble(name.substring(name.lastIndexOf(" ")));
-            name = name.substring(0, name.lastIndexOf(" "));
-        }catch (NumberFormatException nfe) { }
-
-        if(!name.endsWith(")")) {
-            String name1 = name.substring(0, name.lastIndexOf(" "));
-            String name2 = name.substring(name.lastIndexOf(" ") + 1, name.length());
-            return name1 + " (" + name2 + ")";
+            BPMNDiagram bpmnDiagram = generateDiagramFromLog(log, activities, arcs, frequency_vs_duration, avg_vs_min_vs_max);
+            return generateJSONFromBPMN(bpmnDiagram, frequency_vs_duration, avg_vs_min_vs_max);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        return name;
+        return null;
     }
 
-    private void populateExistsInLogCache(XLog log, Set<FMEdge<? extends FMNode, ? extends FMNode>> edges, Map<FMEdge<? extends FMNode, ? extends FMNode>, Integer> cache) {
-        Map<Pair<String, String>, Integer> map = new HashMap<>();
-        Integer value;
-        Pair<String, String> pair;
-        for(XTrace trace : log) {
-            for(int i = 0; i < trace.size() - 1; i++) {
-                pair = new Pair(extractEventName(trace.get(i)), extractEventName(trace.get(i + 1)));
-                if((value = map.get(pair)) == null) {
-                    value = 0;
+    @Override
+    public BPMNDiagram generateBPMNFromLog(XLog log, double activities, double arcs, boolean frequency_vs_duration, int avg_vs_min_vs_max) {
+        try {
+            BPMNDiagram bpmnDiagram = generateDiagramFromLog(log, activities, arcs, frequency_vs_duration, avg_vs_min_vs_max);
+            return insertBPMNGateways(bpmnDiagram);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    @Override
+    public XLog generateFilteredLog(XLog log, double activities, double arcs) {
+        initializeDatastructures();
+        log = removeUnrequiredEvents(log);
+        List<IntList> simplified_log = simplifyLog(log);
+        List<LongList> simplified_times_log = simplifyTimesLog(log);
+        List<IntList> filtered_log = filterLog(simplified_log, simplified_times_log, activities);
+
+        XFactoryNaiveImpl factory = new XFactoryNaiveImpl();
+        XLog filtered_xlog = factory.createLog(log.getAttributes());
+        for(int trace = 0; trace < filtered_log.size(); trace++) {
+            XTrace filtered_xtrace = factory.createTrace(log.get(trace).getAttributes());
+            IntList filtered_trace = filtered_log.get(trace);
+            int unfiltered_event = 0;
+            for(int event = 1; event < filtered_trace.size() - 1; event++) {
+                while(!full_classifier.getClassIdentity(log.get(trace).get(unfiltered_event)).equals(getEventFullName(filtered_trace.get(event)))) {
+                    unfiltered_event++;
                 }
-                value++;
-                map.put(pair, value);
+                filtered_xtrace.add(log.get(trace).get(unfiltered_event));
+                unfiltered_event++;
+            }
+            if(filtered_xtrace.size() > 0) {
+                filtered_xlog.add(filtered_xtrace);
             }
         }
 
-        for(FMEdge<? extends FMNode, ? extends FMNode> edge : edges) {
-            Integer res = 0;
-            Set<String> sources = new HashSet<>();
-            Set<String> targets = new HashSet<>();
+        return filtered_xlog;
+    }
 
-            populateSetOfLabels(sources, edge.getSource());
-            populateSetOfLabels(targets, edge.getTarget());
+    private BPMNDiagram generateDiagramFromLog(XLog log, double activities, double arcs, boolean frequency_vs_duration, int avg_vs_min_vs_max) {
+        initializeDatastructures();
+        log = removeUnrequiredEvents(log);
+        List<IntList> simplified_log = simplifyLog(log);
+        List<LongList> simplified_times_log = simplifyTimesLog(log);
+        filterLog(simplified_log, simplified_times_log, activities);
+        retained_arcs = selectArcs(arcs);
 
-            for(String source : sources) {
-                for(String target : targets) {
-                    if((value = map.get(new Pair<>(source, target))) != null) {
-                        res += value;
+        BPMNDiagram bpmnDiagram = new BPMNDiagramImpl("");
+        IntObjectHashMap<BPMNNode> map = new IntObjectHashMap();
+        for(int i : retained_activities.toArray()) {
+            BPMNNode node = bpmnDiagram.addActivity(simplified_names.inverse().get(i), false, false, false, false, false);
+            map.put(i, node);
+        }
+
+        for(Pair<Integer, Integer> arc : retained_arcs) {
+            BPMNNode source = map.get(arc.getOne());
+            BPMNNode target = map.get(arc.getTwo());
+            if(frequency_vs_duration == FREQUENCY) {
+                if(avg_vs_min_vs_max == TOTAL) {
+                    bpmnDiagram.addFlow(source, target, "[" + arcs_frequency.get(arc) + "]");
+                }else if(avg_vs_min_vs_max == MAX) {
+                    bpmnDiagram.addFlow(source, target, "[" + arcs_max_frequency.get(arc) + "]");
+                }else if(avg_vs_min_vs_max == MIN) {
+                    bpmnDiagram.addFlow(source, target, "[" + arcs_min_frequency.get(arc) + "]");
+                }
+            }else {
+                if(avg_vs_min_vs_max == TOTAL) {
+                    bpmnDiagram.addFlow(source, target, "[" + getArcTotalDuration(arc) + "]");
+                }else if(avg_vs_min_vs_max == MEAN) {
+                    bpmnDiagram.addFlow(source, target, "[" + getArcMeanDuration(arc) + "]");
+                }else if(avg_vs_min_vs_max == MEDIAN) {
+                    bpmnDiagram.addFlow(source, target, "[" + getArcMedianDuration(arc) + "]");
+                }else if(avg_vs_min_vs_max == MAX) {
+                    bpmnDiagram.addFlow(source, target, "[" + getArcMaxDuration(arc) + "]");
+                }else if(avg_vs_min_vs_max == MIN) {
+                    bpmnDiagram.addFlow(source, target, "[" + getArcMinDuration(arc) + "]");
+                }
+            }
+        }
+        return collapseStartCompleteActivities(bpmnDiagram);
+    }
+
+    private BPMNDiagram collapseStartCompleteActivities(BPMNDiagram bpmnDiagram) {
+        BPMNDiagram diagram = new BPMNDiagramImpl("");
+
+        Map<String, BPMNNode> nodes_map = new HashMap<>();
+        for(BPMNNode node : bpmnDiagram.getNodes()) {
+            String collapsed_name = getCollapsedEvent(node.getLabel());
+            if(!nodes_map.containsKey(collapsed_name)) {
+                BPMNNode collapsed_node = diagram.addActivity(collapsed_name, false, false, false, false, false);
+                nodes_map.put(collapsed_name, collapsed_node);
+            }
+        }
+
+        Set<Pair<String, String>> edges = new HashSet<>();
+        for(BPMNEdge<? extends BPMNNode, ? extends BPMNNode> edge : bpmnDiagram.getEdges()) {
+            String source_name = edge.getSource().getLabel();
+            String target_name = edge.getTarget().getLabel();
+
+            String collapsed_source_name = getCollapsedEvent(source_name);
+            String collapsed_target_name = getCollapsedEvent(target_name);
+
+            BPMNNode source = nodes_map.get(collapsed_source_name);
+            BPMNNode target = nodes_map.get(collapsed_target_name);
+
+            Pair pair = Tuples.pair(collapsed_source_name, collapsed_target_name);
+            if(!collapsed_source_name.equals(collapsed_target_name) || isSingleTypeEvent(getEventNumber(source_name)) || isCompleteEvent(source_name)) {
+                if(!edges.contains(pair)) {
+                    diagram.addFlow(source, target, edge.getLabel());
+                    edges.add(pair);
+                }
+            }
+        }
+        return diagram;
+    }
+
+    private void initializeDatastructures() {
+        simplified_names = new HashBiMap<>();
+        real_activity_frequency = new IntIntHashMap();
+
+        activity_frequency = new IntIntHashMap();
+        activity_max_frequency = new IntIntHashMap();
+        activity_min_frequency = new IntIntHashMap();
+
+        arcs_frequency = new ObjectIntHashMap<>();
+        arcs_max_frequency = new ObjectIntHashMap<>();
+        arcs_min_frequency = new ObjectIntHashMap<>();
+
+        arcs_duration_set = new UnifiedMap<>();
+    }
+
+    private XLog removeUnrequiredEvents(XLog log) {
+        boolean contain = false;
+        for(XTrace trace : log) {
+            Iterator<XEvent> iterator = trace.iterator();
+            while (iterator.hasNext()) {
+                XEvent event = iterator.next();
+                String name = full_classifier.getClassIdentity(event);
+                if(name.contains("+") && (isCompleteEvent(name))) {
+                    contain = true;
+                }
+            }
+        }
+
+        if(contain) {
+            for (XTrace trace : log) {
+                Iterator<XEvent> iterator = trace.iterator();
+                while (iterator.hasNext()) {
+                    XEvent event = iterator.next();
+                    String name = full_classifier.getClassIdentity(event);
+                    if (name.contains("+") && !(isStartEvent(name) || isCompleteEvent(name))) {
+                        iterator.remove();
                     }
                 }
-            }
-            cache.put(edge, res);
-        }
-    }
-
-    private void populateSetOfLabels(Set<String> set, FMNode node) {
-        if(node instanceof FMClusterNode) {
-            FMClusterNode clusterNode = (FMClusterNode) node;
-            Set<FMNode> primitives = clusterNode.getPrimitives();
-            for (FMNode primitive : primitives) {
-                set.add(standardizeName(primitive.getLabel()));
             }
         }else {
-            set.add(standardizeName(node.getLabel()));
-        }
-    }
-
-    private void selectCandidateEdges(BPMNDiagram bpmnDiagram, double arcs,
-                                      Map<String, BPMNNode> nodesMap,
-                                      Set<FMEdge<? extends FMNode, ? extends FMNode>> originalEdges,
-                                      Set<Pair<String, String>> addedEdges,
-                                      Map<FMEdge<? extends FMNode, ? extends FMNode>, Integer> cache) {
-
-        for (FMEdge<? extends FMNode, ? extends FMNode> edge : originalEdges) {
-            try {
-                if(existsInLog(edge, cache) && getEdgeScore(edge) > 1 - arcs) {
-                    createEdge(nodesMap, bpmnDiagram, addedEdges, edge);
-                }
-            } catch (NullPointerException e) {
-                createNode(nodesMap, bpmnDiagram, edge.getSource());
-                createNode(nodesMap, bpmnDiagram, edge.getTarget());
-                createEdge(nodesMap, bpmnDiagram, addedEdges, edge);
-            }
-        }
-    }
-
-    private void createEdge(Map<String, BPMNNode> nodesMap, BPMNDiagram bpmnDiagram, Set<Pair<String, String>> edgesAdded, FMEdge<? extends FMNode, ? extends FMNode> edge) {
-        FMNode source = edge.getSource();
-        BPMNNode source1 = nodesMap.get(standardizeName(source.getLabel()));
-
-        FMNode target = edge.getTarget();
-        BPMNNode target1 = nodesMap.get(standardizeName(target.getLabel()));
-
-        String name1 = standardizeName(source1.getLabel());
-        String name2 = standardizeName(target1.getLabel());
-
-        Pair<String, String> pair = new Pair<>(
-                name1, name2);
-        if(!edgesAdded.contains(pair)) {
-            bpmnDiagram.addFlow(source1, target1, "");
-            edgesAdded.add(pair);
-        }
-    }
-
-    private Event insertStart(XLog log, BPMNDiagram bpmnDiagram, Map<String, BPMNNode> nodesMap) {
-        Event start = bpmnDiagram.addEvent("Start", Event.EventType.START, Event.EventTrigger.NONE, Event.EventUse.CATCH, null);
-        Set<String> firstActivity = new HashSet<>();
-        Set<Pair<String, String>> startEdge = new HashSet<>();
-        for (XTrace trace : log) {
-            String name = extractEventName(trace.get(0));
-            firstActivity.add(name);
-        }
-        for (String name : firstActivity) {
-            BPMNNode node = nodesMap.get(name);
-            if (node != null) {
-                Pair<String, String> pair = new Pair<>("Start", node.getLabel());
-                if (!startEdge.contains(pair)) {
-                    bpmnDiagram.addFlow(start, nodesMap.get(name), "");
-                    startEdge.add(pair);
+            XConceptExtension xce = XConceptExtension.instance();
+            XLifecycleExtension xle = XLifecycleExtension.instance();
+            for (XTrace trace : log) {
+                Iterator<XEvent> iterator = trace.iterator();
+                while (iterator.hasNext()) {
+                    XEvent event = iterator.next();
+                    String name = full_classifier.getClassIdentity(event);
+                    xce.assignName(event, name.replace("+", "-"));
+                    xle.assignTransition(event, "complete");
                 }
             }
         }
-        return start;
+        return log;
     }
 
-    private void addEdgesToEnsureStartReachablility(BPMNDiagram bpmnDiagram, Event start,
-                                                    Map<String, BPMNNode> nodesMap,
-                                                    Set<FMEdge<? extends FMNode, ? extends FMNode>> originalEdges,
-                                                    Set<Pair<String, String>> addedEdges,
-                                                    Map<FMEdge<? extends FMNode, ? extends FMNode>, Integer> cache) {
+    private List<IntList> simplifyLog(XLog log) {
+        List<IntList> simplified_log = new ArrayList<>();
 
-        for (Activity activity : bpmnDiagram.getActivities()) {
-            if (!existsPath(bpmnDiagram, start, activity)) {
-                FMEdge<? extends FMNode, ? extends FMNode> best_edge = findBestSourceEdge(bpmnDiagram, activity, nodesMap, originalEdges, cache);
-                if (best_edge != null) {
-                    createEdge(nodesMap, bpmnDiagram, addedEdges, best_edge);
-                } else {
-                    best_edge = findBestSourceEdge(bpmnDiagram, activity, nodesMap, originalEdges, cache);
-                    if (best_edge != null) {
-                        createEdge(nodesMap, bpmnDiagram, addedEdges, best_edge);
-                    }
-                }
-            }
-        }
-    }
+        simplified_names.put(start_name, start);
+        simplified_names.put(end_name, end);
 
-    private FMEdge<? extends FMNode, ? extends FMNode> findBestSourceEdge(BPMNDiagram bpmnDiagram, Activity activity,
-                                                                          Map<String, BPMNNode> nodesMap,
-                                                                          Set<FMEdge<? extends FMNode, ? extends FMNode>> originalEdges,
-                                                                          Map<FMEdge<? extends FMNode, ? extends FMNode>, Integer> cache) {
-
-        FMEdge<? extends FMNode, ? extends FMNode> best_edge = null;
-        for (FMEdge<? extends FMNode, ? extends FMNode> edge : originalEdges) {
-            String targetLabel = standardizeName(edge.getTarget().getLabel());
-            String sourceLabel = standardizeName(edge.getSource().getLabel());
-            String activityLabel = activity.getLabel();
-            BPMNNode activityNode = nodesMap.get(targetLabel); //The activity node may be a cluster node
-            BPMNNode candidateTargetNode = nodesMap.get(sourceLabel);
-            if (existsInLog(edge, cache)
-                    && activityNode != null
-                    && candidateTargetNode != null
-                    && activityNode.getLabel().equals(activityLabel)
-                    && !candidateTargetNode.getLabel().equals(activityLabel)
-                    && !existsPath(bpmnDiagram, activity, candidateTargetNode)) {
-                if (best_edge == null || (getEdgeScore(edge) > getEdgeScore(best_edge))) {
-                    best_edge = edge;
-                }
-            }
-        }
-        return best_edge;
-    }
-
-    private Event insertEnd(XLog log, BPMNDiagram bpmnDiagram, Map<String, BPMNNode> nodesMap) {
-        Event end = bpmnDiagram.addEvent("End", Event.EventType.END, Event.EventTrigger.NONE, Event.EventUse.THROW, null);
-        Set<String> lastActivity = new HashSet<>();
-        Set<Pair<String, String>> endEdge = new HashSet<>();
-        for (XTrace trace : log) {
-            String name = extractEventName(trace.get(trace.size() - 1));
-            lastActivity.add(name);
-        }
-        for (String name : lastActivity) {
-            BPMNNode node = nodesMap.get(name);
-            if (node != null) {
-                Pair<String, String> pair = new Pair<>(node.getLabel(), "End");
-                if (!endEdge.contains(pair)) {
-                    bpmnDiagram.addFlow(nodesMap.get(name), end, "");
-                    endEdge.add(pair);
-                }
-            }
-        }
-        return end;
-    }
-
-    private void addEdgesToEnsureEndReachablility(BPMNDiagram bpmnDiagram, Event end,
-                                                  Map<String, BPMNNode> nodesMap,
-                                                  Set<FMEdge<? extends FMNode, ? extends FMNode>> originalEdges,
-                                                  Set<Pair<String, String>> addedEdges,
-                                                  Map<FMEdge<? extends FMNode, ? extends FMNode>, Integer> cache) {
-
-        for (Activity activity : bpmnDiagram.getActivities()) {
-            if (!existsPath(bpmnDiagram, activity, end)) {
-                FMEdge<? extends FMNode, ? extends FMNode> best_edge = findBestTargetEdge(bpmnDiagram, activity, nodesMap, originalEdges, cache);
-                if (best_edge != null) {
-                    createEdge(nodesMap, bpmnDiagram, addedEdges, best_edge);
-                } else {
-                    best_edge = findBestTargetEdge(bpmnDiagram, activity, nodesMap, originalEdges, cache);
-                    if (best_edge != null) {
-                        createEdge(nodesMap, bpmnDiagram, addedEdges, best_edge);
-                    }
-                }
-            }
-        }
-    }
-
-    private FMEdge<? extends FMNode, ? extends FMNode> findBestTargetEdge(BPMNDiagram bpmnDiagram, Activity activity,
-                                                                          Map<String, BPMNNode> nodesMap,
-                                                                          Set<FMEdge<? extends FMNode, ? extends FMNode>> originalEdges,
-                                                                          Map<FMEdge<? extends FMNode, ? extends FMNode>, Integer> cache) {
-
-        FMEdge<? extends FMNode, ? extends FMNode> best_edge = null;
-        for (FMEdge<? extends FMNode, ? extends FMNode> edge : originalEdges) {
-            String targetLabel = standardizeName(edge.getTarget().getLabel());
-            String sourceLabel = standardizeName(edge.getSource().getLabel());
-            String activityLabel = activity.getLabel();
-            BPMNNode activityNode = nodesMap.get(sourceLabel); //The activity node may be a cluster node
-            BPMNNode candidateSourceNode = nodesMap.get(targetLabel);
-            if (existsInLog(edge, cache)
-                    && activityNode != null
-                    && candidateSourceNode != null
-                    && activityNode.getLabel().equals(activityLabel)
-                    && !candidateSourceNode.getLabel().equals(activityLabel)
-                    && !existsPath(bpmnDiagram, candidateSourceNode, activity)) {
-                if (best_edge == null || (getEdgeScore(edge) > getEdgeScore(best_edge))) {
-                    best_edge = edge;
-                }
-            }
-        }
-        return best_edge;
-    }
-
-    private void insertActivityFrequency(BPMNDiagram bpmnDiagram, XLog log) {
-        Map<String, Integer> activityFrequencies = new HashMap<>();
-
-        String eventName;
-        Integer frequency;
         for(XTrace trace : log) {
+            IntArrayList simplified_trace = new IntArrayList(trace.size());
+
+            updateActivityFrequency(start, 1);
+
+            simplified_trace.add(start);
+
+            IntIntHashMap eventsCount = new IntIntHashMap();
             for(XEvent event : trace) {
-                eventName = extractEventName(event);
-                if((frequency = activityFrequencies.get(eventName)) == null) {
-                    frequency = 0;
+                String name = full_classifier.getClassIdentity(event);
+                if(name.contains("+")) {
+                    String prename = name.substring(0, name.indexOf("+"));
+                    String postname = name.substring(name.indexOf("+"));
+                    name = prename + postname.toLowerCase();
                 }
-                frequency++;
-                activityFrequencies.put(eventName, frequency);
+                if(isStartEvent(name)) contain_start_events = true;
+
+                Integer simplified_event;
+                if((simplified_event = getEventNumber(name)) == null) {
+                    simplified_event = simplified_names.size() + 1;
+                    simplified_names.put(name, simplified_event);
+                }
+
+                real_activity_frequency.addToValue(simplified_event, 1);
+
+                eventsCount.addToValue(simplified_event, 1);
+//                activity_frequency.addToValue(simplified_event, 1);
+                simplified_trace.add(simplified_event);
             }
+
+            for(int event : eventsCount.keySet().toArray()) {
+                updateActivityFrequency(event, eventsCount.get(event));
+            }
+
+            updateActivityFrequency(end, 1);
+            simplified_trace.add(end);
+
+            simplified_log.add(simplified_trace);
         }
 
-        for(Activity activity : bpmnDiagram.getActivities()) {
-            frequency = activityFrequencies.get(activity.getLabel());
-            activity.getAttributeMap().put(AttributeMap.LABEL, activity.getLabel() + " [" + frequency + "]");
-        }
+        sorted_activity_frequency = activity_frequency.keyValuesView().toList();
+        sorted_activity_frequency.sort(new Comparator<IntIntPair>() {
+            @Override
+            public int compare(IntIntPair o1, IntIntPair o2) {
+                return Integer.compare(o2.getTwo(), o1.getTwo());
+            }
+        });
+
+        return simplified_log;
     }
 
-    private void insertEdgeFrequency(BPMNDiagram bpmnDiagram, Map<FMEdge<? extends FMNode, ? extends FMNode>, Integer> cache) {
+    private void updateActivityFrequency(int activity, int frequency) {
+        activity_frequency.addToValue(activity, frequency);
 
-        for(Map.Entry<FMEdge<? extends FMNode, ? extends FMNode>, Integer> entry : cache.entrySet()) {
-            String sourceLabel = standardizeName(entry.getKey().getSource().getLabel());
-            String targetLabel = standardizeName(entry.getKey().getTarget().getLabel());
+        Integer value = Math.max(frequency, activity_max_frequency.get(activity));
+        activity_max_frequency.put(activity, value);
 
-            for(Flow edge : bpmnDiagram.getFlows()) {
-                String s = edge.getSource().getLabel();
-                String t = edge.getTarget().getLabel();
-                if(sourceLabel.equals(s) && targetLabel.equals(t)) {
-                    edge.setLabel("[" + entry.getValue()+ "]");
+        value = Math.min(frequency, activity_min_frequency.get(activity));
+        value = (value == 0 ? frequency : value);
+        activity_min_frequency.put(activity, value);
+    }
+
+    private List<LongList> simplifyTimesLog(XLog log) {
+        List<LongList> simplified_times_log = new ArrayList<>();
+
+        for(XTrace trace : log) {
+            LongArrayList simplified_times_trace = new LongArrayList(trace.size());
+
+            for(int i = 0; i < trace.size(); i++) {
+                XEvent event = trace.get(i);
+                Long time = xte.extractTimestamp(event).getTime();
+                if(i == 0) {
+                    simplified_times_trace.add(time);
+                }
+                if(i == trace.size() - 1) {
+                    simplified_times_trace.add(time);
+                }
+                simplified_times_trace.add(time);
+            }
+
+            simplified_times_log.add(simplified_times_trace);
+        }
+
+        return simplified_times_log;
+    }
+
+    private List<IntList> filterLog(List<IntList> log, List<LongList> times_log, double activities) {
+        retained_activities = selectActivities(activities);
+        List<IntList> filtered_log = new ArrayList<>(log.size());
+
+        for(int t = 0; t < log.size(); t++) {
+            IntList trace = log.get(t);
+            LongList time_trace = times_log.get(t);
+
+            IntArrayList filtered_trace = new IntArrayList();
+            LongArrayList filtered_time_trace = new LongArrayList();
+            for(int i = 0; i < trace.size(); i++) {
+                if(retained_activities.contains(trace.get(i))) {
+                    filtered_trace.add(trace.get(i));
+                    filtered_time_trace.add(time_trace.get(i));
                 }
             }
-        }
-    }
+            filtered_log.add(filtered_trace);
 
-    private String extractEventName(XEvent event) {
-        String name1 = XConceptExtension.instance().extractName(event);
-        String name2 = XLifecycleExtension.instance().extractTransition(event);
-        return name1 + " (" + name2 + ")";
-    }
+            IntHashSet not_reached = new IntHashSet();
+            IntHashSet not_reaching = new IntHashSet();
+            for(int i = 0; i < filtered_trace.size(); i++) {
+                if(i != 0) not_reached.add(filtered_trace.get(i));
+                if(i != filtered_trace.size() - 1) not_reaching.add(filtered_trace.get(i));
+            }
 
-    private boolean existsInLog(FMEdge<? extends FMNode, ? extends FMNode> edge, Map<FMEdge<? extends FMNode, ? extends FMNode>, Integer> cache) {
-        Integer res;
-        if((res = cache.get(edge)) != null) return res > 0;
-        else return false;
-    }
-
-    private double getEdgeScore(FMEdge<? extends FMNode, ? extends FMNode> edge) {
-        return (2 * edge.getCorrelation() * edge.getSignificance()) / (edge.getCorrelation() + edge.getSignificance());
-    }
-
-    private boolean existsPath(BPMNDiagram diagram, BPMNNode source, BPMNNode target) {
-        Set<BPMNNode> visited = new HashSet<>();
-        List<BPMNNode> toVisit = new ArrayList<>();
-        toVisit.add(source);
-
-        while (toVisit.size() > 0) {
-            BPMNNode node = toVisit.remove(0);
-            if(node.equals(target)) return true;
-
-            visited.add(node);
-            for (Flow flow : diagram.getFlows()) {
-                if(flow.getSource().equals(node)) {
-                    if(!visited.contains(flow.getTarget())) {
-                        toVisit.add(flow.getTarget());
+            ObjectIntHashMap<Pair<Integer, Integer>> arcsCount = new ObjectIntHashMap<>();
+            for(int i = 0; i < filtered_trace.size() - 1; i++) {
+                for(int j = i + 1; j < filtered_trace.size(); j++) {
+                    if (isAcceptableTarget(filtered_trace, filtered_trace.get(i), filtered_trace.get(j))) {
+                        Pair<Integer, Integer> arc = Tuples.pair(filtered_trace.get(i), filtered_trace.get(j));
+                        arcsCount.addToValue(arc, 1);
+//                        arcs_frequency.addToValue(arc, 1);
+                        updateArcDuration(arc, (filtered_time_trace.get(j) - filtered_time_trace.get(i)));
+//                        arcs_duration.addToValue(arc, (filtered_time_trace.get(j) - filtered_time_trace.get(i)));
+                        not_reaching.remove(filtered_trace.get(i));
+                        not_reached.remove(filtered_trace.get(j));
+                        break;
                     }
                 }
             }
+
+            if(not_reaching.size() > 0 || not_reached.size() > 0) {
+                for (int j = filtered_trace.size() - 1; j > 0; j--) {
+                    if(not_reached.contains(filtered_trace.get(j))) {
+                        for (int i = j - 1; i >= 0; i--) {
+                            if (isAcceptableTarget(filtered_trace, filtered_trace.get(i), filtered_trace.get(j))) {
+                                Pair<Integer, Integer> arc = Tuples.pair(filtered_trace.get(i), filtered_trace.get(j));
+                                arcsCount.addToValue(arc, 1);
+//                                arcs_frequency.addToValue(arc, 1);
+                                updateArcDuration(arc, (filtered_time_trace.get(j) - filtered_time_trace.get(i)));
+//                                arcs_duration.addToValue(arc, (filtered_time_trace.get(j) - filtered_time_trace.get(i)));
+                                not_reaching.remove(filtered_trace.get(i));
+                                not_reached.remove(filtered_trace.get(j));
+                                break;
+                            }
+                        }
+                    }
+                }
+                for (int j = filtered_trace.size() - 1; j > 0; j--) {
+                    for (int i = j - 1; i >= 0; i--) {
+                        if (not_reaching.contains(filtered_trace.get(i)) && isAcceptableTarget(filtered_trace, filtered_trace.get(i), filtered_trace.get(j))) {
+                            Pair<Integer, Integer> arc = Tuples.pair(filtered_trace.get(i), filtered_trace.get(j));
+                            arcsCount.addToValue(arc, 1);
+//                            arcs_frequency.addToValue(arc, 1);
+                            updateArcDuration(arc, (filtered_time_trace.get(j) - filtered_time_trace.get(i)));
+//                            arcs_duration.addToValue(arc, (filtered_time_trace.get(j) - filtered_time_trace.get(i)));
+                            not_reaching.remove(filtered_trace.get(i));
+                            not_reached.remove(filtered_trace.get(j));
+                            break;
+                        }
+                    }
+                }
+            }
+
+            for(Pair<Integer, Integer> arc : arcsCount.keySet().toArray(new Pair[arcsCount.size()])) {
+                updateArcFrequency(arc, arcsCount.get(arc));
+            }
+        }
+
+        sorted_arcs_frequency = arcs_frequency.keyValuesView().toList();
+        sorted_arcs_frequency.sort(new Comparator<ObjectIntPair<Pair<Integer, Integer>>>() {
+            @Override
+            public int compare(ObjectIntPair<Pair<Integer, Integer>> o1, ObjectIntPair<Pair<Integer, Integer>> o2) {
+                return Integer.compare(o2.getTwo(), o1.getTwo());
+            }
+        });
+
+        return filtered_log;
+    }
+
+    private void updateArcFrequency(Pair<Integer, Integer> arc, int frequency) {
+        arcs_frequency.addToValue(arc, frequency);
+
+        Integer value = Math.max(frequency, arcs_max_frequency.get(arc));
+        arcs_max_frequency.put(arc, value);
+
+        value = Math.min(frequency, arcs_min_frequency.get(arc));
+        value = (value == 0 ? frequency : value);
+        arcs_min_frequency.put(arc, value);
+    }
+
+    private void updateArcDuration(Pair<Integer, Integer> arc, long duration) {
+        LongArrayList durations = arcs_duration_set.get(arc);
+        if(durations == null) {
+            durations = new LongArrayList();
+            arcs_duration_set.put(arc, durations);
+        }
+        durations.add(duration);
+
+//        arcs_duration.addToValue(arc, duration);
+//
+//        Long value = Math.max(duration, arcs_max_duration.get(arc));
+//        arcs_max_duration.put(arc, value);
+//
+//        value = Math.min(duration, arcs_min_duration.get(arc));
+//        value = (value == 0 ? duration: value);
+//        arcs_min_duration.put(arc, value);
+    }
+
+    private boolean isAcceptableTarget(IntArrayList trace, int source_event, int target_event) {
+        if(source_event == 1 && target_event == 2) return false;
+
+        String source_name = getEventFullName(source_event);
+        String target_name = getEventFullName(target_event);
+
+        if(source_event == 1) return (isStartEvent(target_name) || isSingleTypeEvent(target_event) || isSingleTypeEvent(trace, target_event));
+        if(target_event == 2) return (isCompleteEvent(source_name) || isSingleTypeEvent(source_event) || isSingleTypeEvent(trace, source_event));
+
+        if(isStartEvent(source_name)) {
+            String expected_target_name = getCompleteEvent(source_name);
+            if (!isSingleTypeEvent(source_event) && !isSingleTypeEvent(trace, source_event)) {
+                return getEventNumber(expected_target_name) == target_event;
+            }else {
+                return isStartEvent(target_name) || isSingleTypeEvent(target_event) || isSingleTypeEvent(trace, target_event);
+            }
+        }else if(isCompleteEvent(source_name)) {
+            return (isStartEvent(target_name) || isSingleTypeEvent(target_event) || isSingleTypeEvent(trace, target_event));
         }
         return false;
+    }
+
+    private IntHashSet selectActivities(double activities) {
+        IntHashSet retained_activities = new IntHashSet();
+        retained_activities.add(start);
+        retained_activities.add(end);
+
+//        double threshold = real_activity_frequency.max() * activities;
+        double threshold = 0.0;
+        if(real_activity_frequency.size() > 0) threshold = Math.log10(real_activity_frequency.max()) * activities;
+
+        for(int i = 0; i < sorted_activity_frequency.size(); i++) {
+//            double current = sorted_activity_frequency.get(i).getTwo();
+            double current = Math.log10(sorted_activity_frequency.get(i).getTwo());
+            if(current >= threshold) {
+                retained_activities.add(sorted_activity_frequency.get(i).getOne());
+//            }else {
+//                return retained_activities;
+            }
+        }
+
+        if(contain_start_events) {
+            MutableIntIterator iterator = retained_activities.intIterator();
+            while (iterator.hasNext()) {
+                int i = iterator.next();
+                String name = getEventFullName(i);
+                String name_to_check = "";
+
+                if (isStartEvent(name)) name_to_check = getCompleteEvent(name);
+                else if (isCompleteEvent(name)) name_to_check = getStartEvent(name);
+
+                if (!isSingleTypeEvent(getEventNumber(name)) && !retained_activities.contains(getEventNumber(name_to_check))) {
+                    iterator.remove();
+                }
+            }
+        }
+        return retained_activities;
+    }
+
+    private HashSet<Pair<Integer, Integer>> selectArcs(double arcs) {
+        HashSet<Pair<Integer, Integer>> retained_arcs = new HashSet();
+
+//        double threshold = arcs_frequency.max() * arcs;
+        double threshold = 0.0;
+        if(arcs_frequency.size() > 0) threshold = Math.log10(arcs_frequency.max()) * arcs;
+
+        retained_arcs.addAll(arcs_frequency.keySet());
+
+        for(int i = sorted_arcs_frequency.size() - 1; i >= 0; i--) {
+//            double current = sorted_arcs_frequency.get(i).getTwo();
+            double current = Math.log10(sorted_arcs_frequency.get(i).getTwo());
+            Pair<Integer, Integer> arc = sorted_arcs_frequency.get(i).getOne();
+            if(current < threshold) {
+                if(retained_arcs.contains(arc)) {
+                    retained_arcs.remove(arc);
+                    if (!reachable(arc.getTwo(), retained_arcs) || !reaching(arc.getOne(), retained_arcs)) {
+                        retained_arcs.add(arc);
+                    }
+                }
+            }else {
+                return retained_arcs;
+            }
+        }
+
+        return retained_arcs;
+    }
+
+    private boolean reachable(int node, HashSet<Pair<Integer, Integer>> retained_arcs) {
+        if(node == 1) return true;
+
+        IntHashSet visited = new IntHashSet();
+        IntArrayList reached = new IntArrayList();
+        reached.add(1);
+
+        while (reached.size() > 0) {
+            int current = reached.removeAtIndex(0);
+            for (Pair<Integer, Integer> arc : retained_arcs) {
+                if(arc.getOne() == current) {
+                    if(arc.getTwo() == node) {
+                        return true;
+                    }else if(!visited.contains(arc.getTwo())) {
+                        visited.add(arc.getTwo());
+                        reached.add(arc.getTwo());
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private boolean reaching(int node, HashSet<Pair<Integer, Integer>> retained_arcs) {
+        if(node == 2) return true;
+
+        IntHashSet visited = new IntHashSet();
+        IntArrayList reached = new IntArrayList();
+        reached.add(2);
+
+        while (reached.size() > 0) {
+            int current = reached.removeAtIndex(0);
+            for (Pair<Integer, Integer> arc : retained_arcs) {
+                if(arc.getTwo() == current) {
+                    if(arc.getOne() == node) {
+                        return true;
+                    }else if(!visited.contains(arc.getOne())) {
+                        visited.add(arc.getOne());
+                        reached.add(arc.getOne());
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private JSONArray generateJSONFromBPMN(BPMNDiagram bpmnDiagram, boolean frequency_vs_duration, int avg_vs_max_vs_min) throws JSONException {
+        JSONArray graph = new JSONArray();
+        Map<BPMNNode, Integer> mapping = new HashMap<>();
+        int i = 1;
+        int start_node = -1;
+        int end_node = -1;
+
+        int string_length = 0;
+        for(BPMNNode node : getNodes(bpmnDiagram)) {
+            string_length = Math.max(string_length, node.getLabel().replace("'", "").length());
+        }
+        String width = (int) (string_length * 3.5)+ "px";
+        String textwidth = ((int) (string_length * 3.5) - 10) + "px";
+
+        for(BPMNNode node : getNodes(bpmnDiagram)) {
+            JSONObject jsonOneNode = new JSONObject();
+            mapping.put(node, i);
+            jsonOneNode.put("id", i);
+            if(node.getLabel().equals(start_name)) {
+                start_node = i;
+                jsonOneNode.put("name", "");
+                jsonOneNode.put("shape", "ellipse");
+                jsonOneNode.put("color", START);
+                jsonOneNode.put("width", "15px");
+                jsonOneNode.put("height", "15px");
+                jsonOneNode.put("textwidth", textwidth);
+            }else if(node.getLabel().equals(end_name)) {
+                end_node = i;
+                jsonOneNode.put("name", "");
+                jsonOneNode.put("shape", "ellipse");
+                jsonOneNode.put("color", END);
+                jsonOneNode.put("width", "15px");
+                jsonOneNode.put("height", "15px");
+                jsonOneNode.put("textwidth", textwidth);
+            }else {
+                if(frequency_vs_duration == FREQUENCY) jsonOneNode.put("name", node.getLabel().replace("'", "") + "\\n\\n" + getEventFrequency(false, avg_vs_max_vs_min, node.getLabel()));
+                else jsonOneNode.put("name", node.getLabel().replace("'", "") + "\\n\\n" + convertMilliseconds("" + getEventDuration(avg_vs_max_vs_min, node.getLabel())));
+
+                jsonOneNode.put("shape", "roundrectangle");
+
+                if(frequency_vs_duration == FREQUENCY) jsonOneNode.put("color", getFrequencyColor(avg_vs_max_vs_min, node, bpmnDiagram.getNodes()));
+                else jsonOneNode.put("color", getDurationColor(avg_vs_max_vs_min, node, bpmnDiagram.getNodes()));
+                jsonOneNode.put("width", width);
+                jsonOneNode.put("textwidth", textwidth);
+                jsonOneNode.put("height", "30px");
+            }
+            JSONObject jsonDataNode = new JSONObject();
+            jsonDataNode.put("data", jsonOneNode);
+            graph.put(jsonDataNode);
+            i++;
+        }
+
+        double maxWeight = 0.0;
+        for(BPMNEdge<? extends BPMNNode, ? extends BPMNNode> edge : getEdges(bpmnDiagram)) {
+            String number = edge.getLabel();
+            if (number.contains("[")) {
+                number = number.substring(1, number.length() - 1);
+            } else {
+                number = "0";
+            }
+            maxWeight = Math.max(maxWeight, Double.parseDouble(number));
+        }
+
+        for(BPMNEdge<? extends BPMNNode, ? extends BPMNNode> edge : getEdges(bpmnDiagram)) {
+            int source = mapping.get(edge.getSource());
+            int target = mapping.get(edge.getTarget());
+            String number = edge.getLabel();
+            if(number.contains("[")) {
+                number = number.substring(1, number.length() - 1);
+            }else {
+                number = "1";
+            }
+
+            JSONObject jsonOneLink = new JSONObject();
+            jsonOneLink.put("source", source);
+            jsonOneLink.put("target", target);
+
+            if(source == start_node) jsonOneLink.put("style", "dashed");
+            else if(target == end_node) jsonOneLink.put("style", "dashed");
+            else jsonOneLink.put("style", "solid");
+
+            BigDecimal bd = new BigDecimal((Double.parseDouble(number) * 100.0 / maxWeight));
+            bd = bd.setScale(2, RoundingMode.HALF_UP);
+
+            if (frequency_vs_duration == DURATION && (source == start_node || target == end_node)) {
+                jsonOneLink.put("strength", 0);
+                jsonOneLink.put("label", "");
+                jsonOneLink.put("color", EDGE_START_COLOR_FREQUENCY);
+            }else {
+                jsonOneLink.put("strength", bd.doubleValue());
+                if(frequency_vs_duration == FREQUENCY) {
+                    jsonOneLink.put("label", number);
+                    jsonOneLink.put("color", "#" + Integer.toHexString(arc_frequency_gradient.generateColor(bd.doubleValue() / 100).getRGB()).substring(2));
+                }else {
+                    jsonOneLink.put("label", convertMilliseconds(number));
+                    jsonOneLink.put("color", "#" + Integer.toHexString(arc_duration_gradient.generateColor(bd.doubleValue() / 100).getRGB()).substring(2));
+                }
+            }
+
+            JSONObject jsonDataLink = new JSONObject();
+            jsonDataLink.put("data", jsonOneLink);
+            graph.put(jsonDataLink);
+        }
+
+        return graph;
+    }
+
+    private BPMNDiagram insertBPMNGateways(BPMNDiagram bpmnDiagram) {
+        BPMNDiagram gatewayDiagram = new BPMNDiagramImpl(bpmnDiagram.getLabel());
+
+        Map<BPMNNode, BPMNNode> incoming = new HashMap<>();
+        Map<BPMNNode, BPMNNode> outgoing = new HashMap<>();
+
+        for(BPMNNode node : bpmnDiagram.getNodes()) {
+            BPMNNode node1;
+            if(node.getLabel().equals(start_name)) {
+                node1 = gatewayDiagram.addEvent(start_name, Event.EventType.START, Event.EventTrigger.NONE, Event.EventUse.CATCH, false, null);
+            }else if(node.getLabel().equals(end_name)) {
+                node1 = gatewayDiagram.addEvent(end_name, Event.EventType.END, Event.EventTrigger.NONE, Event.EventUse.THROW, false, null);
+            }else {
+                node1 = gatewayDiagram.addActivity(node.getLabel(), false, false, false, false, false);
+            }
+
+            if(bpmnDiagram.getInEdges(node).size() > 1) {
+                Gateway join = gatewayDiagram.addGateway("", Gateway.GatewayType.DATABASED);
+                gatewayDiagram.addFlow(join, node1, "");
+                incoming.put(node, join);
+            }else {
+                incoming.put(node, node1);
+            }
+
+            if(bpmnDiagram.getOutEdges(node).size() > 1) {
+                Gateway split = gatewayDiagram.addGateway("", Gateway.GatewayType.DATABASED);
+                gatewayDiagram.addFlow(node1, split, "");
+                outgoing.put(node, split);
+            }else {
+                outgoing.put(node, node1);
+            }
+        }
+
+        for(BPMNEdge<? extends BPMNNode, ? extends BPMNNode> edge : bpmnDiagram.getEdges()) {
+            gatewayDiagram.addFlow(outgoing.get(edge.getSource()), incoming.get(edge.getTarget()), "");
+        }
+
+        return gatewayDiagram;
+    }
+
+    private String convertMilliseconds(String number) {
+        Double milliseconds = Double.parseDouble(number);
+        Double seconds = milliseconds / 1000.0;
+        Double minutes = seconds / 60.0;
+        Double hours = minutes / 60.0;
+        Double days = hours / 24.0;
+        Double weeks = days / 7.0;
+        Double months = days / 30.0;
+        Double years = days / 365.0;
+
+        if(years > 1) {
+            return decimalFormat.format(years) + " yrs";
+        }else if(months > 1) {
+            return decimalFormat.format(months) + " mths";
+        }else if(weeks > 1) {
+            return decimalFormat.format(weeks) + " wks";
+        }else if(days > 1) {
+            return decimalFormat.format(days) + " d";
+        }else if(hours > 1) {
+            return decimalFormat.format(hours) + " hrs";
+        }else if(minutes > 1) {
+            return decimalFormat.format(minutes) + " mins";
+        }else if(seconds > 1) {
+            return decimalFormat.format(seconds) + " secs";
+        }else if(milliseconds > 1){
+            return decimalFormat.format(milliseconds) + " millis";
+        }else {
+            return "instant";
+        }
+    }
+
+    private BPMNNode[] getNodes(BPMNDiagram bpmnDiagram) {
+        Set<BPMNNode> nodes = bpmnDiagram.getNodes();
+        BPMNNode[] array_nodes = nodes.toArray(new BPMNNode[nodes.size()]);
+        Arrays.sort(array_nodes, new Comparator<BPMNNode>() {
+            @Override
+            public int compare(BPMNNode o1, BPMNNode o2) {
+                return o1.getLabel().compareTo(o2.getLabel());
+            }
+        });
+        return array_nodes;
+    }
+
+    private BPMNEdge<? extends BPMNNode, ? extends BPMNNode>[] getEdges(BPMNDiagram bpmnDiagram) {
+        Set<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>> edges = bpmnDiagram.getEdges();
+        BPMNEdge<? extends BPMNNode, ? extends BPMNNode>[] array_edges = edges.toArray(new BPMNEdge[edges.size()]);
+        Arrays.sort(array_edges, new Comparator<BPMNEdge<? extends BPMNNode, ? extends BPMNNode>>() {
+            @Override
+            public int compare(BPMNEdge<? extends BPMNNode, ? extends BPMNNode> o1, BPMNEdge<? extends BPMNNode, ? extends BPMNNode> o2) {
+                if(o1.getSource().getLabel().equals(o2.getSource().getLabel())) {
+                    return o1.getTarget().getLabel().compareTo(o2.getTarget().getLabel());
+                }
+                return o1.getSource().getLabel().compareTo(o2.getSource().getLabel());
+            }
+        });
+        return array_edges;
+    }
+
+    private int getEventFrequency(boolean min, int avg_vs_max_vs_min, String event) {
+        if(getEventNumber(event) == null) {
+            String start_event = event + "+start";
+            String complete_event = event + "+complete";
+            if(getEventNumber(start_event) != null && getEventNumber(complete_event) != null) {
+                if(min) {
+                    return Math.min(getEventFrequency(min, avg_vs_max_vs_min, start_event), getEventFrequency(min, avg_vs_max_vs_min, complete_event));
+                }else {
+                    return Math.max(getEventFrequency(min, avg_vs_max_vs_min, start_event), getEventFrequency(min, avg_vs_max_vs_min, complete_event));
+                }
+            }else if(getEventNumber(start_event) != null) {
+                return getEventFrequency(min, avg_vs_max_vs_min, start_event);
+            }else {
+                return getEventFrequency(min, avg_vs_max_vs_min, complete_event);
+            }
+        }else {
+            if(avg_vs_max_vs_min == TOTAL) return activity_frequency.get(getEventNumber(event));
+            else if(avg_vs_max_vs_min == MAX) return activity_max_frequency.get(getEventNumber(event));
+            else return activity_min_frequency.get(getEventNumber(event));
+        }
+    }
+
+    private long getEventDuration(int avg_vs_max_vs_min, String event) {
+        if(getEventNumber(event) == null) {
+            String start_event = event + "+start";
+            String complete_event = event + "+complete";
+            Integer start_event_number = getEventNumber(start_event);
+            Integer complete_event_number = getEventNumber(complete_event);
+            if(start_event_number != null && complete_event_number != null) {
+                if(avg_vs_max_vs_min == MEAN) return getArcMeanDuration(Tuples.pair(start_event_number, complete_event_number));
+                else if(avg_vs_max_vs_min == MAX) return getArcMaxDuration(Tuples.pair(start_event_number, complete_event_number));
+                else return getArcMinDuration(Tuples.pair(start_event_number, complete_event_number));
+            }else return 0;
+        }else return 0;
+    }
+
+    private long getArcTotalDuration(Pair<Integer, Integer> arc) {
+        LongArrayList durations = arcs_duration_set.get(arc);
+        return durations.sum();
+    }
+
+    private long getArcMeanDuration(Pair<Integer, Integer> arc) {
+        LongArrayList durations = arcs_duration_set.get(arc);
+        return durations.sum() / durations.size();
+    }
+
+    private long getArcMedianDuration(Pair<Integer, Integer> arc) {
+        LongArrayList durations = arcs_duration_set.get(arc);
+        durations = durations.sortThis();
+        if(durations.size() % 2 == 0) {
+            return (durations.get(durations.size() / 2) + durations.get(durations.size() / 2 - 1)) / 2;
+        }else {
+            return durations.get(durations.size() / 2);
+        }
+    }
+
+    private long getArcMaxDuration(Pair<Integer, Integer> arc) {
+        LongArrayList durations = arcs_duration_set.get(arc);
+        return durations.max();
+    }
+
+    private long getArcMinDuration(Pair<Integer, Integer> arc) {
+        LongArrayList durations = arcs_duration_set.get(arc);
+        return durations.min();
+    }
+
+    private String getFrequencyColor(int avg_vs_max_vs_min, BPMNNode node, Set<BPMNNode> nodes) {
+        int max = 0;
+        for(BPMNNode n : nodes) {
+            max = Math.max(max, getEventFrequency(true, avg_vs_max_vs_min, n.getLabel()));
+        }
+        int step = max / 5;
+        double node_frequency = getEventFrequency(true, avg_vs_max_vs_min, node.getLabel());
+//        if(node_frequency >= (max - (1 * step))) return BLUE_5;
+//        if(node_frequency >= (max - (2 * step))) return BLUE_4;
+//        if(node_frequency >= (max - (3 * step))) return BLUE_3;
+//        if(node_frequency >= (max - (4 * step))) return BLUE_2;
+//        return BLUE_1;
+        return "#" + Integer.toHexString(activity_frequency_gradient.generateColor(node_frequency / max).getRGB()).substring(2);
+    }
+
+    private String getDurationColor(int avg_vs_max_vs_min, BPMNNode node, Set<BPMNNode> nodes) {
+        long max = 0;
+        for(BPMNNode n : nodes) {
+            max = Math.max(max, getEventDuration(avg_vs_max_vs_min, n.getLabel()));
+        }
+        if(max == 0) return "#FEF0D9";
+        long step = max / 5;
+        double node_duration = getEventDuration(avg_vs_max_vs_min, node.getLabel());
+//        if(node_duration == 0) return RED_1;
+//        if(node_duration >= (max - (1 * step))) return RED_5;
+//        if(node_duration >= (max - (2 * step))) return RED_4;
+//        if(node_duration >= (max - (3 * step))) return RED_3;
+//        if(node_duration >= (max - (4 * step))) return RED_2;
+//        return RED_1;
+        return "#" + Integer.toHexString(activity_duration_gradient.generateColor(node_duration / max).getRGB()).substring(2);
+    }
+
+    private String getEventFullName(int event) {
+        return simplified_names.inverse().get(event);
+    }
+
+    private Integer getEventNumber(String event) {
+        return simplified_names.get(event);
+    }
+    
+    private boolean isSingleTypeEvent(int event) {
+        String name = getEventFullName(event);
+        if(isStartEvent(name) && getEventNumber(getCompleteEvent(name)) != null) return false;
+        if(isCompleteEvent(name) && getEventNumber(getStartEvent(name)) != null) return false;
+        return true;
+    }
+
+    private boolean isSingleTypeEvent(IntArrayList trace, int event) {
+        String name = getEventFullName(event);
+        String collapsed_name = getCollapsedEvent(name);
+
+        for(int i = 0; i < trace.size(); i++) {
+            if(collapsed_name.equals(getCollapsedEvent(getEventFullName(trace.get(i)))) && !name.equals(getEventFullName(trace.get(i)))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private boolean isStartEvent(String name) {
+        return name.toLowerCase().endsWith("+start");
+    }
+
+    private boolean isCompleteEvent(String name) {
+        return name.toLowerCase().endsWith("+complete");
+    }
+
+    private String getStartEvent(String name) {
+        return name.substring(0, name.length() - 8) + "start";
+    }
+
+    private String getCompleteEvent(String name) {
+        return name.substring(0, name.length() - 5) + "complete";
+    }
+
+    private String getCollapsedEvent(String name) {
+        if(isStartEvent(name)) return name.substring(0, name.length() - 6);
+        if(isCompleteEvent(name)) return name.substring(0, name.length() - 9);
+        return name;
     }
 
 }

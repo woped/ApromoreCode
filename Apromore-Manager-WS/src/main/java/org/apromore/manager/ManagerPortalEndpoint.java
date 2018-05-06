@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -144,7 +144,30 @@ public class ManagerPortalEndpoint {
 //        }
     }
 
+    @PayloadRoot(namespace = NAMESPACE, localPart = "EditLogDataRequest")
+    @ResponsePayload
+    public JAXBElement<EditLogDataOutputMsgType> editLogData(@RequestPayload final JAXBElement<EditLogDataInputMsgType> req) {
+        LOGGER.trace("Executing operation editLogData");
+        EditLogDataInputMsgType payload = req.getValue();
+        EditLogDataOutputMsgType res = new EditLogDataOutputMsgType();
+        ResultType result = new ResultType();
+        res.setResult(result);
+        try {
+            Integer logId = payload.getId();
+            String logName = payload.getLogName();
+            boolean isPublic = payload.isMakePublic();
 
+            logSrv.updateLogMetaData(logId, logName, isPublic);
+
+            result.setCode(0);
+            result.setMessage("");
+        } catch (Exception ex) {
+            LOGGER.error("", ex);
+            result.setCode(-1);
+            result.setMessage(ex.getMessage());
+        }
+        return WS_OBJECT_FACTORY.createEditLogDataResponse(res);
+    }
 
     @PayloadRoot(namespace = NAMESPACE, localPart = "EditProcessDataRequest")
     @ResponsePayload

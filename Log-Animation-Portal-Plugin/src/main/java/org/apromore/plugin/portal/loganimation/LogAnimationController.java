@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -97,35 +97,68 @@ public class LogAnimationController extends BaseController {
         params =  session.getParams();
 
         LogAnimationService logAnimationService = (LogAnimationService) session.get("logAnimationService");
-        List<LogAnimationService.Log> logs = (List<LogAnimationService.Log>) session.get("logs");
 
         Map<String, Object> param = new HashMap<>();
         try {
-            String title = editSession.getProcessName() + " (" + editSession.getNativeType() + ")";
-            this.setTitle(title);
+            String jsonData = (String) session.get("JSONData");
+            String title = null;
+            PluginMessages pluginMessages = null;
+            if(jsonData == null) {
+                title = editSession.getProcessName() + " (" + editSession.getNativeType() + ")";
+                this.setTitle(title);
 
-            ExportFormatResultType exportResult1 =
-                    getService().exportFormat(editSession.getProcessId(),
-                            editSession.getProcessName(),
-                            editSession.getOriginalBranchName(),
-                            editSession.getCurrentVersionNumber(),
-                            editSession.getNativeType(),
-                            editSession.getAnnotation(),
-                            editSession.isWithAnnotation(),
-                            editSession.getUsername(),
-                            params);
+                ExportFormatResultType exportResult1 =
+                        getService().exportFormat(editSession.getProcessId(),
+                                editSession.getProcessName(),
+                                editSession.getOriginalBranchName(),
+                                editSession.getCurrentVersionNumber(),
+                                editSession.getNativeType(),
+                                editSession.getAnnotation(),
+                                editSession.isWithAnnotation(),
+                                editSession.getUsername(),
+                                params);
 
-            title = editSession.getProcessName();
-            PluginMessages pluginMessages = exportResult1.getMessage();
+                title = editSession.getProcessName();
+                pluginMessages = exportResult1.getMessage();
 
-            String jsonData = StreamUtil.convertStreamToString(exportResult1.getNative().getInputStream());
-            String animationData = logAnimationService.createAnimation(jsonData, logs);
-            param.put("jsonData",      escapeQuotedJavascript(jsonData));
-            param.put("animationData", escapeQuotedJavascript(animationData));
-            param.put("url",           getURL(editSession.getNativeType()));
-            param.put("importPath",    getImportPath(editSession.getNativeType()));
-            param.put("exportPath",    getExportPath(editSession.getNativeType()));
-            param.put("editor",        config.getSiteEditor());
+                jsonData = StreamUtil.convertStreamToString(exportResult1.getNative().getInputStream());
+
+                param.put("jsonData",      escapeQuotedJavascript(jsonData));
+                param.put("url",           getURL(editSession.getNativeType()));
+                param.put("importPath",    getImportPath(editSession.getNativeType()));
+                param.put("exportPath",    getExportPath(editSession.getNativeType()));
+                param.put("editor",        config.getSiteEditor());
+
+                if (editSession.getAnnotation() == null) {
+                    param.put("doAutoLayout", "true");
+                } else if (process.getOriginalNativeType() != null && process.getOriginalNativeType().equals(editSession.getNativeType())) {
+                    param.put("doAutoLayout", "false");
+                } else {
+                    if (editSession.isWithAnnotation()) {
+                        param.put("doAutoLayout", "false");
+                    } else {
+                        param.put("doAutoLayout", "true");
+                    }
+                }
+            }else {
+                param.put("jsonData",      escapeQuotedJavascript(jsonData));
+                param.put("url",           getURL("BPMN 2.0"));
+                param.put("importPath",    getImportPath("BPMN 2.0"));
+                param.put("exportPath",    getExportPath("BPMN 2.0"));
+                param.put("editor",        config.getSiteEditor());
+                param.put("doAutoLayout", "true");
+            }
+
+            String animationData = (String) session.get("animationData");
+            if(animationData == null) {
+                if (logAnimationService != null) {  // logAnimationService is null if invoked from the editor toobar
+                    List<LogAnimationService.Log> logs = (List<LogAnimationService.Log>) session.get("logs");
+                    animationData = logAnimationService.createAnimation(jsonData, logs);
+                    param.put("animationData", escapeQuotedJavascript(animationData));
+                }
+            }else {
+                param.put("animationData", escapeQuotedJavascript(animationData));
+            }
 
             this.setTitle(title);
             if (mainC != null) {
@@ -137,18 +170,6 @@ public class LogAnimationController extends BaseController {
                 switch (requestParameter.getId()) {
                 default:
                     LOGGER.warn("Unsupported request parameter \"" + requestParameter.getId() + "\" with value " + requestParameter.getValue());
-                }
-            }
-
-            if (editSession.getAnnotation() == null) {
-                param.put("doAutoLayout", "true");
-            } else if (process.getOriginalNativeType() != null && process.getOriginalNativeType().equals(editSession.getNativeType())) {
-                param.put("doAutoLayout", "false");
-            } else {
-                if (editSession.isWithAnnotation()) {
-                    param.put("doAutoLayout", "false");
-                } else {
-                    param.put("doAutoLayout", "true");
                 }
             }
 

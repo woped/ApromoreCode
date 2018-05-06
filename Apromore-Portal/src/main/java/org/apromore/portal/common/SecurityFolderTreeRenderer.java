@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -144,6 +144,15 @@ public class SecurityFolderTreeRenderer implements TreeitemRenderer {
                             ProcessSummaryType process = (ProcessSummaryType) summaryType;
                             hasOwnership = process.isHasOwnership();
                             selectedId = process.getId();
+                        }
+                        break;
+
+                    case Log:
+                        SummaryType lsummaryType = (SummaryType) clickedNodeValue.getData();
+                        if(lsummaryType instanceof ProcessSummaryType) {
+                            LogSummaryType log = (LogSummaryType) lsummaryType;
+                            hasOwnership = log.isHasOwnership();
+                            selectedId = log.getId();
                         }
                         break;
 

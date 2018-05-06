@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -30,4 +30,6 @@ public class DFGNode extends LogNode {
     public DFGNode() { super(); }
     public DFGNode(String label) { super(label); }
     public DFGNode(String label, int code) { super(label, code); }
+
+    public String print() { return getCode() + " [" + getFrequency() + "]";}
 }

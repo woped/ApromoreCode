@@ -1,5 +1,5 @@
 /*
- * Copyright  2009-2017 The Apromore Initiative.
+ * Copyright  2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -70,7 +70,8 @@ public class ControlFlowDriftDetector_RunStream implements ControlFlowDriftDetec
 	
 	private String logFileName = "";
 	private String fileName_trace  = "./%s.mxml";
-	
+
+
 	private Path logPath = null;
 	
 	private String windowHeader = "";
@@ -116,6 +117,7 @@ public class ControlFlowDriftDetector_RunStream implements ControlFlowDriftDetec
 		XLog xl = xlog;
 		xl = XLogManager.orderByTraceCompletionTimeStamp(xl);
 		log = xl;
+
 		
 		this.initialwinSize = winsize;
 		this.winSizeReal = winsize;
@@ -258,8 +260,8 @@ public class ControlFlowDriftDetector_RunStream implements ControlFlowDriftDetec
 		startOfGradDrifts = new ArrayList<>();
 		endOfGradDrifts = new ArrayList<>();
 		LastReadGradDrifts = new ArrayList<>();
-		
-		XLog eventStream = LogStreamer.logStreamer(log, null);
+
+		XLog eventStream = LogStreamer.logStreamer(log, null, null, logFileName);
 		
 		List<DriftPoint> DriftPointsList = new ArrayList<>();
 		

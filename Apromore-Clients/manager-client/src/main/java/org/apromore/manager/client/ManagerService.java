@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -89,6 +89,8 @@ public interface ManagerService {
     SummariesType getLogSummaries(String userId, int folderId, int pageIndex, int pageSize);
 
     ImportLogResultType importLog(String username, Integer folderId, String logName, InputStream log, String extension, String domain, String created, boolean makePublic) throws Exception;
+
+    void editLogData(Integer logId, String logName, String username, boolean isPublic) throws Exception;
 
     void createFolder(String userId, String folderName, int parentFolderId, Boolean isGEDMatrixReady);
 

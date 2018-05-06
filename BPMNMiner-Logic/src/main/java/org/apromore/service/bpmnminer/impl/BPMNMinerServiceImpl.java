@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -36,6 +36,7 @@ import com.raffaeleconforti.foreignkeydiscovery.conceptualmodels.Entity;
 import com.raffaeleconforti.foreignkeydiscovery.functionaldependencies.Data;
 import com.raffaeleconforti.foreignkeydiscovery.functionaldependencies.NoEntityException;
 import com.raffaeleconforti.log.util.LogOptimizer;
+import com.raffaeleconforti.wrappers.settings.MiningSettings;
 import org.deckfour.xes.classification.XEventNameClassifier;
 import org.deckfour.xes.info.XLogInfoFactory;
 import org.deckfour.xes.model.XLog;
@@ -67,7 +68,7 @@ public class BPMNMinerServiceImpl implements BPMNMinerService {
     }
 
     @Override
-    public String discoverBPMNModel(XLog log, boolean sortLog, boolean structProcess, int miningAlgorithm, int dependencyAlgorithm, double interruptingEventTolerance, double timerEventPercentage,
+    public String discoverBPMNModel(XLog log, boolean sortLog, boolean structProcess, int miningAlgorithm, MiningSettings params, int dependencyAlgorithm, double interruptingEventTolerance, double timerEventPercentage,
                                     double timerEventTolerance, double multiInstancePercentage, double multiInstanceTolerance,
                                     double noiseThreshold, List<String> listCandidates, Map<Set<String>, Set<String>> primaryKeySelections) throws Exception {
 
@@ -110,6 +111,7 @@ public class BPMNMinerServiceImpl implements BPMNMinerService {
                 erModel.updateConceptualModel(primaryKeys_entityName, fkeyData, concModel, selectedFKeys, dependencyAlgorithm);
 
 //                groupEntities = entityDiscoverer.discoverGroupEntities(concModel, null, true, true);
+                entityDiscoverer.discoverNonTopEntities(concModel);
                 groupEntities = entityDiscoverer.setGroupEntities(concModel, null, true);
                 candidatesEntities = entityDiscoverer.discoverCandidatesEntities(concModel, groupEntities);
                 selectedEntities = candidatesEntities;
@@ -122,7 +124,7 @@ public class BPMNMinerServiceImpl implements BPMNMinerService {
             }
         }
 
-        SelectMinerResult selectMinerResult = new SelectMinerResult(miningAlgorithm, interruptingEventTolerance, multiInstancePercentage,
+        SelectMinerResult selectMinerResult = new SelectMinerResult(miningAlgorithm, params, interruptingEventTolerance, multiInstancePercentage,
                 multiInstanceTolerance, timerEventPercentage, timerEventTolerance, noiseThreshold);
 
         FakePluginContext fakePluginContext = new FakePluginContext();
@@ -130,6 +132,7 @@ public class BPMNMinerServiceImpl implements BPMNMinerService {
 
         BPMNSubProcessMiner bpmnSubProcessMiner = new BPMNSubProcessMiner(fakePluginContext);
 
+        LOGGER.error("Algorithm " + dependencyAlgorithm);
         BPMNDiagram diagram = bpmnSubProcessMiner.mineBPMNModel(fakePluginContext, log, sortLog, selectMinerResult, dependencyAlgorithm, entityDiscoverer, concModel,
                 groupEntities, candidatesEntities, selectedEntities, true);
 
@@ -141,7 +144,6 @@ public class BPMNMinerServiceImpl implements BPMNMinerService {
 
         if( structProcess ) diagram = ibpstructService.structureProcess(diagram);
 
-        System.out.println("Output file:");
         UIContext context = new UIContext();
         UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
         UIPluginContext uiPluginContext = context.getMainPluginContext();

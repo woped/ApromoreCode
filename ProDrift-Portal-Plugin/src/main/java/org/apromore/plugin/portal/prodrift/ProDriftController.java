@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -22,9 +22,9 @@ package org.apromore.plugin.portal.prodrift;
 
 import org.apromore.prodrift.driftdetector.ControlFlowDriftDetector_EventStream;
 import org.apromore.prodrift.model.ProDriftDetectionResult;
+import org.apromore.prodrift.util.LogStreamer;
 import org.apromore.prodrift.util.XLogManager;
 import org.apromore.plugin.portal.PortalContext;
-import org.apromore.plugin.portal.prodrift.model.prodrift.CharStatement;
 import org.apromore.service.prodrift.ProDriftDetectionService;
 import org.deckfour.xes.model.XLog;
 import org.zkoss.zk.ui.Session;
@@ -59,17 +59,18 @@ public class ProDriftController {
 
     //    private byte[] logByteArray = null;
     private XLog xlog = null;
+    XLog eventStream = null;
     private String logFileName = null;
+
+    private boolean running = false;
 
     int caseCount = 0;
     int eventCount = 0;
     int activityCount = 0;
 
-    int desiredWinSizeRuns = 100;
-    int desiredWinSizeEventsSyn = 5000;
-    int desiredWinSizeEventsReal = 5000;
+    int defaultWinSizeRuns = 100;
+    int defaultWinSizeEvents = -1;
     int winSizeDividedBy = 10;
-    int activityLimit = 35;
 
 
 
@@ -83,17 +84,11 @@ public class ProDriftController {
         this.proDriftW = (Window) portalContext.getUI().createComponent(getClass().getClassLoader(), "zul/prodrift.zul", null, null);
         this.proDriftW.setTitle("ProDrift: Set Parameters.");
 
-        Intbox activityLimitIntBox = (Intbox) proDriftW.getFellow("activityLimit");
-        activityLimitIntBox.setValue(activityLimit);
-
         Intbox maxWinValueRunsIntBox = (Intbox) proDriftW.getFellow("maxWinValueRuns");
-        maxWinValueRunsIntBox.setValue(desiredWinSizeRuns);
+        maxWinValueRunsIntBox.setValue(defaultWinSizeRuns);
 
-        Intbox maxWinValueEventsSynIntBox = (Intbox) proDriftW.getFellow("maxWinValueEventsSyn");
-        maxWinValueEventsSynIntBox.setValue(desiredWinSizeEventsSyn);
-
-        Intbox maxWinValueEventsRealIntBox = (Intbox) proDriftW.getFellow("maxWinValueEventsReal");
-        maxWinValueEventsRealIntBox.setValue(desiredWinSizeEventsReal);
+        Intbox maxWinValueEventsSynIntBox = (Intbox) proDriftW.getFellow("maxWinValueEvents");
+        maxWinValueEventsSynIntBox.setValue(defaultWinSizeEvents);
 
         Intbox winSizeCoefficientIntBoX = (Intbox) proDriftW.getFellow("winSizeCoefficient");
         winSizeCoefficientIntBoX.setValue(ControlFlowDriftDetector_EventStream.winSizeCoefficient);
@@ -194,16 +189,13 @@ public class ProDriftController {
     private void initializeLogVars(XLog xl, InputStream is, String logName) {
 
         final Label l = (Label) this.proDriftW.getFellow("fileName");
-        StringBuilder caseCountSB = new StringBuilder();
-        StringBuilder eventCountSB = new StringBuilder();
-        StringBuilder activityCountSB = new StringBuilder();
-        boolean valild = false;
-        xlog = null;
+//        boolean valild = false;
+        xlog = xl;
+
+        int winSize_timeBased = 0;
 
         if(is != null)
-            xlog = XLogManager.validateLog(is, logName, caseCountSB, eventCountSB, activityCountSB);
-        else if(xl != null)
-            xlog = XLogManager.validateLog(xl, logName, caseCountSB, eventCountSB, activityCountSB);
+            xlog = XLogManager.validateLog(is, logName);
 
         if (xlog == null) {
 
@@ -215,9 +207,17 @@ public class ProDriftController {
         } else {
 
             try {
-                caseCount = Integer.parseInt(caseCountSB.toString());
-                eventCount = Integer.parseInt(eventCountSB.toString());
-                activityCount = Integer.parseInt(activityCountSB.toString());
+                StringBuilder activityCountStr = new StringBuilder();
+                StringBuilder winSizeStr = new StringBuilder();
+
+                this.eventStream = LogStreamer.logStreamer(xlog, activityCountStr, winSizeStr, logName);
+
+                caseCount = xlog.size();
+                eventCount = eventStream.size();
+                activityCount = Integer.parseInt(activityCountStr.toString());
+
+                winSize_timeBased = Integer.parseInt(winSizeStr.toString());
+
             }catch (NumberFormatException ex) {}
 
             showError("");
@@ -229,61 +229,49 @@ public class ProDriftController {
 
             logFileName = logName;
 
-            setDefaultWinSizes();
+            setDefaultWinSizes(winSize_timeBased);
 
         }
 
     }
 
-    private void setDefaultWinSizes()
-    {
+    private void setDefaultWinSizes(int winSize_timeBased) {
 
         Intbox maxWinValueRunsIntBoX = (Intbox) proDriftW.getFellow("maxWinValueRuns");
-        Intbox maxWinValueEventsSynIntBoX = (Intbox) proDriftW.getFellow("maxWinValueEventsSyn");
-        Intbox maxWinValueEventsRealIntBoX = (Intbox) proDriftW.getFellow("maxWinValueEventsReal");
+        Intbox maxWinValueEventsIntBoX = (Intbox) proDriftW.getFellow("maxWinValueEvents");
 
         Intbox activityCountIntBoX = (Intbox) proDriftW.getFellow("activityCount");
         activityCountIntBoX.setValue(activityCount);
 
+        if (winSize_timeBased < 100)
+            this.defaultWinSizeEvents = Math.max(winSize_timeBased, activityCount * activityCount * 5);
+        else
+            this.defaultWinSizeEvents = winSize_timeBased;
 
+        if(defaultWinSizeRuns > caseCount / 2)
+            defaultWinSizeRuns = caseCount / 2;
 
-        if(caseCount / winSizeDividedBy < desiredWinSizeRuns)
-        {
+        if(defaultWinSizeEvents > eventCount / 2)
+            defaultWinSizeEvents = eventCount / 2;
 
-            maxWinValueRunsIntBoX.setValue(roundNum(caseCount / winSizeDividedBy));
+//        if (caseCount / winSizeDividedBy < defaultWinSizeRuns) {
+//
+//            maxWinValueRunsIntBoX.setValue(roundNum(caseCount / winSizeDividedBy));
+//
+//        } else {
+//
+            maxWinValueRunsIntBoX.setValue(defaultWinSizeRuns);
+//
+//        }
 
-        }else
-        {
-
-            maxWinValueRunsIntBoX.setValue(desiredWinSizeRuns);
-
-        }
-
-        if((eventCount / winSizeDividedBy) < desiredWinSizeEventsSyn && (eventCount / winSizeDividedBy) < desiredWinSizeEventsReal)
-        {
-
-            maxWinValueEventsSynIntBoX.setValue(roundNum(eventCount / winSizeDividedBy));
-            maxWinValueEventsRealIntBoX.setValue(roundNum(eventCount / winSizeDividedBy));
-
-        }else if((eventCount / winSizeDividedBy) < desiredWinSizeEventsSyn)
-        {
-
-            maxWinValueEventsSynIntBoX.setValue(roundNum(eventCount / winSizeDividedBy));
-            maxWinValueEventsRealIntBoX.setValue(desiredWinSizeEventsReal);
-
-        }else if((eventCount / winSizeDividedBy) < desiredWinSizeEventsReal)
-        {
-
-            maxWinValueEventsSynIntBoX.setValue(desiredWinSizeEventsSyn);
-            maxWinValueEventsRealIntBoX.setValue(roundNum(eventCount / winSizeDividedBy));
-
-        }else
-        {
-
-            maxWinValueEventsSynIntBoX.setValue(desiredWinSizeEventsSyn);
-            maxWinValueEventsRealIntBoX.setValue(desiredWinSizeEventsReal);
-
-        }
+//        if ((eventCount / winSizeDividedBy) < desiredWinSizeEvents) {
+//
+//            maxWinValueEventsIntBoX.setValue(roundNum(eventCount / winSizeDividedBy));
+//
+//        } else {
+//
+            maxWinValueEventsIntBoX.setValue(defaultWinSizeEvents);
+//        }
 
 
         Listbox driftDetMechLBox = (Listbox) proDriftW.getFellow("driftDetMechLBox");
@@ -292,37 +280,40 @@ public class ProDriftController {
 //        Listbox logTypeLBox = (Listbox) proDriftW.getFellow("logTypeLBox");
 //        boolean isSynthetic = logTypeLBox.getSelectedItem().getLabel().startsWith("M") ? true : false;
 
-        boolean isSynthetic = true;
-        if(activityCount < activityLimit)
-            isSynthetic = true;
-        else
-            isSynthetic = false;
+//        boolean isSynthetic = true;
+//        if(activityCount < activityLimit)
+//            isSynthetic = true;
+//        else
+//            isSynthetic = false;
 
 
         Intbox winSizeIntBox = (Intbox) proDriftW.getFellow("winSizeIntBox");
 
-        if(isEventBased)
-            if (isSynthetic) {
+        if (isEventBased)
+        {
+            /*if (isSynthetic) {
                 ((Listitem)proDriftW.getFellow("synLog")).setSelected(true);
 
-                if((activityCount * activityCount * ControlFlowDriftDetector_EventStream.winSizeCoefficient)
+                ((Listitem)proDriftW.getFellow("ADWIN")).setSelected(true);
+                *//*if((activityCount * activityCount * ControlFlowDriftDetector_EventStream.winSizeCoefficient)
                         > maxWinValueEventsSynIntBoX.getValue())
                     ((Listitem)proDriftW.getFellow("FWIN")).setSelected(true);
                 else
-                    ((Listitem)proDriftW.getFellow("ADWIN")).setSelected(true);
+                    ((Listitem)proDriftW.getFellow("ADWIN")).setSelected(true);*//*
 
-                ((Doublespinner) proDriftW.getFellow("noiseFilterSpinner")).setValue(0.0);
+                ((Doublespinner) proDriftW.getFellow("noiseFilterSpinner")).setValue(5.0);
                 winSizeIntBox.setValue(maxWinValueEventsSynIntBoX.getValue());
-            }else {
-                ((Listitem)proDriftW.getFellow("reLog")).setSelected(true);
-                ((Listitem)proDriftW.getFellow("FWIN")).setSelected(true);
-                ((Doublespinner) proDriftW.getFellow("noiseFilterSpinner")).setValue(3.5);
-                winSizeIntBox.setValue(maxWinValueEventsRealIntBoX.getValue());
-            }
-        else
+            }else {*/
+//                ((Listitem)proDriftW.getFellow("reLog")).setSelected(true);
+            ((Listitem) proDriftW.getFellow("ADWIN")).setSelected(true);
+            ((Doublespinner) proDriftW.getFellow("noiseFilterSpinner")).setValue(10.0);
+            ((Doublespinner) proDriftW.getFellow("driftDetectionSensitivitySpinner")).setValue(0.50);
+            winSizeIntBox.setValue(maxWinValueEventsIntBoX.getValue());
+//            }
+        }else
             winSizeIntBox.setValue(maxWinValueRunsIntBoX.getValue());
 
-    }
+        }
 
     int roundNum(int a)
     {
@@ -338,8 +329,12 @@ public class ProDriftController {
     }
 
     protected void cancel() throws IOException {
+   //     boolean detach = !running;
+    //    if(detach)
+    //    {
+            showError(""); this.proDriftW.detach();
+    //    }
 
-        showError(""); this.proDriftW.detach();
     }
 
     protected void proDriftDetector() {
@@ -361,9 +356,6 @@ public class ProDriftController {
                 showError("");
                 try {
 
-                    Listbox logTypeLBox = (Listbox) proDriftW.getFellow("logTypeLBox");
-                    boolean isSynthetic = logTypeLBox.getSelectedItem().getLabel().startsWith("M") ? true : false;
-
                     Checkbox gradDriftCBox = (Checkbox) proDriftW.getFellow("gradDriftCBox");
                     boolean withGradual = gradDriftCBox.isChecked() ? true : false;
 
@@ -373,7 +365,10 @@ public class ProDriftController {
                     Doublespinner noiseFilterSpinner = (Doublespinner) proDriftW.getFellow("noiseFilterSpinner");
                     float noiseFilterPercentage = (float)noiseFilterSpinner.getValue().doubleValue();
 
-                    boolean withConflict = isSynthetic ? true : false;
+                    Doublespinner driftDetectionSensitivitySpinner = (Doublespinner) proDriftW.getFellow("driftDetectionSensitivitySpinner");
+                    float driftDetectionSensitivity = (float)driftDetectionSensitivitySpinner.getValue().doubleValue();
+
+                    boolean withConflict = /*isSynthetic ? true : */false;
 
                     Checkbox withCharacterizationCBox = (Checkbox) proDriftW.getFellow("withCharacterizationCBox");
                     boolean withCharacterization = withCharacterizationCBox.isChecked() ? true : false;
@@ -389,9 +384,10 @@ public class ProDriftController {
 //                    }else
 //                        engineR = (Rengine) obj;
 
+                    running = true;
 
-                    ProDriftDetectionResult result = proDriftDetectionService.proDriftDetector(xlog, logFileName,
-                            isEventBased, isSynthetic, withGradual, winSize, isAdwin, noiseFilterPercentage, withConflict,
+                    ProDriftDetectionResult result = proDriftDetectionService.proDriftDetector(xlog, eventStream, logFileName,
+                            isEventBased, withGradual, winSize, activityCount, isAdwin, noiseFilterPercentage, driftDetectionSensitivity, withConflict,
                             withCharacterization, cummulativeChange/*, engineR*/);
 
                     proDriftShowResults_(result, isEventBased, xlog, logFileName, withCharacterization, cummulativeChange);
@@ -418,6 +414,8 @@ public class ProDriftController {
         {
             showError("Please select a log file first.");
         }
+
+        running = false;
     }
 
 

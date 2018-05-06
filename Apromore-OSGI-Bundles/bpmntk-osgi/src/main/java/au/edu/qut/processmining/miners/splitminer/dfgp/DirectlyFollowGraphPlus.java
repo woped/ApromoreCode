@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -20,17 +20,28 @@
 
 package au.edu.qut.processmining.miners.splitminer.dfgp;
 
+import au.edu.qut.processmining.log.LogParser;
 import au.edu.qut.processmining.log.SimpleLog;
 import au.edu.qut.processmining.log.graph.LogNode;
 import au.edu.qut.processmining.miners.splitminer.ui.dfgp.DFGPUIResult;
+
 import com.raffaeleconforti.automaton.Automaton;
+import com.raffaeleconforti.automaton.AutomatonFactory;
 import com.raffaeleconforti.automaton.Edge;
 import com.raffaeleconforti.automaton.Node;
+import com.raffaeleconforti.context.FakePluginContext;
 import com.raffaeleconforti.ilpsolverwrapper.ILPSolver;
+import com.raffaeleconforti.ilpsolverwrapper.impl.gurobi.Gurobi_Solver;
 import com.raffaeleconforti.ilpsolverwrapper.impl.lpsolve.LPSolve_Solver;
+import com.raffaeleconforti.noisefiltering.event.InfrequentBehaviourFilter;
 import com.raffaeleconforti.noisefiltering.event.infrequentbehaviour.automaton.AutomatonInfrequentBehaviourDetector;
 import com.raffaeleconforti.noisefiltering.event.optimization.wrapper.WrapperInfrequentBehaviourSolver;
+
+import com.raffaeleconforti.noisefiltering.event.selection.NoiseFilterResult;
 import org.apache.commons.lang3.StringUtils;
+import org.deckfour.xes.classification.XEventClassifier;
+import org.deckfour.xes.classification.XEventNameClassifier;
+import org.deckfour.xes.model.XLog;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagram;
 import org.processmining.models.graphbased.directed.bpmn.BPMNDiagramImpl;
 import org.processmining.models.graphbased.directed.bpmn.BPMNNode;
@@ -48,44 +59,36 @@ public class DirectlyFollowGraphPlus {
     private int startcode;
     private int endcode;
 
-    private Map<String, Integer> traces;
-    private Map<Integer, String> events;
-
     private Set<DFGEdge> edges;
-    private Set<DFGEdge> bestEdges;
     private Map<Integer, DFGNode> nodes;
-
     private Map<Integer, HashSet<DFGEdge>> outgoings;
     private Map<Integer, HashSet<DFGEdge>> incomings;
-
-    private Map<Integer, HashSet<Integer>> parallelisms;
+    private Map<Integer, HashMap<Integer, DFGEdge>> dfgp;
 
     private Set<Integer> loopsL1;
     private Set<DFGEdge> loopsL2;
+    private Map<Integer, HashSet<Integer>> parallelisms;
+    private Set<DFGEdge> bestEdges;
 
-    private Map<Integer, HashMap<Integer, DFGEdge>> dfgp;
-
-    private double frequencyThreshold;
+    private double percentileFrequencyThreshold;
     private double parallelismsThreshold;
+    private DFGPUIResult.FilterType filterType;
+    private int filterThreshold;
+    private boolean percentileOnBest;
 
     public DirectlyFollowGraphPlus(SimpleLog log) {
-        this(log,   DFGPUIResult.FREQUENCY_THRESHOLD,
-                    DFGPUIResult.PARALLELISMS_THRESHOLD);
+        this(log, DFGPUIResult.FREQUENCY_THRESHOLD, DFGPUIResult.PARALLELISMS_THRESHOLD, DFGPUIResult.STD_FILTER, DFGPUIResult.PERCENTILE_ONBEST);
     }
 
-    public DirectlyFollowGraphPlus(SimpleLog log, double frequencyThreshold, double parallelismsThreshold) {
+    public DirectlyFollowGraphPlus(SimpleLog log, double percentileFrequencyThreshold, double parallelismsThreshold, DFGPUIResult.FilterType filterType, boolean percentileOnBest) {
         this.log = log;
-        traces = log.getTraces();
-        events = log.getEvents();
-
-        startcode = log.getStartcode();
-        endcode = log.getEndcode();
-
-        this.frequencyThreshold = frequencyThreshold;
+        this.startcode = log.getStartcode();
+        this.endcode = log.getEndcode();
+        this.percentileFrequencyThreshold = percentileFrequencyThreshold;
         this.parallelismsThreshold = parallelismsThreshold;
+        this.filterType = percentileFrequencyThreshold == 0 ? DFGPUIResult.FilterType.NOF : filterType;
+        this.percentileOnBest = percentileOnBest;
     }
-
-
 
     public BPMNDiagram getDFG() {
         buildDirectlyFollowsGraph();
@@ -93,6 +96,7 @@ public class DirectlyFollowGraphPlus {
     }
 
     public BPMNDiagram getDFGP(boolean labels) {
+        Map<Integer, String> events = log.getEvents();
         BPMNDiagram diagram = new BPMNDiagramImpl("DFGP-diagram");
         HashMap<Integer, BPMNNode> mapping = new HashMap<>();
         String label;
@@ -106,8 +110,8 @@ public class DirectlyFollowGraphPlus {
         }
 
         for( DFGEdge edge : edges ) {
-            src = mapping.get(edge.getSource().getCode());
-            tgt = mapping.get(edge.getTarget().getCode());
+            src = mapping.get(edge.getSourceCode());
+            tgt = mapping.get(edge.getTargetCode());
             diagram.addFlow(src, tgt, edge.toString());
         }
 
@@ -133,8 +137,8 @@ public class DirectlyFollowGraphPlus {
         }
 
         for( DFGEdge edge : edges ) {
-            src = mapping.get(edge.getSource().getCode());
-            tgt = mapping.get(edge.getTarget().getCode());
+            src = mapping.get(edge.getSourceCode());
+            tgt = mapping.get(edge.getTargetCode());
             diagram.addFlow(src, tgt, edge.toString());
         }
 
@@ -148,18 +152,39 @@ public class DirectlyFollowGraphPlus {
     public void buildDFGP() {
 //        System.out.println("DFGP - starting ... ");
 //        System.out.println("DFGP - [Settings] parallelisms threshold: " + parallelismsThreshold);
+//        System.out.println("DFGP - [Settings] percentile on best: " + percentileOnBest);
+//        System.out.println("DFGP - [Settings] parcentile threshold: " + percentileFrequencyThreshold);
+
+//        System.out.println("DEBUG - NO FILTER");
 
         buildDirectlyFollowsGraph();                //first method to execute
         detectLoops();                              //depends on buildDirectlyFollowsGraph()
-        detectParallelisms(parallelismsThreshold);  //depends on detectLoops()
-//        System.out.println("DEBUG - edges before filtering: " + edges.size());
-        if(true) filter();                          //depends on detectParallelisms()
-        else filterWithRaf();
-//        System.out.println("DEBUG - edges after filtering: " + edges.size());
-        exploreAndRemove();                         //last method to execute
+        detectParallelisms();                       //depends on detectLoops()
+
+        switch(filterType) {                        //depends on detectParallelisms()
+            case FWG:
+                filterWithGuarantees();
+                break;
+            case WTH:
+                filterWithThreshold();
+                exploreAndRemove();
+                break;
+            case STD:
+                standardFilter();
+                exploreAndRemove();
+                break;
+            case NOF:
+//                filterWithGuarantees();
+//                exploreAndRemove();
+                break;
+        }
+
     }
 
     private void buildDirectlyFollowsGraph() {
+        Map<String, Integer> traces = log.getTraces();
+        Map<Integer, String> events = log.getEvents();
+
         StringTokenizer trace;
         int traceFrequency;
 
@@ -169,7 +194,6 @@ public class DirectlyFollowGraphPlus {
         DFGNode node;
         DFGNode prevNode;
         DFGEdge edge;
-        String eLabel;
 
         DFGNode autogenStart;
         DFGNode autogenEnd;
@@ -225,6 +249,7 @@ public class DirectlyFollowGraphPlus {
     }
 
     private void detectLoops() {
+        Map<String, Integer> traces = log.getTraces();
         HashSet<DFGEdge> removableLoopEdges = new HashSet();
 
         DFGEdge e2;
@@ -244,8 +269,8 @@ public class DirectlyFollowGraphPlus {
 
 //        System.out.println("DFGP - evaluating loops length ONE ...");
         for( DFGEdge e : edges ) {
-            src = e.getSource().getCode();
-            tgt = e.getTarget().getCode();
+            src = e.getSourceCode();
+            tgt = e.getTargetCode();
             if( src == tgt ) {
                 loopsL1.add(src);
                 removableLoopEdges.add(e);
@@ -260,11 +285,10 @@ public class DirectlyFollowGraphPlus {
 //        for( int code : loopsL1 ) System.out.println("DEBUG - self-loop: " + code);
 
         for( DFGEdge e1 : edges )  {
-            src = e1.getSource().getCode();
-            tgt = e1.getTarget().getCode();
+            src = e1.getSourceCode();
+            tgt = e1.getTargetCode();
 
-//            if src OR tgt are length 1 loops,
-//            we do not evaluate length 2 loops for this edge,
+//            if src OR tgt are length 1 loops, we do not evaluate length 2 loops for this edge,
 //            because a length 1 loop in parallel with something else
 //            can generate pattern of the type [src :: tgt :: src] OR [tgt :: src :: tgt]
             if( !loopsL2.contains(e1) && dfgp.get(tgt).containsKey(src) && !loopsL1.contains(src) && !loopsL1.contains(tgt) ) {
@@ -294,7 +318,7 @@ public class DirectlyFollowGraphPlus {
 //        System.out.println("DFGP - loops length TWO found: " + loopsL2.size()/2);
     }
 
-    private void detectParallelisms(double epslon) {
+    private void detectParallelisms() {
         int totalParallelisms = 0;
 
         DFGEdge e2;
@@ -309,14 +333,11 @@ public class DirectlyFollowGraphPlus {
 
         parallelisms = new HashMap<>();
 
-        for( DFGEdge e1 : edges ) {
-            src = e1.getSource().getCode();
-            tgt = e1.getTarget().getCode();
+        for (DFGEdge e1 : edges) {
+            src = e1.getSourceCode();
+            tgt = e1.getTargetCode();
 
-//            we never consider a possible parallelism and edge that is
-//            the best successor or predecessor of src or tgt
-
-            if( !loopsL2.contains(e1) && !removableEdges.contains(e1) && dfgp.get(tgt).containsKey(src) ) {
+            if( !loopsL1.contains(src) && !loopsL1.contains(tgt) /*&& !loopsL2.contains(e1)*/ && !removableEdges.contains(e1) && dfgp.get(tgt).containsKey(src) ) {
 //                this means: src || tgt is candidate parallelism
                 e2 = dfgp.get(tgt).get(src);
 
@@ -324,14 +345,12 @@ public class DirectlyFollowGraphPlus {
                 tgt2src_frequency = e2.getFrequency();
                 parallelismScore = (double) (src2tgt_frequency - tgt2src_frequency) / (src2tgt_frequency + tgt2src_frequency);
 
-                if( Math.abs(parallelismScore) < epslon ) {
+                if( Math.abs(parallelismScore) < parallelismsThreshold ) {
 //                    if parallelismScore is less than the threshold epslon,
 //                    we set src || tgt and vice-versa, and we remove e1 and e2
-//                    if( bestEdges.contains(e1) && !bestEdges.contains(e2) )  continue;
-//                    if( !bestEdges.contains(e1) && bestEdges.contains(e2) )  removableEdges.add(e1);
-                    if( !parallelisms.containsKey(src) ) parallelisms.put(src, new HashSet<Integer>());
+                    if (!parallelisms.containsKey(src)) parallelisms.put(src, new HashSet<Integer>());
                     parallelisms.get(src).add(tgt);
-                    if( !parallelisms.containsKey(tgt) ) parallelisms.put(tgt, new HashSet<Integer>());
+                    if (!parallelisms.containsKey(tgt)) parallelisms.put(tgt, new HashSet<Integer>());
                     parallelisms.get(tgt).add(src);
                     removableEdges.add(e1);
                     removableEdges.add(e2);
@@ -344,63 +363,308 @@ public class DirectlyFollowGraphPlus {
             }
         }
 
-        for( DFGEdge re : removableEdges ) this.removeEdge(re, true);
-        bestEdges = getMostFrequentSuccessorsAndPredecessors();
+        ArrayList<DFGEdge> orderedRemovableEdges = new ArrayList<>(removableEdges);
+        Collections.sort(orderedRemovableEdges);
+        while( !orderedRemovableEdges.isEmpty() ) {
+            DFGEdge re = orderedRemovableEdges.remove(0);
+            if( !this.removeEdge(re, true) ) {
+//                System.out.println("DEBUG - impossible remove: " + re.print());
+                src = re.getSourceCode();
+                tgt = re.getTargetCode();
+                if( parallelisms.containsKey(src) ) parallelisms.get(src).remove(tgt);
+                if( parallelisms.containsKey(tgt) ) parallelisms.get(tgt).remove(src);
+                if( (re = dfgp.get(tgt).get(src)) != null ) this.removeEdge(re, true);
+            }
+        }
 
 //        System.out.println("DFGP - parallelisms found: " + totalParallelisms);
     }
 
-    private Set<DFGEdge> getMostFrequentSuccessorsAndPredecessors() {
-        Set<DFGEdge> bestEdges = new HashSet<>();
-
-        for( int node : nodes.keySet() ) {
-            if( node != endcode ) bestEdges.add(Collections.max(outgoings.get(node)));
-            if( node != startcode) bestEdges.add(Collections.max(incomings.get(node)));
-        }
-
-        return bestEdges;
-    }
-
-    private void filter() {
+    private void standardFilter() {
         int src;
         int tgt;
         DFGEdge recoverableEdge;
 
-
+        bestEdgesOnMaxFrequencies();
         ArrayList<DFGEdge> frequencyOrderedBestEdges = new ArrayList<>(bestEdges);
 
         for( DFGEdge e : new HashSet<>(edges) ) this.removeEdge(e, false);
-//        System.out.println("DEBUG - edges before filtering: " + frequencyOrderedBestEdges.size());
 
         Collections.sort(frequencyOrderedBestEdges);
         for( int i = (frequencyOrderedBestEdges.size()-1); i >= 0; i-- ) {
             recoverableEdge = frequencyOrderedBestEdges.get(i);
-//            System.out.println("DEBUG - edge: " + recoverableEdge.getFrequency());
 
-            src = recoverableEdge.getSource().getCode();
-            tgt = recoverableEdge.getTarget().getCode();
-            if( outgoings.get(src).isEmpty() || incomings.get(tgt).isEmpty()) {
-//                System.out.println("DEBUG - recovered edge: " + recoverableEdge.getFrequency());
-                addEdge(recoverableEdge);
+            src = recoverableEdge.getSourceCode();
+            tgt = recoverableEdge.getTargetCode();
+            if( outgoings.get(src).isEmpty() || incomings.get(tgt).isEmpty() ) this.addEdge(recoverableEdge);
+        }
+    }
+
+    private void bestEdgesOnMaxFrequencies() {
+        bestEdges = new HashSet<>();
+
+        for( int node : nodes.keySet() ) {
+            if( node != endcode ) bestEdges.add(Collections.max(outgoings.get(node)));
+            if( node != startcode ) bestEdges.add(Collections.max(incomings.get(node)));
+        }
+    }
+
+    private void filterWithThreshold() {
+        int src;
+        int tgt;
+        DFGEdge recoverableEdge;
+
+        bestEdgesOnMaxFrequencies();
+        computeFilterThreshold();
+
+        ArrayList<DFGEdge> orderedMostFrequentEdges = new ArrayList<>(bestEdges);
+
+        for( DFGEdge e : orderedMostFrequentEdges ) this.removeEdge(e, false);
+        for( DFGEdge e : new HashSet<>(edges) ) {
+            if( e.getFrequency() > filterThreshold) orderedMostFrequentEdges.add(e);
+            this.removeEdge(e, false);
+        }
+
+        Collections.sort(orderedMostFrequentEdges);
+        for( int i = (orderedMostFrequentEdges.size()-1); i >= 0; i-- ) {
+            recoverableEdge = orderedMostFrequentEdges.get(i);
+            if( recoverableEdge.getFrequency() > filterThreshold) this.addEdge(recoverableEdge);
+            else {
+                src = recoverableEdge.getSourceCode();
+                tgt = recoverableEdge.getTargetCode();
+                if( outgoings.get(src).isEmpty() || incomings.get(tgt).isEmpty() ) this.addEdge(recoverableEdge);
+            }
+        }
+    }
+
+    private void computeFilterThreshold() {
+        ArrayList<DFGEdge> frequencyOrderedEdges = new ArrayList<>();
+        int i;
+
+        if( percentileOnBest ) frequencyOrderedEdges.addAll(bestEdges);
+        else frequencyOrderedEdges.addAll(edges);
+
+        Collections.sort(frequencyOrderedEdges);
+        i = (int)Math.round(frequencyOrderedEdges.size()*percentileFrequencyThreshold);
+        if( i == frequencyOrderedEdges.size() ) i--;
+        filterThreshold = frequencyOrderedEdges.get(i).getFrequency();
+//        System.out.println("DEBUG - filter threshold: " + filterThreshold);
+    }
+
+    private void filterWithGuarantees() {
+        bestEdgesOnMaxFrequencies();
+        computeFilterThreshold();
+
+        bestEdgesOnMaxCapacities();
+        for( DFGEdge e : new HashSet<>(edges) )
+            if( !bestEdges.contains(e) && !(e.getFrequency() >= filterThreshold) ) removeEdge(e, false);
+    }
+
+    private void bestEdgesOnMaxCapacities() {
+        int src, tgt, cap, maxCap;
+        DFGEdge bp, bs;
+
+        LinkedList<Integer> toVisit = new LinkedList<>();
+        Set<Integer> unvisited = new HashSet<>();
+
+        HashMap<Integer, DFGEdge> bestPredecessorFromSource = new HashMap<>();
+        HashMap<Integer, DFGEdge> bestSuccessorToSink = new HashMap<>();
+
+        Map<Integer, Integer> maxCapacitiesFromSource = new HashMap<>();
+        Map<Integer, Integer> maxCapacitiesToSink = new HashMap<>();
+
+        for( int n : nodes.keySet() ) {
+            maxCapacitiesFromSource.put(n, 0);
+            maxCapacitiesToSink.put(n, 0);
+        }
+
+        maxCapacitiesFromSource.put(startcode, Integer.MAX_VALUE);
+        maxCapacitiesToSink.put(endcode, Integer.MAX_VALUE);
+
+//      forward exploration
+        toVisit.add(startcode);
+        unvisited.addAll(nodes.keySet());
+        unvisited.remove(startcode);
+
+        while( !toVisit.isEmpty() ) {
+            src = toVisit.removeFirst();
+            cap = maxCapacitiesFromSource.get(src);
+            for( DFGEdge oe : outgoings.get(src) ) {
+                tgt = oe.getTargetCode();
+                maxCap = (cap > oe.getFrequency() ? oe.getFrequency() : cap);
+                if( (maxCap > maxCapacitiesFromSource.get(tgt)) ) { //|| ((maxCap == maxCapacitiesFromSource.get(tgt)) && (bestPredecessorFromSource.get(tgt).getFrequency() < oe.getFrequency())) ) {
+                    maxCapacitiesFromSource.put(tgt, maxCap);
+                    bestPredecessorFromSource.put(tgt, oe);
+                    if( !toVisit.contains(tgt) ) unvisited.add(tgt);
+                }
+                if( unvisited.contains(tgt) ) {
+                    toVisit.addLast(tgt);
+                    unvisited.remove(tgt);
+                }
             }
         }
 
-//        for( int i = (frequencyOrderedBestEdges.size()-1); i >= 0; i-- ) {
-//            recoverableEdge = frequencyOrderedBestEdges.get(i);
-//
-//            tgt = recoverableEdge.getTarget().getCode();
-//            if( incomings.get(tgt).isEmpty() ) {
-////                System.out.println("DEBUG - recovered edge: " + recoverableEdge.getFrequency());
-//                addEdge(recoverableEdge);
-//            }
-//        }
 
+//      backward exploration
+        toVisit.add(endcode);
+        unvisited.clear();
+        unvisited.addAll(nodes.keySet());
+        unvisited.remove(endcode);
+
+        while( !toVisit.isEmpty() ) {
+            tgt = toVisit.removeFirst();
+            cap = maxCapacitiesToSink.get(tgt);
+            for( DFGEdge ie : incomings.get(tgt) ) {
+                src = ie.getSourceCode();
+                maxCap = (cap > ie.getFrequency() ? ie.getFrequency() : cap);
+                if( (maxCap > maxCapacitiesToSink.get(src)) ) { //|| ((maxCap == maxCapacitiesToSink.get(src)) && (bestSuccessorToSink.get(src).getFrequency() < ie.getFrequency())) ) {
+                    maxCapacitiesToSink.put(src, maxCap);
+                    bestSuccessorToSink.put(src, ie);
+                    if( !toVisit.contains(src) ) unvisited.add(src);
+                }
+                if( unvisited.contains(src) ) {
+                    toVisit.addLast(src);
+                    unvisited.remove(src);
+                }
+            }
+        }
+
+        bestEdges = new HashSet<>();
+        for( int n : nodes.keySet() ) {
+            bestEdges.add(bestPredecessorFromSource.get(n));
+            bestEdges.add(bestSuccessorToSink.get(n));
+        }
+        bestEdges.remove(null);
+
+//        for( int n : nodes.keySet() ) {
+//            System.out.println("DEBUG - " + n + " : [" + maxCapacitiesFromSource.get(n) + "][" + maxCapacitiesToSink.get(n) + "]");
+//        }
+    }
+
+    private void exploreAndRemove() {
+        int src, tgt;
+
+        LinkedList<Integer> toVisit = new LinkedList<>();
+        Set<Integer> unvisited = new HashSet<>();
+
+//      forward exploration
+        toVisit.add(startcode);
+        unvisited.addAll(nodes.keySet());
+        unvisited.remove(startcode);
+
+        while( !toVisit.isEmpty() ) {
+            src = toVisit.removeFirst();
+            for( DFGEdge oe : outgoings.get(src) ) {
+                tgt = oe.getTargetCode();
+                if( unvisited.contains(tgt) ) {
+                    toVisit.addLast(tgt);
+                    unvisited.remove(tgt);
+                }
+            }
+        }
+
+        for(int n : unvisited) {
+            System.out.println("DEBUG - fwd removed: " + nodes.get(n).print());
+            removeNode(n);
+        }
+
+//      backward exploration
+        toVisit.add(endcode);
+        unvisited.clear();
+        unvisited.addAll(nodes.keySet());
+        unvisited.remove(endcode);
+
+        while( !toVisit.isEmpty() ) {
+            tgt = toVisit.removeFirst();
+            for( DFGEdge oe : incomings.get(tgt) ) {
+                src = oe.getSourceCode();
+                if( unvisited.contains(src) ) {
+                    toVisit.addLast(src);
+                    unvisited.remove(src);
+                }
+            }
+        }
+
+        for(int n : unvisited) {
+            System.out.println("DEBUG - bkw removed: " + nodes.get(n).print());
+            removeNode(n);
+        }
     }
 
 
-    private void filterWithRaf() {
+    /* data objects management */
+
+    private void addNode(DFGNode n) {
+        int code = n.getCode();
+
+        nodes.put(code, n);
+        if( !incomings.containsKey(code) ) incomings.put(code, new HashSet<DFGEdge>());
+        if( !outgoings.containsKey(code) ) outgoings.put(code, new HashSet<DFGEdge>());
+        if( !dfgp.containsKey(code) ) dfgp.put(code, new HashMap<Integer, DFGEdge>());
+    }
+
+    private void removeNode(int code) {
+        HashSet<DFGEdge> removable = new HashSet<>();
+        nodes.remove(code);
+        for( DFGEdge e : incomings.get(code) ) removable.add(e);
+        for( DFGEdge e : outgoings.get(code) ) removable.add(e);
+        for( DFGEdge e : removable ) removeEdge(e, false);
+    }
+
+    private void addEdge(DFGEdge e) {
+        int src = e.getSourceCode();
+        int tgt = e.getTargetCode();
+
+        edges.add(e);
+        incomings.get(tgt).add(e);
+        outgoings.get(src).add(e);
+        dfgp.get(src).put(tgt, e);
+
+//        System.out.println("DEBUG - added edge: " + src + " -> " + tgt);
+    }
+
+    private boolean removeEdge(DFGEdge e, boolean safe) {
+        int src = e.getSourceCode();
+        int tgt = e.getTargetCode();
+        if( safe && ((incomings.get(tgt).size() == 1) || (outgoings.get(src).size() == 1)) ) return false;
+        incomings.get(tgt).remove(e);
+        outgoings.get(src).remove(e);
+        dfgp.get(src).remove(tgt);
+        edges.remove(e);
+        return true;
+//        System.out.println("DEBUG - removed edge: " + src + " -> " + tgt);
+    }
+
+
+    /* DEBUG methods */
+
+    private void printEdges() {
+        for(DFGEdge e : edges)
+            System.out.println("DEBUG - edge : " + e.print());
+    }
+
+    public void printNodes() {
+        for( DFGNode n : nodes.values() )
+            System.out.println("DEBUG - node : " + n.print());
+    }
+
+    public void printParallelisms() {
+        System.out.println("DEBUG - printing parallelisms:");
+        for( int A : parallelisms.keySet() ) {
+            System.out.print("DEBUG - " + A + " || " );
+            for( int B : parallelisms.get(A) ) System.out.print( B + ",");
+            System.out.println();
+        }
+    }
+
+
+    /* OTHER methods (experimental) */
+
+    private void noiseFilter(boolean gurobi) {
+        System.out.println("DEBUG - edges before filtering: " + edges.size());
+        ILPSolver ilp_solver;
         Automaton<String> automaton = new Automaton<>();
-        Set<Edge<String>> removable;
+        Set<Edge<String>> removable = new HashSet<>();
         LogNode src, tgt;
         int srcID, tgtID;
 
@@ -433,116 +697,110 @@ public class DirectlyFollowGraphPlus {
             } else tgtANode = anodes.get(tgtID);
 
             aedge = new Edge<>(srcANode, tgtANode);
-            automaton.addEdge(aedge);
+            automaton.addEdge(aedge, e.getFrequency());
             aedges.put(aedge, e);
+            if( !(bestEdges.contains(e) || (e.getFrequency() > filterThreshold)) ) {
+                aedge.setInfrequent(true);
+                removable.add(aedge);
+            }
         }
+
+//        System.out.println("DEBUG - automaton start: " + automaton.getAutomatonStart());
+//        System.out.println("DEBUG - automaton end: " + automaton.getAutomatonEnd());
 
         automaton.getAutomatonStart();
         automaton.getAutomatonEnd();
         automaton.createDirectedGraph();
 
-        ILPSolver ilp_solver = new LPSolve_Solver();
+        for(Edge<String> e : automaton.getEdges()) e.setFrequency(getFrequency(automaton, e, AutomatonInfrequentBehaviourDetector.AVE));
+
+        if(gurobi) ilp_solver = new Gurobi_Solver();
+        else ilp_solver = new LPSolve_Solver();
         WrapperInfrequentBehaviourSolver<String> solver;
 
-        AutomatonInfrequentBehaviourDetector aibd = new AutomatonInfrequentBehaviourDetector(AutomatonInfrequentBehaviourDetector.AVE);
-        Set<Edge<String>> infrequentEdges = aibd.discoverInfrequentEdges(automaton, 1.0);
-
-        solver = new WrapperInfrequentBehaviourSolver<>(automaton, infrequentEdges, automaton.getNodes());
+        solver = new WrapperInfrequentBehaviourSolver<>(automaton, removable, automaton.getNodes(), true);
         removable = solver.identifyRemovableEdges(ilp_solver);
 
         for(Edge<String> ae : removable) {
-            System.out.println("DEBUG - removing edge: " + ae.getSource().getData() + " > " + ae.getTarget().getData());
+//            System.out.println("DEBUG - removing edge: " + ae.getSource().getData() + " > " + ae.getTarget().getData());
             edges.remove(aedges.get(ae));
         }
-
+        System.out.println("DEBUG - edges after filtering: " + edges.size());
     }
 
-    private void exploreAndRemove() {
-        int src, tgt;
+    private double getFrequency(Automaton<String> automaton, Edge<String> edge, int approach) {
+        if(approach == AutomatonInfrequentBehaviourDetector.MIN) {
+            return automaton.getEdgeFrequency(edge) / (Math.min(automaton.getNodeFrequency(edge.getSource()), automaton.getNodeFrequency(edge.getTarget())));
+        }else if(approach == AutomatonInfrequentBehaviourDetector.MAX) {
+            return automaton.getEdgeFrequency(edge) / (Math.max(automaton.getNodeFrequency(edge.getSource()), automaton.getNodeFrequency(edge.getTarget())));
+        }else if(approach == AutomatonInfrequentBehaviourDetector.AVE) {
+            return automaton.getEdgeFrequency(edge) / ((automaton.getNodeFrequency(edge.getSource()) + automaton.getNodeFrequency(edge.getTarget()))/2);
+        }
+        return 0.0;
+    }
 
-        LinkedList<Integer> toVisit = new LinkedList<>();
-        Set<Integer> visited = new HashSet<>();
-        Set<Integer> unvisited = new HashSet<>();
+    private void generateNoiseFilteredDFG() {
+        double percentile = percentileFrequencyThreshold;
 
-        toVisit.add(startcode);
-        visited.add(startcode);
-        unvisited.addAll(nodes.keySet());
-        unvisited.remove(startcode);
+        System.out.println("DEBUG - node before: " + nodes.size());
+        System.out.println("DEBUG - edge before: " + edges.size());
+        Map<Integer, String> oldEvents = log.getEvents();
+        XLog xlog = log.getXLog();
+        XEventClassifier classifier = new XEventNameClassifier();
+        InfrequentBehaviourFilter filter = new InfrequentBehaviourFilter(classifier);
+        AutomatonFactory automatonFactory = new AutomatonFactory(classifier);
 
-        while( !toVisit.isEmpty() ) {
-            src = toVisit.removeFirst();
-            for( DFGEdge oe : outgoings.get(src) ) {
-                tgt = oe.getTarget().getCode();
-                if( !visited.contains(tgt) ) {
-                    toVisit.addLast(tgt);
-                    visited.add(tgt);
-                    unvisited.remove(tgt);
+        Automaton<String> automatonOriginal = automatonFactory.generate(xlog);
+        NoiseFilterResult noisefilterParams = new NoiseFilterResult();
+        noisefilterParams.setRepeated(true);
+        noisefilterParams.setFixLevel(false);
+        noisefilterParams.setPercentile(percentile);
+        noisefilterParams.setNoiseLevel(filter.discoverThreshold(filter.discoverArcs(automatonOriginal, 1.0), percentile));
+        noisefilterParams.setApproach(AutomatonInfrequentBehaviourDetector.AVE);
+        noisefilterParams.setRequiredStates(automatonOriginal.getNodes());
+
+        XLog fxLog = filter.filterLog(new FakePluginContext(), xlog, noisefilterParams);
+        log = LogParser.getSimpleLog(fxLog, classifier);
+        buildDirectlyFollowsGraph();
+        alignParallelisms(oldEvents);
+        System.out.println("DEBUG - node after: " + nodes.size());
+        System.out.println("DEBUG - edge after: " + edges.size());
+    }
+
+    private void alignParallelisms(Map<Integer, String> oldEvents) {
+        Map<Integer, String> events = log.getEvents();
+        Map<Integer, HashSet<Integer>> oldParallelisms = this.parallelisms;
+        int newSRC, newTGT;
+        String srcLabel, tgtLabel;
+
+        int totalParallelisms = 0;
+
+        detectLoops();
+        detectParallelisms();
+
+        for( int src : oldParallelisms.keySet() )
+            for( int tgt : oldParallelisms.get(src) ) {
+                srcLabel = oldEvents.get(src);
+                tgtLabel = oldEvents.get(tgt);
+                newTGT = startcode;
+                newSRC = endcode;
+
+                for( int k : events.keySet() ) {
+                    if( events.get(k).equalsIgnoreCase(srcLabel) ) newSRC = k;
+                    if( events.get(k).equalsIgnoreCase(tgtLabel) ) newTGT = k;
+                }
+
+                if( (newTGT != startcode) && (newSRC != endcode) ) {
+                    if( !parallelisms.containsKey(newSRC) ) parallelisms.put(newSRC, new HashSet<Integer>());
+                    parallelisms.get(newSRC).add(newTGT);
+                    if( !parallelisms.containsKey(newTGT) ) parallelisms.put(newTGT, new HashSet<Integer>());
+                    parallelisms.get(newTGT).add(newSRC);
+                    if(dfgp.containsKey(newSRC) && dfgp.get(newSRC).containsKey(newTGT)) removeEdge(dfgp.get(newSRC).get(newTGT), true);
+                    if(dfgp.containsKey(newTGT) && dfgp.get(newTGT).containsKey(newSRC)) removeEdge(dfgp.get(newTGT).get(newSRC), true);
+                    totalParallelisms++;
                 }
             }
-        }
 
-//        System.out.println("DFGP - removed nodes: " + unvisited.size());
-        for(int n : unvisited) removeNode(n);
-    }
-
-
-    /* data objects management */
-
-    private void addNode(DFGNode n) {
-        int code = n.getCode();
-
-        nodes.put(code, n);
-        if( !incomings.containsKey(code) ) incomings.put(code, new HashSet<DFGEdge>());
-        if( !outgoings.containsKey(code) ) outgoings.put(code, new HashSet<DFGEdge>());
-        if( !dfgp.containsKey(code) ) dfgp.put(code, new HashMap<Integer, DFGEdge>());
-    }
-
-    private void removeNode(int code) {
-        HashSet<DFGEdge> removable = new HashSet<>();
-        nodes.remove(code);
-        for( DFGEdge e : incomings.get(code) ) removable.add(e);
-        for( DFGEdge e : outgoings.get(code) ) removable.add(e);
-        for( DFGEdge e : removable ) removeEdge(e, false);
-    }
-
-    private void addEdge(DFGEdge e) {
-        int src = e.getSource().getCode();
-        int tgt = e.getTarget().getCode();
-
-        edges.add(e);
-        incomings.get(tgt).add(e);
-        outgoings.get(src).add(e);
-        dfgp.get(src).put(tgt, e);
-
-//        System.out.println("DEBUG - added edge: " + src + " -> " + tgt);
-    }
-
-    private void removeEdge(DFGEdge e, boolean safe) {
-        int src = e.getSource().getCode();
-        int tgt = e.getTarget().getCode();
-        if( safe && ((incomings.get(tgt).size() == 1) || (outgoings.get(src).size() == 1)) ) return;
-        incomings.get(tgt).remove(e);
-        outgoings.get(src).remove(e);
-        dfgp.get(src).remove(tgt);
-        edges.remove(e);
-//        System.out.println("DEBUG - removed edge: " + src + " -> " + tgt);
-    }
-
-
-    /* DEBUG methods */
-
-    public void printFrequencies() {
-        System.out.println("DEBUG - printing frequencies:");
-        for( DFGNode node : nodes.values() )
-            System.out.println("DEBUG - " + node.getCode() + " = " + node.getFrequency());
-    }
-
-    public void printParallelisms() {
-        System.out.println("DEBUG - printing parallelisms:");
-        for( int A : parallelisms.keySet() ) {
-            System.out.print("DEBUG - " + A + " || " );
-            for( int B : parallelisms.get(A) ) System.out.print( B + ",");
-            System.out.println();
-        }
+        System.out.println("DEBUG - old parallelisms added: " + totalParallelisms);
     }
 }

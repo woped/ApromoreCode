@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -265,22 +265,22 @@ public class ComparePlugin extends DefaultPortalPlugin {
         }
     }
 
-    private ModelAbstractions toModelAbstractions(ProcessSummaryType process, VersionSummaryType version) throws Exception {
-        ExportFormatResultType result = processService.exportProcess(
-                process.getName(),           // process name
-                process.getId(),             // process ID
-                version.getName(),           // branch
-                new Version(version.getVersionNumber()),  // version number,
-                "BPMN 2.0",                  // nativeType,
-                null,                        // annotation name,
-                false,                       // with annotations?
-                Collections.EMPTY_SET        // canoniser properties
-        );
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        private ModelAbstractions toModelAbstractions(ProcessSummaryType process, VersionSummaryType version) throws Exception {
+            ExportFormatResultType result = processService.exportProcess(
+                    process.getName(),           // process name
+                    process.getId(),             // process ID
+                    version.getName(),           // branch
+                    new Version(version.getVersionNumber()),  // version number,
+                    "BPMN 2.0",                  // nativeType,
+                    null,                        // annotation name,
+                    false,                       // with annotations?
+                    Collections.EMPTY_SET        // canoniser properties
+            );
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
-        TransformerFactory.newInstance().newTransformer().transform(new StreamSource(result.getNative().getInputStream()), new StreamResult(baos));
-        return new ModelAbstractions(baos.toByteArray());
-    }
+            TransformerFactory.newInstance().newTransformer().transform(new StreamSource(result.getNative().getInputStream()), new StreamResult(baos));
+            return new ModelAbstractions(baos.toByteArray());
+        }
 
 //    public PetriNet getNet(int model, PortalContext context, HashSet<String> labels, ProcessSummaryType process ) throws Exception{
 ////        processVersions = context.getSelection().getSelectedProcessModelVersions();
@@ -294,7 +294,7 @@ public class ComparePlugin extends DefaultPortalPlugin {
 //                int procID = process.getId();
 //                String procName = process.getName();
 //                String branch = vst.getName();
-//                Version version = new Version(vst.getVersionNumber());
+//                Version version = new Version(vst.getMajorVersionNumber());
 //                String username = context.getCurrentUser().getUsername();
 //                int folderId = context.getCurrentFolder() == null ? 0 : context.getCurrentFolder().getId();
 //

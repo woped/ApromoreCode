@@ -1,5 +1,5 @@
 <!--
-  ~ Copyright © 2009-2017 The Apromore Initiative.
+  ~ Copyright © 2009-2018 The Apromore Initiative.
   ~
   ~ This file is part of "Apromore".
   ~
@@ -90,7 +90,8 @@
         <module>Apromore-OSGI-Bundles/antlr4</module>
         <module>Apromore-OSGI-Bundles/bpmntk-osgi</module>
         <module>Apromore-OSGI-Bundles/bpstruct-osgi</module>
-        <module>Apromore-OSGI-Bundles/eventstr-confchecking-code-osgi</module>
+        <module>Apromore-OSGI-Bundles/ltl-conf-check-osgi</module>
+        <module>Apromore-OSGI-Bundles/apm-verification-osgi</module>
         <module>Apromore-OSGI-Bundles/ini4j</module>
         <module>Apromore-OSGI-Bundles/irthemis</module>
         <module>Apromore-OSGI-Bundles/json</module>
@@ -100,8 +101,13 @@
         <module>Apromore-OSGI-Bundles/postgres</module>
         <module>Apromore-OSGI-Bundles/pql</module>
         <module>Apromore-OSGI-Bundles/uma-bpdiff-osgi</module>
+        <module>Apromore-OSGI-Bundles/prom-pnml-osgi</module>
+        <module>Apromore-OSGI-Bundles/pn-automata-conv-osgi</module>
+        <module>Apromore-OSGI-Bundles/ltl-to-automaton-osgi</module>
+        <module>Apromore-OSGI-Bundles/declare-visualizer-osgi</module>
         <module>Apromore-OSGI-Bundles/bpmnminer-osgi</module>
         <module>Apromore-OSGI-Bundles/infrequent-behaviour-filter-osgi</module>
+        <module>Apromore-OSGI-Bundles/eventstr-confchecking-code-osgi</module>
 
 
         <!-- ZK Osgi -->
@@ -113,6 +119,10 @@
         <!-- Plugins -->
         <module>Apromore-Plugins</module>
         <module>APQL-Portal-Plugin</module>
+        <module>BEBoP-Logic</module>
+        <module>BEBoP-Portal-Plugin</module>
+        <module>BProVe-Logic</module>
+        <module>BIMP-Editor-Plugin</module>
         <module>BIMP-Portal-Plugin</module>
         <module>BPMNDiagramImporter-Logic</module>
         <module>BPMNMiner-Logic</module>
@@ -120,6 +130,14 @@
         <module>Cmapper-Portal-Plugin</module>
         <module>Compare-Logic</module>
         <module>Compare-Portal-Plugin</module>
+        <module>LTL-Conf-Logic</module>
+        <module>LTL-Conf-Portal-Plugin</module>
+        <module>APM-Logic</module>
+        <module>APM-Portal-Plugin</module>
+        <module>APM-Compliance-Logic</module>
+        <module>APM-Compliance-Portal-Plugin</module>
+        <module>APM-Comp-Guards-Logic</module>
+        <module>APM-Comp-Guards-Portal-Plugin</module>
         <module>IBPStruct-Logic</module>
         <module>IBPStruct-Portal-Plugin</module>
         <module>Activity-Filter-Logic</module>
@@ -135,8 +153,8 @@
         <module>Metrics-Portal-Plugin</module>
         <module>PerformanceMiner-Logic</module>
         <module>PerformanceMiner-Portal-Plugin</module>
-        <module>StageMining-Logic</module>
-        <module>StageMining-Portal-Plugin</module>		
+        <module>Predictive-Monitor-Logic</module>
+        <module>Predictive-Monitor-Portal-Plugin</module>
         <module>PQL-Indexer-Portal-Plugin</module>
         <module>PQL-Logic</module>
         <module>PQL-Logic-WS</module>
@@ -145,6 +163,8 @@
         <module>ProDrift-Portal-Plugin</module>
         <module>Quaestio-Portal-Plugin</module>
         <module>Similarity-Clusters-Portal-Plugin</module>
+        <module>StageMining-Logic</module>
+        <module>StageMining-Portal-Plugin</module>
 
         <!-- Applets -->
         <module>Apromore-Extras/Cmapper</module>
@@ -173,6 +193,7 @@
         <module>Apromore-Assembly/Manager-Assembly</module>
         <module>Apromore-Assembly/Portal-Assembly</module>
         <module>Apromore-Assembly/PQL-Indexer-Assembly</module>
+        <module>Apromore-Assembly/Predictive-Monitor-Assembly</module>
 
         <!-- Command line tools -->
         <module>Apromore-Extras/bpmncmap</module>
@@ -187,6 +208,7 @@
     </modules>
 
     <properties>
+        <gitPropertiesPath>../git.properties</gitPropertiesPath>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.source.version>1.8</java.source.version>
@@ -289,8 +311,8 @@
         <taskmapping.version>0.1</taskmapping.version>
         <mathCollection.version>0.1</mathCollection.version>
         <lpsolve.version>55j</lpsolve.version>
-		
-		<!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ -->
+
+        <!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ -->
         <jbpt-petri.version>0.2.433</jbpt-petri.version>
         <v4-runtime.version>4.3</v4-runtime.version>
         <mysql.version>5.1.21</mysql.version>
@@ -343,7 +365,7 @@
         <maven.versions.plugin>2.0</maven.versions.plugin>
         <maven.war.plugin>2.6</maven.war.plugin>
         <maven.version.updater.plugin>1.0</maven.version.updater.plugin>
-        <maven.version.range>[3.0.3,3.4)</maven.version.range>
+        <maven.version.range>[3.0.3,)</maven.version.range>
 
         <maven.wagon.svn.plugin>1.4</maven.wagon.svn.plugin>
         <maven.wagon-scm.extension>2.4</maven.wagon-scm.extension>
@@ -373,12 +395,27 @@
 
     <dependencyManagement>
         <dependencies>
-
+            <dependency>
+                <groupId>com.raffaeleconforti</groupId>
+                <artifactId>bpmnminer-commandline</artifactId>
+                <version>1.0.20180315</version>
+            </dependency>
+            <dependency>
+                <groupId>com.raffaeleconforti</groupId>
+                <artifactId>noisefiltering-event-commandline</artifactId>
+                <version>1.0.20180315</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-math3</artifactId>
                 <version>3.6</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.servicemix.bundles</groupId>
+                <artifactId>org.apache.servicemix.bundles.kafka-clients</artifactId>
+                <version>1.0.0_2</version>
             </dependency>
 
             <dependency>
@@ -495,8 +532,8 @@
                 <artifactId>lpsolve</artifactId>
                 <version>${lpsolve.version}</version>
             </dependency>
-			
-			<!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ -->
+
+            <!-- @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@ -->
             <dependency>
                 <groupId>org.jbpt</groupId>
                 <artifactId>jbpt-petri-osgi</artifactId>
@@ -566,7 +603,7 @@
                 <artifactId>filestore-client</artifactId>
                 <version>${filestore-client.version}</version>
             </dependency>
-			<dependency>
+            <dependency>
                 <groupId>org.apromore</groupId>
                 <artifactId>portal-client</artifactId>
                 <version>${portal-client.version}</version>
@@ -1608,6 +1645,49 @@
         </pluginManagement>
 
         <plugins>
+            <plugin>
+                <groupId>pl.project13.maven</groupId>
+                <artifactId>git-commit-id-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>validate-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                        <!-- *NOTE*: The default phase of validateRevision is verify, but in case you want to change it, you can do so by adding the phase here -->
+                        <phase>package</phase>
+                    </execution>
+                </executions>
+
+                <configuration>
+                    <!--<excludeProperties>-->
+                    <!--<excludeProperty>git.branch</excludeProperty>-->
+                    <!--<excludeProperty>git.build.*</excludeProperty>-->
+                    <!--<excludeProperty>git.closest.*</excludeProperty>-->
+                    <!--<excludeProperty>git.commit.message.*</excludeProperty>-->
+                    <!--<excludeProperty>git.commit.user.*</excludeProperty>-->
+                    <!--<excludeProperty>git.dirty</excludeProperty>-->
+                    <!--<excludeProperty>git.remote.origin.url</excludeProperty>-->
+                    <!--<excludeProperty>git.tags</excludeProperty>-->
+                    <!--</excludeProperties>-->
+                    <includeOnlyProperties>
+                        <includeOnlyProperty>git.commit.id.describe</includeOnlyProperty>
+                        <includeOnlyProperty>git.commit.time</includeOnlyProperty>
+                    </includeOnlyProperties>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <generateGitPropertiesFilename>${gitPropertiesPath}</generateGitPropertiesFilename>
+                    <gitDescribe>
+                        <dirty>-DEV</dirty>
+                    </gitDescribe>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>

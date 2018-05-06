@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -56,6 +56,90 @@ public class DiagramHandler {
         nodes = null;
         successors = null;
         predecessors = null;
+    }
+
+    public void expandSplitGateways(BPMNDiagram diagram) {
+        HashSet<Gateway> gates = new HashSet<>(diagram.getGateways());
+        Gateway nGate;
+        BPMNNode tgt1, tgt2;
+        BPMNEdge<? extends BPMNNode, ? extends BPMNNode> out1, out2;
+
+
+        for(Gateway g : gates) {
+            if( g.getGatewayType() == Gateway.GatewayType.PARALLEL ) continue;
+            while( diagram.getOutEdges(g).size() > 2 ) {
+                out1 = null;
+                out2 = null;
+                for( BPMNEdge<? extends BPMNNode, ? extends BPMNNode> e : diagram.getOutEdges(g) ) {
+                    if(out1 == null) out1 = e;
+                    else {
+                        out2 = e;
+                        break;
+                    }
+                }
+                tgt1 = out1.getTarget();
+                tgt2 = out2.getTarget();
+                diagram.removeEdge(out1);
+                diagram.removeEdge(out2);
+                nGate = diagram.addGateway("", g.getGatewayType());
+                diagram.addFlow(g, nGate, "");
+                diagram.addFlow(nGate, tgt1, "");
+                diagram.addFlow(nGate, tgt2, "");
+            }
+        }
+    }
+
+    public void expandJoinGateways(BPMNDiagram diagram) {
+        HashSet<Gateway> gates = new HashSet<>(diagram.getGateways());
+        Gateway nGate;
+        BPMNNode src1, src2;
+        BPMNEdge<? extends BPMNNode, ? extends BPMNNode> in1, in2;
+
+
+        for(Gateway g : gates) {
+            while( diagram.getInEdges(g).size() > 2 ) {
+                in1 = null;
+                in2 = null;
+                for( BPMNEdge<? extends BPMNNode, ? extends BPMNNode> e : diagram.getInEdges(g) ) {
+                    if(in1 == null) in1 = e;
+                    else {
+                        in2 = e;
+                        break;
+                    }
+                }
+                src1 = in1.getSource();
+                src2 = in2.getSource();
+                diagram.removeEdge(in1);
+                diagram.removeEdge(in2);
+                nGate = diagram.addGateway("", g.getGatewayType());
+                diagram.addFlow(nGate, g, "");
+                diagram.addFlow(src1, nGate, "");
+                diagram.addFlow(src2, nGate, "");
+            }
+        }
+    }
+
+    public void removeSelfLoopMarkers(BPMNDiagram diagram) {
+        Gateway entry, exit;
+        BPMNEdge<? extends BPMNNode, ? extends BPMNNode> in, out;
+        in = null;
+        out = null;
+
+        for( Activity a : diagram.getActivities() )
+            if( a.isBLooped() ) {
+                a.setBLooped(false);
+                entry = diagram.addGateway("", Gateway.GatewayType.DATABASED, a.getParentSubProcess());
+                exit = diagram.addGateway("", Gateway.GatewayType.DATABASED, a.getParentSubProcess());
+                for( BPMNEdge<? extends BPMNNode, ? extends BPMNNode> e : diagram.getInEdges(a) ) in = e;
+                for( BPMNEdge<? extends BPMNNode, ? extends BPMNNode> e : diagram.getOutEdges(a) ) out = e;
+                diagram.addFlow(in.getSource(), entry, "");
+                diagram.addFlow(exit, out.getTarget(), "");
+                diagram.addFlow(exit, entry, "");
+                diagram.addFlow(entry, a, "");
+                diagram.addFlow(a, exit, "");
+                diagram.removeEdge(in);
+                diagram.removeEdge(out);
+            }
     }
 
     public void removeJoinSplit(BPMNDiagram diagram) {

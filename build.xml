@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright © 2009-2017 The Apromore Initiative.
+  ~ Copyright © 2009-2018 The Apromore Initiative.
   ~
   ~ This file is part of "Apromore".
   ~
@@ -55,6 +55,7 @@
 
         <include name="Apromore-Assembly/Editor-Assembly/src/main/resources/104-editor.plan"/>
 
+        <include name="BIMP-Editor-Plugin/target/bimp-editor-plugin-1.0.war"/>
         <include name="BIMP-Portal-Plugin/target/bimp-portal-plugin-1.0.jar"/>
 
         <include name="BPMNDiagramImporter-Logic/target/bpmndiagramimporter-logic-1.1.jar"/>
@@ -63,6 +64,18 @@
 
         <include name="Compare-Logic/target/compare-logic-1.1.jar"/>
         <include name="Compare-Portal-Plugin/target/compareBP-portal-plugin-1.1.war"/>
+
+        <include name="LTL-Conf-Logic/target/ltl-conf-logic-1.1.jar"/>
+        <include name="LTL-Conf-Portal-Plugin/target/ltl-conf-portal-plugin-1.1.war"/>
+
+        <include name="APM-Logic/target/apm-logic-1.1.jar"/>
+        <include name="APM-Portal-Plugin/target/apm-portal-plugin-1.1.war"/>
+
+        <include name="APM-Compliance-Logic/target/apm-compliance-logic-1.1.jar"/>
+        <include name="APM-Compliance-Portal-Plugin/target/apm-compliance-portal-plugin-1.1.war"/>
+
+	<include name="APM-Comp-Guards-Logic/target/apm-comp-guards-logic-1.1.jar"/>
+        <include name="APM-Comp-Guards-Portal-Plugin/target/apm-comp-guards-portal-plugin-1.1.war"/>
 
         <include name="IBPStruct-Logic/target/ibpstruct-logic-1.1.jar"/>
         <include name="IBPStruct-Portal-Plugin/target/ibpstruct-portal-plugin-1.1.jar"/>
@@ -73,6 +86,8 @@
         <include name="Infrequent-Behaviour-Filter-Logic/target/infrequent-behaviour-filter-logic-1.1.jar"/>
         <include name="Infrequent-Behaviour-Filter-Portal-Plugin/target/infrequent-behaviour-filter-portal-plugin-1.1.jar"/>
 
+        <include name="Predictive-Monitor-Portal-Plugin/target/predictive-monitor-portal-plugin-1.0.war"/>
+
         <include name="Log-Animation-Logic/target/log-animation-logic-1.0.jar"/>
         <include name="Log-Animation-Portal-Plugin/target/log-animation-portal-plugin-1.0.war"/>
 
@@ -82,6 +97,11 @@
 
         <include name="Metrics-Logic/target/metrics-logic-1.1.jar"/>
         <include name="Metrics-Portal-Plugin/target/metrics-portal-plugin-1.1.jar"/>
+
+        <include name="BEBoP-Logic/target/gbebop-logic-1.1.jar"/>
+        <include name="BEBoP-Portal-Plugin/target/gbebop-portal-plugin-1.1.jar"/>
+
+        <include name="BProVe-Logic/target/gbprove-logic-1.1.jar"/>
 
         <include name="PerformanceMiner-Logic/target/perfmining-logic-1.0.jar"/>
         <include name="PerformanceMiner-Portal-Plugin/target/perfmining-portal-plugin-1.0.jar"/>
@@ -104,6 +124,7 @@
 
         <include name="Apromore-Assembly/Editor-Assembly/src/main/resources/104-editor.plan"/>
 
+        <include name="BIMP-Editor-Plugin/target/bimp-editor-plugin-1.0.war"/>
         <include name="BIMP-Portal-Plugin/target/bimp-portal-plugin-1.0.jar"/>
 
         <include name="BPMNDiagramImporter-Logic/target/bpmndiagramimporter-logic-1.1.jar"/>
@@ -112,6 +133,18 @@
 
         <include name="Compare-Logic/target/compare-logic-1.1.jar"/>
         <include name="Compare-Portal-Plugin/target/compareBP-portal-plugin-1.1.war"/>
+
+        <include name="LTL-Conf-Logic/target/ltl-conf-logic-1.1.jar"/>
+        <include name="LTL-Conf-Portal-Plugin/target/ltl-conf-portal-plugin-1.1.war"/>
+        
+        <include name="APM-Logic/target/apm-logic-1.1.jar"/>
+        <include name="APM-Portal-Plugin/target/apm-portal-plugin-1.1.war"/>
+
+        <include name="APM-Compliance-Logic/target/apm-compliance-logic-1.1.jar"/>
+        <include name="APM-Compliance-Portal-Plugin/target/apm-compliance-portal-plugin-1.1.war"/>
+
+	<include name="APM-Comp-Guards-Logic/target/apm-comp-guards-logic-1.1.jar"/>
+        <include name="APM-Comp-Guards-Portal-Plugin/target/apm-comp-guards-portal-plugin-1.1.war"/>
 
         <include name="IBPStruct-Logic/target/ibpstruct-logic-1.1.jar"/>
         <include name="IBPStruct-Portal-Plugin/target/ibpstruct-portal-plugin-1.1.jar"/>
@@ -122,6 +155,8 @@
         <include name="Infrequent-Behaviour-Filter-Logic/target/infrequent-behaviour-filter-logic-1.1.jar"/>
         <include name="Infrequent-Behaviour-Filter-Portal-Plugin/target/infrequent-behaviour-filter-portal-plugin-1.1.jar"/>
 
+        <include name="Predictive-Monitor-Portal-Plugin/target/predictive-monitor-portal-plugin-1.0.war"/>
+
         <include name="Log-Animation-Logic/target/log-animation-logic-1.0.jar"/>
         <include name="Log-Animation-Portal-Plugin/target/log-animation-portal-plugin-1.0.war"/>
 
@@ -131,6 +166,11 @@
 
         <include name="Metrics-Logic/target/metrics-logic-1.1.jar"/>
         <include name="Metrics-Portal-Plugin/target/metrics-portal-plugin-1.1.jar"/>
+
+        <include name="BEBoP-Logic/target/gbebop-logic-1.1.jar"/>
+        <include name="BEBoP-Portal-Plugin/target/gbebop-portal-plugin-1.1.jar"/>
+
+        <include name="BProVe-Logic/target/gbprove-logic-1.1.jar"/>
 
         <include name="PerformanceMiner-Logic/target/perfmining-logic-1.0.jar"/>
         <include name="PerformanceMiner-Portal-Plugin/target/perfmining-portal-plugin-1.0.jar"/>
@@ -161,6 +201,7 @@
 
         <include name="Apromore-Assembly/Editor-Assembly/src/main/resources/104-editor.plan"/>
 
+        <include name="BIMP-Editor-Plugin/target/bimp-editor-plugin-1.0.war"/>
         <include name="BIMP-Portal-Plugin/target/bimp-portal-plugin-1.0.jar"/>
 
         <include name="BPMNDiagramImporter-Logic/target/bpmndiagramimporter-logic-1.1.jar"/>
@@ -175,6 +216,18 @@
         <include name="Compare-Logic/target/compare-logic-1.1.jar"/>
         <include name="Compare-Portal-Plugin/target/compareBP-portal-plugin-1.1.war"/>
 
+        <include name="LTL-Conf-Logic/target/ltl-conf-logic-1.1.jar"/>
+        <include name="LTL-Conf-Portal-Plugin/target/ltl-conf-portal-plugin-1.1.war"/>
+        
+        <include name="APM-Logic/target/apm-logic-1.1.jar"/>
+        <include name="APM-Portal-Plugin/target/apm-portal-plugin-1.1.war"/>
+
+        <include name="APM-Compliance-Logic/target/apm-compliance-logic-1.1.jar"/>
+        <include name="APM-Compliance-Portal-Plugin/target/apm-compliance-portal-plugin-1.1.war"/>
+
+	<include name="APM-Comp-Guards-Logic/target/apm-comp-guards-logic-1.1.jar"/>
+        <include name="APM-Comp-Guards-Portal-Plugin/target/apm-comp-guards-portal-plugin-1.1.war"/>
+
         <include name="IBPStruct-Logic/target/ibpstruct-logic-1.1.jar"/>
         <include name="IBPStruct-Portal-Plugin/target/ibpstruct-portal-plugin-1.1.jar"/>
         <!-- ibpstruct-editor-plugin renamed ~ibpstruct-editor-plugin elsewhere as a workaround for its dependency upon ibpstruct-logic
@@ -187,6 +240,8 @@
         <include name="Infrequent-Behaviour-Filter-Logic/target/infrequent-behaviour-filter-logic-1.1.jar"/>
         <include name="Infrequent-Behaviour-Filter-Portal-Plugin/target/infrequent-behaviour-filter-portal-plugin-1.1.jar"/>
 
+        <include name="Predictive-Monitor-Portal-Plugin/target/predictive-monitor-portal-plugin-1.0.war"/>
+
         <include name="Log-Animation-Logic/target/log-animation-logic-1.0.jar"/>
         <include name="Log-Animation-Portal-Plugin/target/log-animation-portal-plugin-1.0.war"/>
 
@@ -196,6 +251,11 @@
 
         <include name="Metrics-Logic/target/metrics-logic-1.1.jar"/>
         <include name="Metrics-Portal-Plugin/target/metrics-portal-plugin-1.1.jar"/>
+
+        <include name="BEBoP-Logic/target/gbebop-logic-1.1.jar"/>
+        <include name="BEBoP-Portal-Plugin/target/gbebop-portal-plugin-1.1.jar"/>
+
+        <include name="BProVe-Logic/target/gbprove-logic-1.1.jar"/>
 
         <include name="PerformanceMiner-Logic/target/perfmining-logic-1.0.jar"/>
         <include name="PerformanceMiner-Portal-Plugin/target/perfmining-portal-plugin-1.0.jar"/>
@@ -227,6 +287,7 @@
         <include name="Apromore-Assembly/**/repository/usr/*.jar"/>
         <include name="Apromore-Assembly/**/repository/usr/*.war"/>
         <include name="site.properties"/>
+        <include name="git.properties"/>
     </fileset>
 
     <!-- Virgo Related -->
@@ -375,10 +436,16 @@
                 <include name="**/target/bpmntk-osgi-1.1.jar"/>
                 <include name="**/target/similaritysearch-osgi-1.1.jar"/>
                 <include name="**/target/eventstr-confchecking-osgi-1.1.jar"/>
+                <include name="**/target/apm-verification-osgi-1.1.jar"/>
                 <include name="**/target/uma-bpdiff-osgi-1.1.jar"/>
+                <include name="**/target/pn-automata-conv-osgi-1.1.jar"/>
+                <include name="**/target/prom-pnml-osgi-1.1.jar"/>	
+		        <include name="**/target/ltl-to-automaton-osgi-1.1.jar"/>
+		        <include name="**/target/declare-visualizer-osgi-1.1.jar"/>
                 <include name="**/target/pnapi-bpdiff-osgi-1.1.jar"/>
                 <include name="**/target/bpmnminer-osgi-1.1.jar"/>
                 <include name="**/target/infrequent-behaviour-filter-osgi-1.1.jar"/>
+                <include name="**/target/ltl-conf-check-osgi-1.1.jar"/>
             </fileset>
             <!-- This bundle is a dependency for the eventstr-confchecking-code-osgi bundle, which is in turn used by Compare-Logic -->
             <fileset dir="Supplements/">
@@ -399,6 +466,8 @@
         <!-- Force the editor plugins to be alphabetically after the logic plugins they depends upon -->
         <copy file="Apromore-Plugins/plugin-editor/ibpstruct/target/ibpstruct-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~ibpstruct-editor-plugin-1.1.war"/>
         <copy file="Apromore-Plugins/plugin-editor/metrics/target/metrics-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~metrics-editor-plugin-1.1.war"/>
+        <copy file="Apromore-Plugins/plugin-editor/bebop/target/gbebop-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~gbebop-editor-plugin-1.1.war"/>
+        <copy file="Apromore-Plugins/plugin-editor/bprove/target/gbprove-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~gbprove-editor-plugin-1.1.war"/>
 
         <copy todir="${dir-virgo}/pickup" flatten="true" overwrite="true">
             <fileset dir="${dir-annotation}">
@@ -437,10 +506,16 @@
                 <include name="**/target/bpmntk-osgi-1.1.jar"/>
                 <include name="**/target/similaritysearch-osgi-1.1.jar"/>
                 <include name="**/target/eventstr-confchecking-osgi-1.1.jar"/>
+                <include name="**/target/apm-verification-osgi-1.1.jar"/>
                 <include name="**/target/uma-bpdiff-osgi-1.1.jar"/>
+		<include name="**/target/pn-automata-conv-osgi-1.1.jar"/>
+		<include name="**/target/prom-pnml-osgi-1.1.jar"/>
+		<include name="**/target/ltl-to-automaton-osgi-1.1.jar"/>
+		<include name="**/target/declare-visualizer-osgi-1.1.jar"/>
                 <include name="**/target/pnapi-bpdiff-osgi-1.1.jar"/>
                 <include name="**/target/bpmnminer-osgi-1.1.jar"/>
                 <include name="**/target/infrequent-behaviour-filter-osgi-1.1.jar"/>
+                <include name="**/target/ltl-conf-check-osgi-1.1.jar"/>
             </fileset>
 
             <!-- This bundle is a dependency for the eventstr-confchecking-code-osgi bundle, which is in turn used by Compare-Logic -->
@@ -462,6 +537,8 @@
         <!-- Force the editor plugins to be alphabetically after the logic plugins they depends upon -->
         <copy file="Apromore-Plugins/plugin-editor/ibpstruct/target/ibpstruct-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~ibpstruct-editor-plugin-1.1.war"/>
         <copy file="Apromore-Plugins/plugin-editor/metrics/target/metrics-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~metrics-editor-plugin-1.1.war"/>
+        <copy file="Apromore-Plugins/plugin-editor/bebop/target/gbebop-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~gbebop-editor-plugin-1.1.war"/>
+        <copy file="Apromore-Plugins/plugin-editor/bprove/target/gbprove-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~gbprove-editor-plugin-1.1.war"/>
 
         <!-- After creating the PQL tables in MySQL, uncomment this component to enable PQL indexing
         <copy file="PQL-Indexer-Portal-Plugin/target/pql-indexer-portal-plugin-1.1.jar" tofile="${dir-virgo}/pickup/~pql-indexer-portal-plugin-1.1.jar"/>
@@ -507,11 +584,16 @@
                 <include name="**/target/bpmntk-osgi-1.1.jar"/>
                 <include name="**/target/similaritysearch-osgi-1.1.jar"/>
                 <include name="**/target/eventstr-confchecking-osgi-1.1.jar"/>
+                <include name="**/target/apm-verification-osgi-1.1.jar"/>
                 <include name="**/target/uma-bpdiff-osgi-1.1.jar"/>
+                <include name="**/target/pn-automata-conv-osgi-1.1.jar"/>
+                <include name="**/target/prom-pnml-osgi-1.1.jar"/>
+                <include name="**/target/ltl-to-automaton-osgi-1.1.jar"/>
+                <include name="**/target/declare-visualizer-osgi-1.1.jar"/>
                 <include name="**/target/pnapi-bpdiff-osgi-1.1.jar"/>
                 <include name="**/target/bpmnminer-osgi-1.1.jar"/>
                 <include name="**/target/infrequent-behaviour-filter-osgi-1.1.jar"/>
-
+                <include name="**/target/ltl-conf-check-osgi-1.1.jar"/>
                 <!-- the PQL subsystem will add this, so it normally won't need to be done explicitly
                 <include name="**/target/json-osgi-20090211.jar"/>
                 -->
@@ -536,6 +618,8 @@
         <!-- Force the editor plugins to be alphabetically after the logic plugins they depends upon -->
         <copy file="Apromore-Plugins/plugin-editor/ibpstruct/target/ibpstruct-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~ibpstruct-editor-plugin-1.1.war"/>
         <copy file="Apromore-Plugins/plugin-editor/metrics/target/metrics-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~metrics-editor-plugin-1.1.war"/>
+        <copy file="Apromore-Plugins/plugin-editor/bebop/target/gbebop-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~gbebop-editor-plugin-1.1.war"/>
+        <copy file="Apromore-Plugins/plugin-editor/bprove/target/gbprove-editor-plugin-1.1.war" tofile="${dir-virgo}/pickup/~gbprove-editor-plugin-1.1.war"/>
 
         <!-- After creating the PQL tables in MySQL, uncomment this component to enable PQL indexing
         <copy file="PQL-Indexer-Portal-Plugin/target/pql-indexer-portal-plugin-1.1.jar" tofile="${dir-virgo}/pickup/~pql-indexer-portal-plugin-1.1.jar"/>

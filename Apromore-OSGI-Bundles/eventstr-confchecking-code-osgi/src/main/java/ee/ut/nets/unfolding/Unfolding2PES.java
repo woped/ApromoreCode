@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -128,7 +128,7 @@ public class Unfolding2PES {
                 if(originalVisibleLabels.contains(originalName))
                     this.mapEventsPES2Unf.put(labels.size(), node);
 
-                labels.add(sys.properNames[node.id]);
+                labels.add(originalNames.get(sys.properNames[node.id]));
 			}
 			
 			if (sinkEvent && node.isCutOff)

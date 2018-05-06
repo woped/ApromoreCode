@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -79,17 +79,17 @@ public class ApromoreCompareML {
 	public static void main(String[] args) {
 //		String modelString = "models/btm.bpmn";
 //		String logString = "logs/btl.xes";
-        String folder1 = "fines/";
-		String folder2 = "fines/";
+        String folder1 = "models/";
+		String folder2 = "models/";
 
-		String folder = "demo2/";
+		String folder = "models/";
 
-//        String logString = folder + "Loan_baseline_parallel_move_log.xes";
-//        String modelString = folder + "Loan_baseline.bpmn";
-//		String logString = folder + "bpLog11.xes";
+        String logString = folder + "Purchasing_SubProcess_NoAnalysis_All_Log.xes";
+        String modelString = folder + "Purchasing_SubProcess_NoAnalysis_BaseModel_test4.bpmn";
+//		String logString = folder + "bpLog11.xes";Purchasing_SubProcess_NoAnalysis_BaseModel_test.bpmn
 //		String modelString = folder + "bp2.bpmn";
-		String logString = folder + "BPI.xes";
-		String modelString = folder + "s.bpmn";
+//		String logString = folder + "bpLog4.xes";
+//		String modelString = folder + "bp5.bpmn";
 //        String logString = folder1 + "Repair/Example2/conc_seq_insert_log.xes";
 //        String modelString = folder2 + "Examples/Example1/conf_loop.bpmn";
 
@@ -190,8 +190,9 @@ public class ApromoreCompareML {
 //			verbalizer.verbalize();
 //			System.out.println(verbalizer.getStatements());
 
-			DiffMLGraphicalVerbalizer verbalizer = comparator.analyzeDifferences(model, log, silents);
+			DiffMLGraphicalVerbalizerNew verbalizer = comparator.analyzeDifferences(model, log, silents);
 			verbalizer.verbalize();
+			System.out.println("Number of differences: " + verbalizer.getDifferences().getDifferences().size());
 			System.out.println(DifferencesML.toJSON(verbalizer.getDifferences()));
 			for(DifferenceML dif : verbalizer.getDifferences().getDifferences())
 				System.out.println(dif.getSentence() + " ---> " + dif.getRanking());
@@ -268,8 +269,8 @@ public class ApromoreCompareML {
 		return statementSet;
 	}
 
-	public DiffMLGraphicalVerbalizer analyzeDifferences(ModelAbstractions model, XLog log, HashSet<String> silents) throws Exception {
-		DiffMLGraphicalVerbalizer verbalizer = new DiffMLGraphicalVerbalizer(model, log, silents);
+	public DiffMLGraphicalVerbalizerNew analyzeDifferences(ModelAbstractions model, XLog log, HashSet<String> silents) throws Exception {
+		DiffMLGraphicalVerbalizerNew verbalizer = new DiffMLGraphicalVerbalizerNew(model, log, silents);
 
 //		SinglePORunPESSemantics<Integer> logpessem;
 //		PrunedOpenPartialSynchronizedProduct<Integer> psp;
@@ -369,8 +370,9 @@ public class ApromoreCompareML {
 		Set<Integer> eventlength = new HashSet<Integer>();
 		Set<Integer> succ;
 
+		int i=0;
 		for (XTrace trace : log) {
-			PORun porun = new PORun(alphaRelations, trace);
+			PORun porun = new PORun(alphaRelations, trace, (i++) + "");
 
 			runs.add(porun);
 

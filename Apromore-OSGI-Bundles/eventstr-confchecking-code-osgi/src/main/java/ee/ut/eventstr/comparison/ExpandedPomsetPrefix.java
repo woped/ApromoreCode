@@ -1,5 +1,5 @@
 /*
- * Copyright © 2009-2017 The Apromore Initiative.
+ * Copyright © 2009-2018 The Apromore Initiative.
  *
  * This file is part of "Apromore".
  *
@@ -154,9 +154,8 @@ public class ExpandedPomsetPrefix<T> {
 	}
 
 	public void mark(State state, Operation op) {
-		if (op.op == Op.LHIDE) {
+		if (op.op == Op.LHIDE)
 			return;
-		}
 		
 		BitSet bset = pack(state.c2);
 		if (bset.cardinality() == state.c2.size()) {			
@@ -239,9 +238,8 @@ public class ExpandedPomsetPrefix<T> {
 		List<Integer> elem;
 		Boolean found;
 		
-		for (Multiset<Integer> _run: runs) {
+		for (Multiset<Integer> _run: runs)
 			bitruns.add(pack(_run));
-		}
 
 		for (BitSet run: bitruns) {
 			if (!opMap.containsKey(run)) {
@@ -269,37 +267,42 @@ public class ExpandedPomsetPrefix<T> {
 								runcopy = (BitSet)run.clone();
 								runcopy.set(d2);
 								runcopy.clear(d);
-								if ((bitruns.contains(runcopy)) && (!pes.getInvisibleEvents().contains(d2))) {
+								if ((bitruns.contains(runcopy)) && (!pes.getInvisibleEvents().contains(d2)))
 									found = true;
-								}
 							}
 							
-							if ((!found) && (!pes.getDirectConflictSet(d).intersects(diff))) {
-								for (BitSet prev: opMap.keySet()) {
-									if (!prev.get(d)) {
-										for (BitSet next: adjList.get(prev)) {
+							if ((!found) && (!pes.getDirectConflictSet(d).intersects(diff)))
+								for (BitSet prev: opMap.keySet())
+									if (!prev.get(d))
+										for (BitSet next: adjList.get(prev))
 											if (next.get(d)) {
 												elem = new ArrayList<Integer>();
-												if (!pes.getInvisibleEvents().contains(d)) {
+												if (!pes.getInvisibleEvents().contains(d) && !isCyclic(d)) {
 													elem.add(d);
 													optional.put(stateMap.get(prev), elem);
 												}
 											}
-										}
-									}
-								}
-							}
 						}
 					}
 				}
 			}
 		}
 		
-		
-		
 		return optional;
 	}
-	
+
+	private boolean isCyclic(int d) {
+        for(BitSet key : cycles.keySet()){
+            Pair<Multiset<Integer>, Multiset<Integer>> value = cycles.get(key);
+            Multiset<Integer> elemModel = value.getSecond();
+
+            if(elemModel.contains(d))
+                return true;
+        }
+
+        return false;
+	}
+
 	public Multimap<State, List<Integer>> getAdditionalAcyclicIntervals() {
 		Multimap<State, List<Integer>> additional = HashMultimap.create();
 		for (Multiset<Integer> _run: runs) {
@@ -337,7 +340,7 @@ public class ExpandedPomsetPrefix<T> {
 						additional.put(stateMap.get(curr), tasks);
 						stateFound = true;
 					}
-//					prev = (BitSet)curr.clone();
+					prev = (BitSet)curr.clone();
 				}
 			}
 		}
