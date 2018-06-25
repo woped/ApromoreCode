@@ -105,6 +105,7 @@ public class Canonical2PNML {
         simplify();
     }
 
+    //This method is used only in Canonical2PNMLUnitTest
     public Canonical2PNML(CanonicalProcessType cproc, AnnotationsType annotations, String filename) {
         for (ResourceTypeType res : cproc.getResourceType()) {
             data.put_resourcemap(String.valueOf(res.getId()), res);
