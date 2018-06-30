@@ -64,7 +64,7 @@ public class RemoveConnectorTasks {
             for (NodeType node : net.getNode()) {
                 if (node instanceof TaskType) {
                     if (node.getOriginalID() == null) {
-                        nodemap.put(node.getName(), node);
+                        nodemap.put(node.getId(), node);
                         if (((TaskType) node).getResourceTypeRef().size() > 0) {
                             TriggerType tt = new TriggerType();
                             GraphicsSimpleType gt = new GraphicsSimpleType();

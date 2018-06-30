@@ -149,6 +149,7 @@ public class TranslateNodeAnnotations {
             if(((TransitionType) obj).getGraphics().getPosition().isInsertedNode()){
                 graphics.getPosition().setInsertedNode(true);
             }
+            //Here happens the magic
             ((TransitionType) obj).setGraphics(graphics);
 
             //Neuer Code (MK&JR)

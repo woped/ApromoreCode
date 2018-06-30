@@ -43,11 +43,7 @@ import org.apromore.pnml.*;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class Canonical2PNML {
@@ -76,7 +72,7 @@ public class Canonical2PNML {
         ta.setValue(data);
     }
     */
-
+    //#2018: called by PNML132Canoniser.java
     public Canonical2PNML(CanonicalProcessType cproc,
                           AnnotationsType      annotations,
                           boolean              isCpfTaskPnmlTransition,
@@ -185,13 +181,13 @@ public class Canonical2PNML {
     private void simplify() {
         //LOGGER.info("Performing structural simplifications"); 
 
-        SetMultimap<org.apromore.pnml.NodeType, ArcType> incomingArcMultimap = HashMultimap.create();
-        SetMultimap<org.apromore.pnml.NodeType, ArcType> outgoingArcMultimap = HashMultimap.create();
+        SetMultimap<NodeType, ArcType> incomingArcMultimap = HashMultimap.create();
+        SetMultimap<NodeType, ArcType> outgoingArcMultimap = HashMultimap.create();
 
         // Index graph connectivity
         for (ArcType arc: data.getNet().getArc()) {
-            incomingArcMultimap.put((org.apromore.pnml.NodeType) arc.getTarget(), arc);
-            outgoingArcMultimap.put((org.apromore.pnml.NodeType) arc.getSource(), arc);
+            incomingArcMultimap.put((NodeType) arc.getTarget(), arc);
+            outgoingArcMultimap.put((NodeType) arc.getSource(), arc);
         }
 
         // When a synthetic place occurs adjacent to a silent transition on a branch, collapse them
@@ -249,7 +245,7 @@ public class Canonical2PNML {
 
       //layout optimization
         ArrayList<NodeType> allNodes = new ArrayList<>();
-        java.util.List<NodeType> insertedNodes = Collections.synchronizedList(new ArrayList<>());
+        List<NodeType> insertedNodes = Collections.synchronizedList(new ArrayList<>());
         allNodes.addAll(getPNML().getNet().get(0).getPlace());
         allNodes.addAll(getPNML().getNet().get(0).getTransition());
         Collections.sort(allNodes, new NodeTypeComparator());
@@ -267,14 +263,68 @@ public class Canonical2PNML {
             traverseNodes(nonInsertedNode, insertedNodes, outgoingArcMultimap, incomingArcMultimap);
         }
 
-        //correct arc positions
-        for(int i = 0; i< getPNML().getNet().get(0).getArc().size(); i++){
-        	if(getPNML().getNet().get(0).getArc().get(i).getGraphics() != null)
-        		if(getPNML().getNet().get(0).getArc().get(i).getGraphics().getPosition() != null)
-        			getPNML().getNet().get(0).getArc().get(i).getGraphics().getPosition().clear();
+
+        //#2018Finger: Change duplicate positions
+        //just correcting position if 2 elements are on the same spot.
+        //if they're on the same spot Im checking the previous element using the arc source. The element with the lower (higher in numbers) source is then moved down.
+
+
+        List<PlaceType> placeList =  data.getNet().getPlace();
+        List<TransitionType> transitionList = data.getNet().getTransition();
+        List<ArcType> arcList = data.getNet().getArc();
+/*
+        ArrayList<NodeType> allNode = new ArrayList<>();
+        List<NodeType> insertedNode = Collections.synchronizedList(new ArrayList<>());
+        allNode.addAll(getPNML().getNet().get(0).getPlace());
+        allNode.addAll(getPNML().getNet().get(0).getTransition());
+        Collections.sort(allNode, new NodeTypeComparator());*/
+
+        for (NodeType node1 : allNodes){
+            for (NodeType node2 : allNodes){
+                BigDecimal ntx = node1.getGraphics().getPosition().getX();
+                BigDecimal nty = node1.getGraphics().getPosition().getY();
+                BigDecimal ntsx = node2.getGraphics().getPosition().getX();
+                BigDecimal ntsy = node2.getGraphics().getPosition().getY();
+                if (node2.equals(node1)) {
+                    //do nothing
+                }
+                else if(ntx.compareTo(ntsx) == 0 && nty.compareTo(ntsy) == 0)
+                {
+                    BigDecimal y = node2.getGraphics().getPosition().getY();
+                    y = y.add(new BigDecimal((40)));
+                    NodeType source1;
+                    NodeType source2;
+                    for (ArcType arc : arcList){
+                        if (arc.getTarget().equals(node2)){
+                            source2 = (NodeType) arc.getSource();
+                            for (ArcType arc2 : arcList){
+                                if (arc2.getTarget().equals(node1)){
+                                    source1 = (NodeType) arc2.getSource();
+                                    if (source1.getGraphics().getPosition().getY().compareTo(source2.getGraphics().getPosition().getY()) > 0 ){
+                                        node1.getGraphics().getPosition().setY(y);
+                                    }
+                                    else {
+                                        node2.getGraphics().getPosition().setY(y);
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                }
+
+            }
         }
 
-	}
+
+
+        //correct arc positions
+        for(int i = 0; i< getPNML().getNet().get(0).getArc().size(); i++){
+            if(getPNML().getNet().get(0).getArc().get(i).getGraphics() != null)
+                if(getPNML().getNet().get(0).getArc().get(i).getGraphics().getPosition() != null)
+                    getPNML().getNet().get(0).getArc().get(i).getGraphics().getPosition().clear();
+        }
+    }
 
     private void traverseNodes(NodeType node,java.util.List<NodeType> insertedNodesList, SetMultimap<org.apromore.pnml.NodeType, ArcType> outgoingArcMultimap,SetMultimap<org.apromore.pnml.NodeType, ArcType> incomingArcMultimap){
 
