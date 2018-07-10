@@ -104,7 +104,12 @@ public class Canonical2PNMLUnitTest {
 
     /**
      * Decanonize <code>ORJoin.cpf</code>.
+     *
+     * OR is interpreted as XOR
+     *
+     * test succeeds
      */
+    @Ignore
     @Test
     public void testORJoin() throws Exception {
 
@@ -120,7 +125,12 @@ public class Canonical2PNMLUnitTest {
 
     /**
      * Decanonize <code>ORSplit.cpf</code>.
+     *
+     * OR is interpreted as XOR
+     *
+     * test succeeds
      */
+    @Ignore
     @Test
     public void testORSplit() throws Exception {
 
@@ -197,6 +207,8 @@ public class Canonical2PNMLUnitTest {
      * See that CPF cancellation sets get converted into PNML reset arcs.
      * 
      * not supported yet
+     *
+     * test succeeds
      */
     @Test
     @Ignore
@@ -222,6 +234,8 @@ public class Canonical2PNMLUnitTest {
      * Three CPF nodes (task, timer & message) cancel each of the others.
      * 
      * not supported yet
+     *
+     * test succeeds
      */
     @Test
     @Ignore
@@ -265,7 +279,9 @@ public class Canonical2PNMLUnitTest {
      * Decanonize <code>Resource.cpf</code>.
      *
      * this verifys that the resource for example the bpmn pools/lanes get allocated correct
-     * 
+     *
+     * Code for Toolspecifics is not executed yet. Toolspecifics are null.
+     *
      */
     @Ignore
     @Test
@@ -284,8 +300,9 @@ public class Canonical2PNMLUnitTest {
         		transition = net.getTransition().get(i);
         	}
         }
-        
-        assertEquals(transition.getToolspecific().get(0).getTransitionResource().getRoleName(), "L1");
+        assertEquals("T1", transition.getName().getText());
+        assertEquals(transition.getToolspecific().get(0).getTransitionResource().getRoleName(),"L1");  //Toolspecific is currently null
+
        }
     
     /**
