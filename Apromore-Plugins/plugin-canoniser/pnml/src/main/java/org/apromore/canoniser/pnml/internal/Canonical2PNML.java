@@ -276,13 +276,14 @@ public class Canonical2PNML {
         List<TransitionType> transitionList = data.getNet().getTransition();
         List<ArcType> arcList = data.getNet().getArc();
         Boolean flag = true;
+        List<NodeType> editedNodes = new ArrayList<>();
 /*
         ArrayList<NodeType> allNode = new ArrayList<>();
         List<NodeType> insertedNode = Collections.synchronizedList(new ArrayList<>());
         allNode.addAll(getPNML().getNet().get(0).getPlace());
         allNode.addAll(getPNML().getNet().get(0).getTransition());
         Collections.sort(allNode, new NodeTypeComparator());*/
-        for (int i = 0; i < 1; i++){ //hier wäre eine while-schleife mögich, um sicherzustellen, dass alle elemente genügen abstand haben. Da die Elemente in der Liste aber nicht geordnet sind, bricht die Schleife manchmal nicht ab und 2 elemente verschieben sich ins unendliche nach unten. Nicht wünschenswert.
+        for (int i = 0; i < 8; i++){ //hier wäre eine while-schleife mögich, um sicherzustellen, dass alle elemente genügen abstand haben. Da die Elemente in der Liste aber nicht geordnet sind, bricht die Schleife manchmal nicht ab und 2 elemente verschieben sich ins unendliche nach unten. Nicht wünschenswert.
             flag = false;
             for (NodeType node1 : allNodes) {
                 for (NodeType node2 : allNodes) {
@@ -296,13 +297,30 @@ public class Canonical2PNML {
                     int iny2 = ntsy.intValue();
                     if (node2.equals(node1)) {
                         //do nothing
-                    } else if (ntx.compareTo(ntsx) == 0 && iny1-iny2 > -50 && iny1-iny2 < 50) {
+                    }
+                    else if ((ntx.compareTo(ntsx) == 0) && (nty.compareTo(ntsy) == 0)){
                         flag = true;
                         BigDecimal y = node2.getGraphics().getPosition().getY();
-                        y = y.add(new BigDecimal((70)));
-                        compareSources(node1, node2, y, node1, node2, arcList);
+                        y = y.add(new BigDecimal((80)));
+                        compareSources(editedNodes, node1, node2, y, node1, node2, arcList, allNodes);
 
 
+                    }
+                    else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > -75 && iny1-iny2 < 0) {
+                        BigDecimal y = node2.getGraphics().getPosition().getY();
+                        y = y.add(new BigDecimal((80-Math.abs(iny1-iny2))));
+                        if (checkNewPosition(node2, y, allNodes)) {
+                            node2.getGraphics().getPosition().setY(y);
+                            editedNodes.add(node2);
+                        }
+                    }
+                    else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > 0 && iny1-iny2 < 75) {
+                        BigDecimal y = node1.getGraphics().getPosition().getY();
+                        y = y.add(new BigDecimal((80-Math.abs(iny1-iny2))));
+                        if (checkNewPosition(node1, y, allNodes)) {
+                            node1.getGraphics().getPosition().setY(y);
+                            editedNodes.add(node1);
+                        }
                     }
 
                 }
@@ -319,29 +337,55 @@ public class Canonical2PNML {
                     getPNML().getNet().get(0).getArc().get(i).getGraphics().getPosition().clear();
         }
     }
-    private void compareSources(NodeType source1, NodeType source2, BigDecimal y, NodeType node1, NodeType node2, List<ArcType> arcList){
+    private void compareSources(List<NodeType> editedNodes, NodeType source1, NodeType source2, BigDecimal y, NodeType node1, NodeType node2, List<ArcType> arcList, List<NodeType> allNodes){
+        NodeType tempSource1;
+        NodeType tempSource2;
         for (ArcType arc : arcList){
             if (arc.getTarget().equals(source2)){
-                source2 = (NodeType) arc.getSource();
+                tempSource2 = (NodeType) arc.getSource();
                 for (ArcType arc2 : arcList){
-                    if (arc2.getTarget().equals(source1)){
-                        source1 = (NodeType) arc2.getSource();
-                        if ((source1.getGraphics().getPosition().getY().toBigInteger().intValue() - source2.getGraphics().getPosition().getY().toBigInteger().intValue()) < -50 ){
-                            node2.getGraphics().getPosition().setY(y);
-                        }
-                        else if ((source1.getGraphics().getPosition().getY().toBigInteger().intValue() - source2.getGraphics().getPosition().getY().toBigInteger().intValue()) > -50  && (source1.getGraphics().getPosition().getY().toBigInteger().intValue() - source2.getGraphics().getPosition().getY().toBigInteger().intValue()) < 50 ){
-                            compareSources(source1, source2, y, node1, node2, arcList);
+                    if (arc2.getTarget().equals(source1)) {
+                        tempSource1 = (NodeType) arc2.getSource();
+                        //if (((source1.getGraphics().getPosition().getY().toBigInteger().intValue() - source2.getGraphics().getPosition().getY().toBigInteger().intValue()) < -20) || ((source1.getGraphics().getPosition().getY().toBigInteger().intValue() - source2.getGraphics().getPosition().getY().toBigInteger().intValue()) > 20)) {
+                            //do nothing
+                        //}
+                        if ((tempSource1.getGraphics().getPosition().getY().toBigInteger().intValue() - tempSource2.getGraphics().getPosition().getY().toBigInteger().intValue()) < 0) {
+                            if (checkNewPosition(node2, y, allNodes)) {
+                                node2.getGraphics().getPosition().setY(y);
+                                editedNodes.add(node2);
+                            }
 
 
+                        } else if ((tempSource1.getGraphics().getPosition().getY().toBigInteger().intValue() - tempSource2.getGraphics().getPosition().getY().toBigInteger().intValue()) > 0 ) {
+                            if (checkNewPosition(node1, y, allNodes)) {
+                                node1.getGraphics().getPosition().setY(y);
+                                editedNodes.add(node1);
+                            }
                         }
-                        else{
-                            node1.getGraphics().getPosition().setY(y);
+                        else if(tempSource1.equals(tempSource2) || node1.equals(node2)){
+                           //do nothing;
+                        }
+                        else if ((tempSource1.getGraphics().getPosition().getY().toBigInteger().intValue() - tempSource2.getGraphics().getPosition().getY().toBigInteger().intValue()) == 0) {
+                            compareSources(editedNodes, node1, node2, y, tempSource1, tempSource2, arcList, allNodes);
                         }
                     }
                 }
             }
         }
 
+    }
+    private boolean checkNewPosition(NodeType node, BigDecimal y, List<NodeType> allNodes){
+        for (NodeType node1 : allNodes) {
+            if (node1.equals(node)){
+                //do nothing
+            }
+            else if (node1.getGraphics().getPosition().getX().compareTo(node.getGraphics().getPosition().getX()) == 0 && (y.toBigInteger().intValue() - node1.getGraphics().getPosition().getY().toBigInteger().intValue()) > -50 && (y.toBigInteger().intValue() - node1.getGraphics().getPosition().getY().toBigInteger().intValue()) < 50){
+
+                node1.getGraphics().getPosition().setY(y.add(new BigDecimal(50)));
+                return false;
+            }
+        }
+        return true;
     }
     private void traverseNodes(NodeType node,java.util.List<NodeType> insertedNodesList, SetMultimap<org.apromore.pnml.NodeType, ArcType> outgoingArcMultimap,SetMultimap<org.apromore.pnml.NodeType, ArcType> incomingArcMultimap){
 
