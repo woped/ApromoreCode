@@ -44,14 +44,11 @@
             <groupId>org.apache.servicemix.bundles</groupId>
             <artifactId>org.apache.servicemix.bundles.kafka-clients</artifactId>
         </dependency>
-<!--
         <dependency>
-            <groupId>org.apromore.plugin</groupId>
-            <artifactId>kafka-portal-plugin</artifactId>
-            <version>1.0</version>
-            <type>war</type>
+            <groupId>org.jetbrains.kotlin</groupId>
+            <artifactId>kotlin-osgi-bundle</artifactId>
+            <version>${kotlin.version}</version>
         </dependency>
--->
 
         <!-- Contains the RemoveNonOSGIJars Maven plugin -->
         <dependency>

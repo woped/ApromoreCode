@@ -34,8 +34,8 @@ import javax.xml.bind.JAXBException;
 import org.deckfour.xes.model.XLog;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.processmining.plugins.signaturediscovery.encoding.EncodeTraces;
-import org.processmining.plugins.signaturediscovery.encoding.EncodingNotFoundException;
+//import org.processmining.plugins.signaturediscovery.encoding.EncodeTraces;
+//import org.processmining.plugins.signaturediscovery.encoding.EncodingNotFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -62,7 +62,7 @@ public class LogAnimationServiceImpl extends DefaultParameterAwarePlugin impleme
     private static final Logger LOGGER = LoggerFactory.getLogger(LogAnimationServiceImpl.class);
 
     @Override
-    public String createAnimation(String bpmn, List<Log> logs) throws BpmnConverterException, IOException, EncodingNotFoundException, JAXBException, JSONException {
+    public String createAnimation(String bpmn, List<Log> logs) throws BpmnConverterException, IOException, JAXBException, JSONException {
 
         Set<XLog> xlogs = new HashSet<>();
         for (Log log: logs) {
@@ -123,11 +123,13 @@ public class LogAnimationServiceImpl extends DefaultParameterAwarePlugin impleme
         Replayer replayer = new Replayer(bpmnDefinition, params);
         ArrayList<AnimationLog> replayedLogs = new ArrayList();
         if (replayer.isValidProcess()) {
-            LOGGER.info("Process " + bpmnDefinition.getId() + " is valid");
-            EncodeTraces.getEncodeTraces().read(xlogs); //build a mapping from traceId to charstream
+//            LOGGER.info("Process " + bpmnDefinition.getId() + " is valid");
+//            EncodeTraces.getEncodeTraces().read(xlogs); //build a mapping from traceId to charstream
             for (Log log: logs) {
 
                 AnimationLog animationLog = replayer.replay(log.xlog, log.color);
+                animationLog.setFileName(log.fileName);
+                
                 //AnimationLog animationLog = replayer.replayWithMultiThreading(log.xlog, log.color);
                 if (animationLog !=null && !animationLog.isEmpty()) {
                     replayedLogs.add(animationLog);
@@ -135,7 +137,7 @@ public class LogAnimationServiceImpl extends DefaultParameterAwarePlugin impleme
             }
 
         } else {
-            LOGGER.info(replayer.getProcessCheckingMsg());
+//            LOGGER.info(replayer.getProcessCheckingMsg());
         }
 
         /*
@@ -143,7 +145,7 @@ public class LogAnimationServiceImpl extends DefaultParameterAwarePlugin impleme
         * Return Json animation
         * ------------------------------------------
         */
-        LOGGER.info("Start sending back JSON animation script to browser");
+//        LOGGER.info("Start sending back JSON animation script to browser");
         if (replayedLogs.size() > 0) {
 
             //To be replaced

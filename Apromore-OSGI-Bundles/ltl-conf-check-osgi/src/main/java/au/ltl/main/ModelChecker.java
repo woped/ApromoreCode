@@ -15,7 +15,7 @@ import au.ConfigBean;
 import au.ltl.extendedReader.XMLBrokerFactory2;
 import au.ltl.utils.*;
 import au.qut.org.processmining.framework.util.Pair;
-import com.google.gwt.thirdparty.guava.common.collect.HashMultimap;
+import com.google.common.collect.HashMultimap;
 import org.apache.commons.io.FileUtils;
 import org.jbpt.pm.Activity;
 import org.jbpt.pm.ControlFlow;
@@ -105,8 +105,8 @@ public class ModelChecker {
 	public HashMap<String, List<RuleVisualization>> checkNet() {
 		System.out.println("Check started");
 		HashSet<String> labels= new HashSet<String>();
-		Collection<Activity> a =model.getBpmnModel().getActivities();
-		Iterator<Activity> it= a.iterator();
+		Collection<Activity> a = model.getBpmnModel().getActivities();
+		Iterator<Activity> it = a.iterator();
 		while(it.hasNext()){
 			Activity t=it.next();
 			labels.add(t.getName());
@@ -124,6 +124,9 @@ public class ModelChecker {
 		for (Transition t : net.getTransitions())
 			silent.add(t.getName());
 		silent.removeAll(commonLabels);
+
+		System.out.println("common: " + commonLabels);
+        System.out.println("silent: " + silent);
 
 		UnfoldingDecomposer decomposer = new UnfoldingDecomposer(model);
 		HashSet<Subnet> subNets = decomposer.getSubNets();
@@ -204,6 +207,9 @@ public class ModelChecker {
 			Vector<String> or_tr = t.getOriginal_transaction_id();
 			for(int i =0;i<or_tr.size();i++){
 				if(!insertedTask.contains(or_tr.elementAt(i))){
+					System.out.println("map: " + task_numberOfTraces_map);
+					System.out.println("vector: " + or_tr);
+					System.out.println("element:" + or_tr.elementAt(i));
 					int number=task_numberOfTraces_map.get(or_tr.elementAt(i));
 					number++;
 					task_numberOfTraces_map.replace(or_tr.elementAt(i), number);
@@ -234,9 +240,9 @@ public class ModelChecker {
 
 					//br = new BufferedReader(new FileReader(FILENAME));
 					if(os.equals("mac"))
-						fr = new FileReader(RESULTS_DIR+File.separator+trace.getTraceID()+"_"+constraint_name);
-					else
 						fr = new FileReader(RESULTS_DIR+"/"+trace.getTraceID()+"_"+constraint_name);
+					else
+						fr = new FileReader(RESULTS_DIR+File.separator+trace.getTraceID()+"_"+constraint_name);
 
 					br = new BufferedReader(fr);
 
@@ -320,9 +326,9 @@ public class ModelChecker {
 			Trace trace= it_traces.next();
 			try {
 				if(os.equals("mac"))
-				fr = new FileReader(RESULTS_DIR+File.separator+trace.getTraceID()+"_all constraints");
+				fr = new FileReader(RESULTS_DIR+"/"+trace.getTraceID()+"_all constraints");
 				else
-					fr = new FileReader(RESULTS_DIR+"/"+trace.getTraceID()+"_all constraints");
+					fr = new FileReader(RESULTS_DIR+File.separator+trace.getTraceID()+"_all constraints");
 				br = new BufferedReader(fr);
 
 				String sCurrentLine;

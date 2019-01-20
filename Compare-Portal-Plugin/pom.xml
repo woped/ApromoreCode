@@ -51,10 +51,12 @@
                         </Embed-Dependency>
                         <Embed-Transitive>false</Embed-Transitive>
                         <Bundle-ClassPath>.,{maven-dependencies}</Bundle-ClassPath>
+                        <!--<Import-Bundle>
+                            org.apromore.raffaeleconforti-osgi;bundle-version="[1.0,2.0]"
+                        </Import-Bundle>-->
                         <Import-Package>
                             <!-- Needs to be declared because no class from org.apromore.plugin is directly used in this example! -->
                             ee.ut.*,
-                            hub.top.petrinet,
                             org.apromore.plugin,
                             org.apromore.portal.dialogController.dto,
                             org.apromore.portal.util,
@@ -128,12 +130,6 @@
             <groupId>org.apromore</groupId>
             <artifactId>apromore-manager</artifactId>
             <version>1.1</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>hub.top.pnapi</groupId>
-                    <artifactId>hub-pn</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apromore.plugin</groupId>

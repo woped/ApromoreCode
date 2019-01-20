@@ -46,19 +46,16 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.commons.math3.exception.DimensionMismatchException;
+import org.apache.commons.math3.exception.MaxCountExceededException;
+import org.apache.commons.math3.exception.NotPositiveException;
+import org.apache.commons.math3.exception.ZeroException;
 import org.apache.commons.math3.stat.inference.ChiSquareTest;
 import org.apache.commons.math3.stat.inference.GTest;
-import org.apromore.prodrift.config.BehaviorRelation;
-import org.apromore.prodrift.config.CharacterizationConfig;
-import org.apromore.prodrift.config.DriftConfig;
-import org.apromore.prodrift.config.FeatureExtractionConfig;
-import org.apromore.prodrift.config.InductiveMinerConfig;
-import org.apromore.prodrift.config.NoiseFilterConfig;
-import org.apromore.prodrift.config.RelationFrequency;
-import org.apromore.prodrift.config.StatisticTestConfig;
-import org.apromore.prodrift.config.WindowConfig;
+import org.apromore.prodrift.config.*;
 import org.apromore.prodrift.driftcharacterization.ControlFlowDriftCharacterizer;
 import org.apromore.prodrift.driftcharacterization.PairRelation;
+import org.apromore.prodrift.exception.ProDriftDetectionException;
 import org.apromore.prodrift.logabstraction.extension.BasicLogRelationsExt;
 import org.apromore.prodrift.logabstraction.extension.BasicLogRelationsExt.RelationCardinality;
 import org.apromore.prodrift.main.Main;
@@ -135,9 +132,10 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 	private int ReduceWhenDimensionsAbove = 0;
 	private int minExpectedFrequency = 5;
 
-	private float oscilationFactor = 0.1f;
+	private float oscilationFactor = 0.5f;
 
-	private float relationNoiseThresh = 0.05f;
+	private float relationNoiseThresh = 0.1f;
+	private float loopNoiseThresh = 0.1f;
 
 	private float relationStrengthThreshhold = -10f; // set it to less than -1 if you want to go with regular Alpha+
 
@@ -175,9 +173,13 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 
 	private List<Integer> bigDiffCounts = new ArrayList<>();
 
+	private DriftDetectionSensitivity ddSensitivity = DriftDetectionSensitivity.Low;
+
+
+
 
 	public ControlFlowDriftDetector_EventStream(XLog logFIle, XLog eventStream, int winsize, int activityCount, boolean isAdwin,
-												float noiseFilterPercentage, float detectionSensitivity, boolean withConflict, String logFileName, boolean withCharacterization, int cummulativeChange) {
+												float noiseFilterPercentage, DriftDetectionSensitivity ddSensitivity, boolean withConflict, String logFileName, boolean withCharacterization, int cummulativeChange) {
 
 		Main.isStandAlone = true;
 //		XLog xl = XLogManager.readLog(is, logFileName);
@@ -200,20 +202,24 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 
 
 
-		if(detectionSensitivity == 0.01)
-			oscilationFactor = 1;
-		else if(detectionSensitivity == 1)
-			oscilationFactor = 0;
-		else
-			oscilationFactor = 	1.0f - detectionSensitivity;
+//		if(driftDetectionSensitivity == 0.01)
+//			oscilationFactor = 1;
+//		else if(driftDetectionSensitivity == 1)
+//			oscilationFactor = 0;
+//		else
+//			oscilationFactor = 	1.0f - driftDetectionSensitivity;
+
+		this.ddSensitivity = ddSensitivity;
 
 		this.driftConfig = DriftConfig.AlphaRelation;
 		this.statisticTest = StatisticTestConfig.QS;
 		this.winConfig = isAdwin ? WindowConfig.ADWIN : WindowConfig.FWIN;
 		this.IMConfig = InductiveMinerConfig.IM;
 		this.FEConfig = FeatureExtractionConfig.WBANB;
-		this.noiseFilterConfig = relationNoiseThresh == 0f ? NoiseFilterConfig.NoFilter : NoiseFilterConfig.RemoveNoise;
-		this.relationNoiseThresh = this.noiseFilterConfig == NoiseFilterConfig.NoFilter ? 0f : (noiseFilterPercentage / 100.0f);
+		//this.noiseFilterConfig = relationNoiseThresh == 0f ? NoiseFilterConfig.NoFilter : NoiseFilterConfig.RemoveNoise;
+		this.relationNoiseThresh = noiseFilterPercentage / 100.0f;
+		this.loopNoiseThresh = noiseFilterPercentage / 100.0f;
+
 		this.logFileName = logFileName;
 		this.withConflict = withConflict;
 		this.isCPNToolsLog = false;
@@ -237,18 +243,20 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 
 	}
 
-	public ControlFlowDriftDetector_EventStream(XLog logFile, int winsize, boolean isAdwin, float noiseFilterPercentage, float detectionSensitivity, boolean withCharacterization) {
+	public ControlFlowDriftDetector_EventStream(XLog logFile, int winsize, boolean isAdwin, float noiseFilterPercentage, DriftDetectionSensitivity ddSensitivity, boolean withCharacterization) {
 
 		Main.isStandAlone = true;
 //		XLog xl = XLogManager.readLog(is, logFileName);
 		log = logFile;
 
-		if(detectionSensitivity == 0.01)
-			oscilationFactor = 1;
-		else if(detectionSensitivity == 1)
-			oscilationFactor = 0;
-		else
-			oscilationFactor = 	1.0f - detectionSensitivity;
+//		if(driftDetectionSensitivity == 0.01)
+//			oscilationFactor = 1;
+//		else if(driftDetectionSensitivity == 1)
+//			oscilationFactor = 0;
+//		else
+//			oscilationFactor = 	1.0f - driftDetectionSensitivity;
+
+		this.ddSensitivity = ddSensitivity;
 
 		List<Set<String>> startAndEndActivities = XLogManager.getStartAndEndActivities(log);
 //		List<Set<String>> startAndEndActivities = XLogManager.addStartAndEndActivities(log);
@@ -293,6 +301,7 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 //		{
 		this.noiseFilterConfig = NoiseFilterConfig.RemoveNoise;
 		this.relationNoiseThresh = noiseFilterPercentage / 100.0f;
+		this.loopNoiseThresh = noiseFilterPercentage / 100.0f;
 		this.withConflict = false;
 //		}
 
@@ -322,6 +331,7 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 	public ControlFlowDriftDetector_EventStream(XLog logFIle, String logFileName, int winsize, DriftConfig Dcfg,
 												StatisticTestConfig statTest, WindowConfig winCfg, InductiveMinerConfig IMConfig, FeatureExtractionConfig FEConfig,
 												NoiseFilterConfig noiseFilterConfig, Path logPath, float relationNoiseThresh,
+												DriftDetectionSensitivity ddSensitivity,
 												boolean withConflict, boolean isCPNToolsLog, boolean withCharacterization, boolean considerChangeSignificance,
 												CharacterizationConfig charConfig, int minCharDataPoints, int topCharzedDrifts, int cutTopRelationsPercentage,
 												int charBufferSize, String logNameShort, boolean withFragment, boolean withPartialMatching) {
@@ -378,12 +388,10 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 	}
 
 
-	public ProDriftDetectionResult ControlFlowDriftDetectorStart()
-	{
+	public ProDriftDetectionResult ControlFlowDriftDetectorStart() throws InterruptedException {
 
 //		changePatternTest();
 //		changePatternSimpleTestChangeWise();
-
 
 
 //		driftTest0.winSizeTest();
@@ -392,6 +400,7 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 //		System.out.println("***END MAIN***");
 
 		JFreeChart lineChart= this.findDrifts();
+
 
 		Image img = null;
 		BufferedImage objBufferedImage= lineChart.createBufferedImage(1024,600);
@@ -444,7 +453,7 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 	}
 
 
-	public JFreeChart findDrifts() {
+	public JFreeChart findDrifts() throws InterruptedException {
 
 		MDcurves.getDriftPoints().clear();
 		MDcurves.getLastReadTrace().clear();
@@ -967,8 +976,7 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 
 	}
 
-	public LinePlot findDrifts_AlphaRelations(XLog eventStream, List<DriftPoint> DriftPointsList)
-	{
+	public LinePlot findDrifts_AlphaRelations(XLog eventStream, List<DriftPoint> DriftPointsList) throws InterruptedException {
 
 		ControlFlowDriftCharacterizer characterizer = new ControlFlowDriftCharacterizer(logPath, logNameShort, minCharDataPoints, topCharzedDrifts, cutTopRelationsPercentage, considerChangeSignificance, withFragment, withPartialMatching);
 
@@ -1028,11 +1036,11 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 
 		BasicLogRelationsExt alphaRelations_det = null;
 		XLogInfo summary = XLogInfoFactory.createLogInfo(detectionWindowSubLog, XLogInfoImpl.NAME_CLASSIFIER);
-		alphaRelations_det = new BasicLogRelationsExt(detectionWindowSubLog, summary, relationNoiseThresh);
+		alphaRelations_det = new BasicLogRelationsExt(detectionWindowSubLog, summary, relationNoiseThresh, loopNoiseThresh);
 
 		BasicLogRelationsExt alphaRelations_ref = null;
 		summary = XLogInfoFactory.createLogInfo(referenceWindowSubLog, XLogInfoImpl.NAME_CLASSIFIER);
-		alphaRelations_ref = new BasicLogRelationsExt(referenceWindowSubLog, summary, relationNoiseThresh);
+		alphaRelations_ref = new BasicLogRelationsExt(referenceWindowSubLog, summary, relationNoiseThresh, loopNoiseThresh);
 
 //		System.out.println(eventStream.size());
 //		for(XTrace trace : eventStream)
@@ -1065,6 +1073,9 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 
 		List<Long> time = new ArrayList<>();
 		for (; ;) {
+
+			if(Thread.interrupted())
+				throw new InterruptedException();
 
 			long t1 = System.currentTimeMillis();
 
@@ -1181,13 +1192,14 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 
 					}else if(statisticTest == StatisticTestConfig.QS)
 					{
-						pValue = Utils.runChiSquareTest(Alpha_FreqMatrix2);
+						pValue = Utils.runChiSquareTest(Alpha_FreqMatrix2, ddSensitivity);
 //						ChiSquareTest cst = new ChiSquareTest();
 //						pValue = cst.chiSquareTest(Alpha_FreqMatrix2);
 
 					}
 
-				}catch(Exception ex)
+				}catch(DimensionMismatchException | NotPositiveException |
+						ZeroException | MaxCountExceededException ex)
 				{
 					pValue = 1;
 				}
@@ -1294,12 +1306,21 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 								subLogA = XLogManager.getCompleteTracesSubLogFromSubTraceSubLog(subLogA, new String[]{Main.startActivity1, Main.startActivity2}, new String[]{Main.endActivity1});
 
 								String mxmlLogPath = logPath.toString().substring(0, logPath.toString().lastIndexOf("\\")+1) + "_sublogB_" + numOfCharacterizedDrifts + ".mxml";
-								ByteArrayOutputStream baos = XLogManager.saveLogInMemory(subLogB, mxmlLogPath);
+								ByteArrayOutputStream baos = null;
+								try {
+									baos = XLogManager.saveLogInMemory(subLogB, mxmlLogPath);
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
 								mxmlLogPath += ".gz";
 								XLogManager.GzipLogAndSaveInDisk(baos, mxmlLogPath);
 
 								mxmlLogPath = logPath.toString().substring(0, logPath.toString().lastIndexOf("\\")+1) + "_sublogA_" + numOfCharacterizedDrifts + ".mxml";
-								baos = XLogManager.saveLogInMemory(subLogA, mxmlLogPath);
+								try {
+									baos = XLogManager.saveLogInMemory(subLogA, mxmlLogPath);
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
 								mxmlLogPath += ".gz";
 								XLogManager.GzipLogAndSaveInDisk(baos, mxmlLogPath);
 							}
@@ -1426,12 +1447,21 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 									subLogA = XLogManager.getCompleteTracesSubLogFromSubTraceSubLog(subLogA, new String[]{Main.startActivity1, Main.startActivity2}, new String[]{Main.endActivity1});
 
 									String mxmlLogPath = logPath.toString().substring(0, logPath.toString().lastIndexOf("\\")+1) + "sublogB_" + numOfCharacterizedDrifts + ".mxml";
-									ByteArrayOutputStream baos = XLogManager.saveLogInMemory(subLogB, mxmlLogPath);
+									ByteArrayOutputStream baos = null;
+									try {
+										baos = XLogManager.saveLogInMemory(subLogB, mxmlLogPath);
+									} catch (IOException e) {
+										e.printStackTrace();
+									}
 									mxmlLogPath += ".gz";
 									XLogManager.GzipLogAndSaveInDisk(baos, mxmlLogPath);
 
 									mxmlLogPath = logPath.toString().substring(0, logPath.toString().lastIndexOf("\\")+1) + "sublogA_" + numOfCharacterizedDrifts + ".mxml";
-									baos = XLogManager.saveLogInMemory(subLogA, mxmlLogPath);
+									try {
+										baos = XLogManager.saveLogInMemory(subLogA, mxmlLogPath);
+									} catch (IOException e) {
+										e.printStackTrace();
+									}
 									mxmlLogPath += ".gz";
 									XLogManager.GzipLogAndSaveInDisk(baos, mxmlLogPath);
 								}
@@ -4871,12 +4901,8 @@ public class ControlFlowDriftDetector_EventStream implements ControlFlowDriftDet
 			String relation = XLogManager.getEventName(event) + "_" + BehaviorRelation.FOLLOW + "_" + XLogManager.getEventName(t1.get(i));
 			int freq = 0;
 
-			try{
-				freq = Relation_Freq.get(relation);
-			}catch(Exception ex)
-			{
-				System.out.println();
-			}
+			freq = Relation_Freq.get(relation);
+
 
 			if(freq == 1)
 				Relation_Freq.remove(relation);

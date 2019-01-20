@@ -20,26 +20,33 @@
 
 package org.apromore.plugin.portal.prodrift;
 
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apromore.model.LogSummaryType;
 import org.apromore.prodrift.model.ProDriftDetectionResult;
 import org.apromore.prodrift.util.XLogManager;
 import org.apromore.plugin.portal.PortalContext;
-import org.apromore.plugin.portal.prodrift.model.prodrift.Drift;
+import org.apromore.plugin.portal.prodrift.model.Drift;
+import org.apromore.service.EventLogService;
 import org.deckfour.xes.model.XLog;
-import org.zkoss.zk.ui.Session;
-import org.zkoss.zk.ui.Sessions;
 import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.EventListener;
+import org.zkoss.zk.ui.util.Clients;
 import org.zkoss.zul.*;
 import org.zkoss.zul.Button;
 import org.zkoss.zul.Label;
 import org.zkoss.zul.Window;
 
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.ReflectPermission;
 import java.math.BigInteger;
-import java.util.ArrayList;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
@@ -62,6 +69,13 @@ public class ProDriftShowResult extends Window  {
     private org.zkoss.zul.Image pValueDiagramImg;
     private Button saveSublogs;
 
+    private Label saveMessage;
+
+    EventLogService eventLogService = null;
+    LogSummaryType logSummaryType = null;
+
+    MutableBoolean subLogsSaved = null;
+
 //    private ListModel<Drift> driftsModel = new ListModelList<Drift>();
 
     /**
@@ -69,12 +83,17 @@ public class ProDriftShowResult extends Window  {
      */
     public ProDriftShowResult(PortalContext portalContext, ProDriftDetectionResult result,
                               boolean isEventBased, XLog xlog, String logFileName, boolean withCharacterization,
-                              int cummulativeChange) throws IOException {
+                              int cummulativeChange,
+                              EventLogService eventLogService, LogSummaryType logSummaryType,
+                              MutableBoolean subLogsSaved) throws IOException {
         this.portalContext = portalContext;
         this.result = result;
         this.xlog = xlog;
         this.logFileName = logFileName;
         this.isEventBased = isEventBased;
+
+        this.eventLogService = eventLogService;
+        this.logSummaryType = logSummaryType;
 
         if(isEventBased) {
             this.proDriftW = (Window) portalContext.getUI().createComponent(getClass().getClassLoader(), "zul/prodriftshowresult.zul", null, null);
@@ -88,11 +107,13 @@ public class ProDriftShowResult extends Window  {
 
         this.proDriftW.setTitle("ProDrift: Drift Detection Result.");
 
+        this.saveMessage = (Label) this.proDriftW.getFellow("saveMessage");
+
         this.saveSublogs = (Button) this.proDriftW.getFellow("savesublogs");
 
         this.saveSublogs.addEventListener("onClick", new EventListener<Event>() {
             public void onEvent(Event event) throws Exception {
-                downloadSulogs();
+                saveOrDownloadSulogs();
             }
         });
 
@@ -153,15 +174,17 @@ public class ProDriftShowResult extends Window  {
         Grid grid = (Grid) this.proDriftW.getFellow("prodriftGrid");
         grid.setModel(driftsModel);
 
+        this.subLogsSaved = subLogsSaved;
+
 
         this.proDriftW.doModal();
 
     }
 
-    public void downloadSulogs() {
+    public void saveOrDownloadSulogs() {
 
 
-        byte[] downloadContent = null;
+
         java.util.List<BigInteger> startOfTransitionPoints = result.getStartOfTransitionPoints();
         java.util.List<BigInteger> endOfTransitionPoints = result.getEndOfTransitionPoints();
 
@@ -171,13 +194,81 @@ public class ProDriftShowResult extends Window  {
 
             eventLogList = XLogManager.getSubLogs(xlog, logFileName, startOfTransitionPoints, endOfTransitionPoints, isEventBased);
 
-        }catch (Exception ex)
+        }catch (IOException ex)
         {
             showError(ex.getMessage());
             return;
         }
 
 
+        if(logSummaryType != null)
+        {
+            saveLogs(eventLogList, startOfTransitionPoints, endOfTransitionPoints);
+        }else
+        {
+            downloadLogs(eventLogList, startOfTransitionPoints, endOfTransitionPoints);
+        }
+
+
+
+
+    }
+
+
+    private void saveLogs(List<ByteArrayOutputStream> eventLogList,
+                          java.util.List<BigInteger> startOfTransitionPoints,
+                          java.util.List<BigInteger> endOfTransitionPoints)
+    {
+
+        String extension = XLogManager.getExtension(logFileName);
+
+        int successfulSave = 0;
+        for (int i = 0; i < eventLogList.size(); i++)
+        {
+
+            int start = endOfTransitionPoints.get(i).intValue();
+            int end  = startOfTransitionPoints.get(i).intValue();
+
+            ByteArrayOutputStream outputStream = eventLogList.get(i);
+            String filename = logFileName.substring(0, logFileName.indexOf(extension) - 1) + "_sublog" + "_" + start+"_" + end /*+ "." + extension*/;
+
+
+
+            try {
+                //eventLogService.exportToStream(outputStream, xlog);
+
+                int folderId = portalContext.getCurrentFolder() == null ? 0 : portalContext.getCurrentFolder().getId();
+
+                eventLogService.importLog(portalContext.getCurrentUser().getUsername(), folderId,
+                        filename, new ByteArrayInputStream(outputStream.toByteArray()), extension,
+                        logSummaryType.getDomain(), DatatypeFactory.newInstance().newXMLGregorianCalendar(new GregorianCalendar()).toString(),
+                        logSummaryType.isMakePublic());
+
+                successfulSave++;
+               // portalContext.refreshContent();
+
+            } catch (DatatypeConfigurationException e) {
+                e.printStackTrace();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        if(successfulSave > 0)
+        {
+            this.saveMessage.setValue(successfulSave + " sublogs were saved next to the original log in the repository.");
+            subLogsSaved.setValue(true);
+            
+        }else
+            this.saveMessage.setValue("No sublogs saved!");
+    }
+
+    private void downloadLogs(List<ByteArrayOutputStream> eventLogList,
+                              java.util.List<BigInteger> startOfTransitionPoints,
+                              java.util.List<BigInteger> endOfTransitionPoints)
+    {
+        byte[] downloadContent = null;
         ByteArrayOutputStream baos = null;
         ZipOutputStream zos = null;
         String extension = XLogManager.getExtension(logFileName);
@@ -187,21 +278,20 @@ public class ProDriftShowResult extends Window  {
             baos = new ByteArrayOutputStream();
             zos = new ZipOutputStream(baos);
 
-
             for (int i = 0; i < eventLogList.size(); i++)
             {
 
                 int start = endOfTransitionPoints.get(i).intValue();
                 int end  = startOfTransitionPoints.get(i).intValue();
 
-                ByteArrayOutputStream ba = eventLogList.get(i);
+                ByteArrayOutputStream outputStream = eventLogList.get(i);
                 String filename = logFileName.substring(0, logFileName.indexOf(extension) - 1) + "_sublog" + "_" + start+"_" + end + "." + extension;
 
                 ZipEntry entry = new ZipEntry(filename);
 
-                entry.setSize(ba.toByteArray().length);
+                entry.setSize(outputStream.size());
                 zos.putNextEntry(entry);
-                zos.write(ba.toByteArray());
+                zos.write(outputStream.toByteArray());
                 zos.closeEntry();
             }
             zos.close();
@@ -217,12 +307,10 @@ public class ProDriftShowResult extends Window  {
             showError("Failed to download sublogs!!");
             return;
         }
-
-
     }
 
     public void showError(String error) {
-        Messagebox.show(error, "", Messagebox.OK, Messagebox.ERROR);
+        Clients.showNotification(error, "error", null, "top_left", 3000, true);
     }
 
     protected void close() {

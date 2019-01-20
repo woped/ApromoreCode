@@ -28,9 +28,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.apromore.prodrift.config.DriftConfig;
+import org.apromore.prodrift.config.DriftDetectionSensitivity;
 import org.apromore.prodrift.driftdetector.ControlFlowDriftDetector;
 import org.apromore.prodrift.driftdetector.ControlFlowDriftDetector_EventStream;
 import org.apromore.prodrift.driftdetector.ControlFlowDriftDetector_RunStream;
+import org.apromore.prodrift.exception.ProDriftDetectionException;
 import org.apromore.prodrift.model.ProDriftDetectionResult;
 import org.apromore.prodrift.util.XLogManager;
 import org.deckfour.xes.model.XLog;
@@ -42,11 +44,15 @@ import org.jfree.ui.RefineryUtilities;
 public class Test {
 
 
-	public static void main(String args[]) throws FileNotFoundException
-	{
+	public static void main(String args[]) throws FileNotFoundException, InterruptedException {
 
 		Path path = Paths.get("./Frequency_40_60_short_normal.mxml");
-		XLog xl = XLogManager.readLog(new FileInputStream(path.toString()), path.getFileName().toString());
+		XLog xl = null;
+		try {
+			xl = XLogManager.readLog(new FileInputStream(path.toString()), path.getFileName().toString());
+		} catch (ProDriftDetectionException e) {
+			e.printStackTrace();
+		}
 
 		DriftConfig cf = DriftConfig.AlphaRelation;
 		ControlFlowDriftDetector cfdd = null;
@@ -57,9 +63,9 @@ public class Test {
 			boolean withCharacterization = false; // Characterize detected drifts
 
 			float noiseFilterPercentage = 0.0f; // 0-100
-			float driftDetectionSensitivity = 1f; // 0.01-1 (0.01 -> lowest sensitivity, 1 -> highest sensitivity)
+			DriftDetectionSensitivity ddSensitivity = DriftDetectionSensitivity.Low; // 0.01-1 (0.01 -> lowest sensitivity, 1 -> highest sensitivity)
 
-			cfdd = new ControlFlowDriftDetector_EventStream(xl, initialWinSize, useAdwin, noiseFilterPercentage, driftDetectionSensitivity, withCharacterization);
+			cfdd = new ControlFlowDriftDetector_EventStream(xl, initialWinSize, useAdwin, noiseFilterPercentage, ddSensitivity, withCharacterization);
 		}
 		else if(cf == DriftConfig.RUN)
 		{

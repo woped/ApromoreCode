@@ -26,6 +26,6 @@ import org.jfree.chart.JFreeChart;
 
 public interface ControlFlowDriftDetector {
 
-	public JFreeChart findDrifts();
-	public ProDriftDetectionResult ControlFlowDriftDetectorStart();
+	public JFreeChart findDrifts() throws InterruptedException;
+	public ProDriftDetectionResult ControlFlowDriftDetectorStart() throws InterruptedException;
 }

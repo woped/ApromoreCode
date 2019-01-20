@@ -56,6 +56,8 @@
 							au.ltl.domain,
 							au.ltl.utils,
 							au.ltl.main,
+							org.jbpt.pm,
+                            hub.top.uma
 						</Export-Package>
 					</instructions>
 				</configuration>
@@ -68,25 +70,19 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
+		<dependency>
+			<groupId>org.apromore</groupId>
+			<artifactId>eventstr-confchecking-osgi</artifactId>
+			<version>1.1</version>
+		</dependency>
         <dependency>
             <groupId>javax.inject</groupId>
             <artifactId>javax.inject</artifactId>
             <version>1</version>
         </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-beans</artifactId>
-            <version>5.0.2.RELEASE</version>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-context</artifactId>
-            <version>5.0.2.RELEASE</version>
-        </dependency>
-        <dependency>
-			<groupId>org.apache.servicemix.bundles</groupId>
-			<artifactId>org.apache.servicemix.bundles.gwt-dev</artifactId>
-			<version>2.6.0_1</version>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.apromore</groupId>
@@ -96,11 +92,6 @@
 		<dependency>
 			<groupId>org.jdom</groupId>
 			<artifactId>jdom</artifactId>
-			<version>1.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apromore</groupId>
-			<artifactId>uma-bpdiff-osgi</artifactId>
 			<version>1.1</version>
 		</dependency>
         <dependency>
@@ -118,21 +109,11 @@
             <artifactId>declare-visualizer-osgi</artifactId>
             <version>1.1</version>
         </dependency>
-		<dependency>
-			<groupId>org.apromore</groupId>
-			<artifactId>pnapi-bpdiff-osgi</artifactId>
-			<version>1.1</version>
-		</dependency>
-		<dependency>
-			<groupId>org.antlr.runtime</groupId>
-			<artifactId>antlr-rt</artifactId>
-			<version>3.2.0</version>
-		</dependency>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.4</version>
-		</dependency>
+<!--        <dependency>-->
+<!--            <groupId>org.apromore</groupId>-->
+<!--            <artifactId>pnapi-bpdiff-osgi</artifactId>-->
+<!--            <version>1.1</version>-->
+<!--        </dependency>-->
 		<dependency>
 			<groupId>org.jbpt</groupId>
 			<artifactId>jbpt-petri-osgi</artifactId>
@@ -168,9 +149,19 @@
             <version>1.1</version>
         </dependency>
 		<dependency>
-			<groupId>com.raffaeleconforti</groupId>
-			<artifactId>bpmnminer-commandline</artifactId>
+			<groupId>org.apromore</groupId>
+			<artifactId>prom6-osgi</artifactId>
+			<exclusions>
+				<exclusion>
+					<groupId>com.raffaeleconforti</groupId>
+					<artifactId>assembly</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
+		<!--<dependency>-->
+			<!--<groupId>com.raffaeleconforti</groupId>-->
+			<!--<artifactId>bpmnminer-commandline</artifactId>-->
+		<!--</dependency>-->
 		<!--<dependency>
 			<groupId>org.apromore</groupId>
 			<artifactId>prom6-osgi</artifactId>

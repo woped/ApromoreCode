@@ -5,8 +5,8 @@ import java.util.HashSet;
 import java.util.Hashtable;
 import java.util.Vector;
 
-import com.google.gwt.thirdparty.guava.common.collect.HashMultimap;
-import com.google.gwt.thirdparty.guava.common.collect.Multimap;
+import com.google.common.collect.HashMultimap;
+import com.google.common.collect.Multimap;
 import org.processmining.ltl2automaton.plugins.automaton.Automaton;
 
 public class Constants {
@@ -233,7 +233,6 @@ public class Constants {
 		return task_numberOfTraces_map;
 	}
 	public  void setTask_numberOfTraces_map(HashMap<String, Integer> task_numberOfTraces_map) {
-		this.task_numberOfTraces_map = task_numberOfTraces_map;
 		this.task_numberOfTraces_map = task_numberOfTraces_map;
 	}
 	public  HashSet<Trace> getTraces() {

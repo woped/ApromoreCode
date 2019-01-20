@@ -31,6 +31,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.logging.Logger;
+
+import org.apromore.service.loganimation.LogAnimationService;
 import org.deckfour.xes.model.XLog;
 import org.deckfour.xes.model.XTrace;
 import org.joda.time.DateTime;
@@ -41,6 +43,7 @@ public class AnimationLog {
     private Map<XTrace, ReplayTrace> traceMap = new HashMap();
     private Set<XTrace> unplayTraces = new HashSet();
     private String name = "";
+    private String fileName = "";
     private DateTime startDate = null;
     private DateTime endDate = null;
     private Interval interval = null;
@@ -64,6 +67,14 @@ public class AnimationLog {
     
     public void setName(String name) {
         this.name = name;
+    }
+    
+    public String getFileName() {
+        return this.fileName;
+    }
+    
+    public void setFileName(String fileName) {
+        this.fileName = fileName;
     }
     
     public XLog getXLog() {
@@ -315,8 +326,8 @@ public class AnimationLog {
                         });
                     sequenceByIds.put(seqFlow.getId(), transfers);
                 }
-                //LOGGER.info("Node1:" + seqFlow.getSourceRef().getName() + " id:" + seqFlow.getSourceRef().getId() + 
-                //            "Node2:" + seqFlow.getTargetRef().getName() + " id:" + seqFlow.getTargetRef().getId());
+//                LOGGER.info("Node1:" + seqFlow.getSourceRef().getName() + " id:" + seqFlow.getSourceRef().getId() +
+//                            "Node2:" + seqFlow.getTargetRef().getName() + " id:" + seqFlow.getTargetRef().getId());
                 sequenceByIds.get(seqFlow.getId()).add(TimeUtilities.getInterval(seqFlow));
             }
         }

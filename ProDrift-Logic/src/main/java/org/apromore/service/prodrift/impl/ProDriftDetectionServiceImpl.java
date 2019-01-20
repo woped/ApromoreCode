@@ -20,6 +20,7 @@
 
 package org.apromore.service.prodrift.impl;
 
+import org.apromore.prodrift.config.DriftDetectionSensitivity;
 import org.apromore.prodrift.driftdetector.ControlFlowDriftDetector_EventStream;
 import org.apromore.prodrift.driftdetector.ControlFlowDriftDetector_RunStream;
 import org.apromore.prodrift.model.ProDriftDetectionResult;
@@ -53,21 +54,21 @@ public class ProDriftDetectionServiceImpl implements ProDriftDetectionService {
 
     /**
      * @see ProDriftDetectionService#proDriftDetector(XLog, XLog, String, boolean,
-            boolean, int, int, boolean, float, float, boolean, boolean, int);
+            boolean, int, int, boolean, float, DriftDetectionSensitivity, boolean, boolean, int);
      *      {@inheritDoc}
      */
     @Override
     @Transactional(readOnly = false)
     public ProDriftDetectionResult proDriftDetector(XLog xlog, XLog eventStream, String logFileName, boolean isEventBased,
-                                                    boolean withGradual, int winSize, int activityCount, boolean isAdwin, float noiseFilterPercentage, float driftDetectionSensitivity,
-                                                    boolean withConflict, boolean withCharacterization, int cummulativeChange /*, Rengine engineR*/) throws ProDriftDetectionException {
+                                                    boolean withGradual, int winSize, int activityCount, boolean isAdwin, float noiseFilterPercentage, DriftDetectionSensitivity ddSensitivity,
+                                                    boolean withConflict, boolean withCharacterization, int cummulativeChange /*, Rengine engineR*/) throws ProDriftDetectionException, InterruptedException {
 
         ProDriftDetectionResult pddRes = null;
 
         if(isEventBased)
         {
 
-            ControlFlowDriftDetector_EventStream driftDertector = new ControlFlowDriftDetector_EventStream(xlog, eventStream, winSize, activityCount, isAdwin, noiseFilterPercentage, driftDetectionSensitivity, withConflict, logFileName, withCharacterization, cummulativeChange);
+            ControlFlowDriftDetector_EventStream driftDertector = new ControlFlowDriftDetector_EventStream(xlog, eventStream, winSize, activityCount, isAdwin, noiseFilterPercentage, ddSensitivity, withConflict, logFileName, withCharacterization, cummulativeChange);
             pddRes = driftDertector.ControlFlowDriftDetectorStart();
 
         }else

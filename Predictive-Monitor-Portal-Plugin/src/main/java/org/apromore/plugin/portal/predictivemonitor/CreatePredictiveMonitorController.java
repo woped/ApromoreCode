@@ -48,12 +48,9 @@ public class CreatePredictiveMonitorController {
 
     private static Logger LOGGER = LoggerFactory.getLogger(CreatePredictiveMonitorController.class.getCanonicalName());
 
-    public CreatePredictiveMonitorController(PortalContext portalContext, PredictiveMonitorService predictiveMonitorService) throws IOException {
+    public CreatePredictiveMonitorController(PortalContext portalContext, PredictiveMonitorsListModel predictiveMonitorsListModel, PredictorsListModel predictorsListModel) throws IOException {
 
         final Window window = (Window) portalContext.getUI().createComponent(getClass().getClassLoader(), "zul/createPredictiveMonitor.zul", null, null);
-
-        final ListModelList<PredictiveMonitor> predictiveMonitorsListModel = Persistent.getPredictiveMonitorsListModel(predictiveMonitorService);
-        final ListModelList<Predictor> predictorsListModel = Persistent.getPredictorsListModel(predictiveMonitorService);
 
         final Button  createButton      = (Button) window.getFellow("create");
         final Button  cancelButton      = (Button) window.getFellow("cancel");
@@ -66,10 +63,21 @@ public class CreatePredictiveMonitorController {
 
                 String name = nameTextbox.getValue();
 
-                PredictiveMonitor predictiveMonitor = predictiveMonitorService.createPredictiveMonitor(name, new ArrayList<>(predictorsListModel.getSelection()));
-                predictiveMonitorsListModel.add(predictiveMonitor);
+                predictiveMonitorsListModel.createPredictiveMonitor(name, new ArrayList<>(predictorsListModel.getSelection()));
 
                 window.detach();
+            }
+        });
+
+        ((Button) window.getFellow("loadPredictorFile")).addEventListener("onClick", new EventListener<Event>() {
+            public void onEvent(Event event) throws Exception {
+                new CreatePredictorController(portalContext, predictorsListModel);
+            }
+        });
+
+        ((Button) window.getFellow("deletePredictors")).addEventListener("onClick", new EventListener<Event>() {
+            public void onEvent(Event event) throws Exception {
+                predictorsListModel.removeAll(predictorsListModel.getSelection());
             }
         });
 

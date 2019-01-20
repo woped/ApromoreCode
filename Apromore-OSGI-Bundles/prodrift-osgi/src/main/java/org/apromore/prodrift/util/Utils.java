@@ -27,6 +27,7 @@ import org.apromore.prodrift.config.InductiveMinerConfig;
 import org.apromore.prodrift.driftcharacterization.PairRelation;
 import org.apromore.prodrift.driftcharacterization.RelationImpact;
 import org.apromore.prodrift.model.DriftPoint;
+import org.apromore.prodrift.config.DriftDetectionSensitivity;
 
 //import javastat.multivariate.PCA;
 //import Jama.Matrix;
@@ -978,7 +979,7 @@ public class Utils {
 	}
 
 
-	public static double runChiSquareTest(long Alpha_FreqMatrix2[][])
+	public static double runChiSquareTest(long Alpha_FreqMatrix2[][], DriftDetectionSensitivity ddSensitivity)
 	{
 		int nRows = Alpha_FreqMatrix2.length;
 		int nCols = Alpha_FreqMatrix2[0].length;
@@ -996,14 +997,40 @@ public class Utils {
 
 		double Alpha_FreqMatrix2_adjusted[][] = null;
 
-//		if(twentyPercentOfColumns < nCols * nRows)
-//		{
-
 		double borderCellVal = combination[twentyPercentOfColumns];
 
-		double divideBy = borderCellVal / 5.0f;
+		double scalingFactor = borderCellVal;
+		if(scalingFactor > 5.0)
+		{
+			switch(ddSensitivity)
+			{
+				case VeryLow:
+					scalingFactor = 5.0;
+					break;
 
-		if(divideBy < 1) divideBy = 1.0;
+				case Low:
+					scalingFactor = 5.0 + ((borderCellVal - 5.0) / 4.0);
+					break;
+
+				case Medium:
+					scalingFactor = 5.0 + ((borderCellVal - 5.0) / 2.0);
+					break;
+
+				case High:
+					scalingFactor = 5.0 + (3.0 * (borderCellVal - 5.0) / 4.0);
+					break;
+
+				case VeryHigh:
+					scalingFactor = borderCellVal;
+					break;
+
+			}
+		}
+
+		double divideBy = borderCellVal / scalingFactor;
+
+		if(divideBy <= 1) divideBy = 1.0;
+
 
 		Alpha_FreqMatrix2_adjusted = new double[nRows][nCols];
 

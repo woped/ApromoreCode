@@ -20,24 +20,35 @@
 
 package org.apromore.plugin.portal.prodrift;
 
+import org.apache.commons.lang.mutable.MutableBoolean;
+import org.apromore.model.LogSummaryType;
+import org.apromore.plugin.portal.prodrift.Util.LongOperation;
+import org.apromore.prodrift.config.DriftDetectionSensitivity;
 import org.apromore.prodrift.driftdetector.ControlFlowDriftDetector_EventStream;
 import org.apromore.prodrift.model.ProDriftDetectionResult;
 import org.apromore.prodrift.util.LogStreamer;
 import org.apromore.prodrift.util.XLogManager;
 import org.apromore.plugin.portal.PortalContext;
+import org.apromore.service.EventLogService;
+import org.apromore.service.prodrift.ProDriftDetectionException;
 import org.apromore.service.prodrift.ProDriftDetectionService;
 import org.deckfour.xes.model.XLog;
+import org.zkoss.bind.annotation.Command;
 import org.zkoss.zk.ui.Session;
 import org.zkoss.zk.ui.Sessions;
 import org.zkoss.zk.ui.SuspendNotAllowedException;
 import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.EventListener;
 import org.zkoss.zk.ui.event.UploadEvent;
+import org.zkoss.zk.ui.util.Clients;
 import org.zkoss.zul.*;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.UndeclaredThrowableException;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 
 public class ProDriftController {
@@ -49,35 +60,41 @@ public class ProDriftController {
 
     private Button logFileUpload;
     private Listbox driftDetMechLBox;
-    private Listbox logTypeLBox;
     private Checkbox gradDriftCBox;
-    private Intbox winSizeVal;
+    private Intbox winSizeIntBox;
     private Listbox fWinOrAwinLBox;
     private Doublespinner noiseFilterSpinner;
-    private Listbox conflictLBox;
+    private Combobox driftDetectionSensitivityCombo;
     private Button OKbutton;
+    private Button cancelButton;
 
     //    private byte[] logByteArray = null;
     private XLog xlog = null;
-    XLog eventStream = null;
+    private XLog eventStream = null;
     private String logFileName = null;
 
-    private boolean running = false;
+    private int caseCount = 0;
+    private int eventCount = 0;
+    private int activityCount = 0;
 
-    int caseCount = 0;
-    int eventCount = 0;
-    int activityCount = 0;
+    private int defaultWinSizeRuns = 100;
+    private int defaultWinSizeEvents = 5000;
+    private int winSizeDividedBy = 10;
 
-    int defaultWinSizeRuns = 100;
-    int defaultWinSizeEvents = -1;
-    int winSizeDividedBy = 10;
+    private EventLogService eventLogService = null;
+    private LogSummaryType logSummaryType = null;
 
+    private LongOperation currentOperation = null;
+    private boolean isRunning = false;
+
+    private MutableBoolean subLogsSaved = new MutableBoolean(false);
 
 
     /**
      * @throws IOException if the <code>prodrift.zul</code> template can't be read from the classpath
      */
-    public ProDriftController(PortalContext portalContext, ProDriftDetectionService proDriftDetectionService, Map<XLog, String> logs) throws IOException {
+    public ProDriftController(PortalContext portalContext, ProDriftDetectionService proDriftDetectionService,
+                              EventLogService eventLogService, Set<LogSummaryType> selectedLogSummaryType) throws IOException {
         this.portalContext = portalContext;
         this.proDriftDetectionService = proDriftDetectionService;
 
@@ -93,9 +110,26 @@ public class ProDriftController {
         Intbox winSizeCoefficientIntBoX = (Intbox) proDriftW.getFellow("winSizeCoefficient");
         winSizeCoefficientIntBoX.setValue(ControlFlowDriftDetector_EventStream.winSizeCoefficient);
 
+        this.driftDetMechLBox = (Listbox) proDriftW.getFellow("driftDetMechLBox");
+        this.gradDriftCBox = (Checkbox) proDriftW.getFellow("gradDriftCBox");
+        this.winSizeIntBox = (Intbox) proDriftW.getFellow("winSizeIntBox");
+        this.fWinOrAwinLBox = (Listbox) proDriftW.getFellow("fWinOrAwinLBox");
+        this.noiseFilterSpinner = (Doublespinner) proDriftW.getFellow("noiseFilterSpinner");
+        this.driftDetectionSensitivityCombo = ((Combobox) proDriftW.getFellow("driftDetectionSensitivityCombo"));
+        this.driftDetectionSensitivityCombo.setSelectedIndex(1);
+
         this.logFileUpload = (Button) this.proDriftW.getFellow("logFileUpload");
 
-        showError("");
+
+        this.eventLogService = eventLogService;
+        Map<XLog, String> logs = new HashMap<>();
+
+        for(LogSummaryType logType : selectedLogSummaryType)
+        {
+            logs.put(eventLogService.getXLog(logType.getId()), logType.getName());
+            logSummaryType = logType;
+        }
+
         if(logs.size() > 0)
         {
 
@@ -146,7 +180,7 @@ public class ProDriftController {
 //        this.fWinOrAwin.appendChild(listItem);
 
         this.OKbutton = (Button) this.proDriftW.getFellow("proDriftOKButton");
-        Button cancelButton = (Button) this.proDriftW.getFellow("proDriftCancelButton");
+        this.cancelButton = (Button) this.proDriftW.getFellow("proDriftCancelButton");
 
         this.OKbutton.addEventListener("onClick", new EventListener<Event>() {
             public void onEvent(Event event) throws Exception {
@@ -158,7 +192,7 @@ public class ProDriftController {
                 proDriftDetector();
             }
         });
-        cancelButton.addEventListener("onClick", new EventListener<Event>() {
+        this.cancelButton.addEventListener("onClick", new EventListener<Event>() {
             public void onEvent(Event event) throws Exception {
                 cancel();
             }
@@ -194,8 +228,14 @@ public class ProDriftController {
 
         int winSize_timeBased = 0;
 
-        if(is != null)
-            xlog = XLogManager.validateLog(is, logName);
+        if(is != null) {
+            try {
+                xlog = XLogManager.validateLog(is, logName);
+            } catch (org.apromore.prodrift.exception.ProDriftDetectionException e) {
+                l.setStyle("color: red");
+                l.setValue("Unacceptable Log Format.");
+            }
+        }
 
         if (xlog == null) {
 
@@ -220,7 +260,6 @@ public class ProDriftController {
 
             }catch (NumberFormatException ex) {}
 
-            showError("");
             l.setStyle("color: blue");
             l.setValue(logName + " (Cases=" + caseCount + ", Activities=" + activityCount + ", Events~" + eventCount + ")");
 
@@ -248,11 +287,11 @@ public class ProDriftController {
         else
             this.defaultWinSizeEvents = winSize_timeBased;
 
-        if(defaultWinSizeRuns > caseCount / 2)
-            defaultWinSizeRuns = caseCount / 2;
+        if(defaultWinSizeRuns > caseCount / 4)
+            defaultWinSizeRuns = caseCount / 4;
 
-        if(defaultWinSizeEvents > eventCount / 2)
-            defaultWinSizeEvents = eventCount / 2;
+        if(defaultWinSizeEvents > eventCount / 4)
+            defaultWinSizeEvents = eventCount / 4;
 
 //        if (caseCount / winSizeDividedBy < defaultWinSizeRuns) {
 //
@@ -276,9 +315,6 @@ public class ProDriftController {
 
         Listbox driftDetMechLBox = (Listbox) proDriftW.getFellow("driftDetMechLBox");
         boolean isEventBased = driftDetMechLBox.getSelectedItem().getLabel().startsWith("E") ? true : false;
-
-//        Listbox logTypeLBox = (Listbox) proDriftW.getFellow("logTypeLBox");
-//        boolean isSynthetic = logTypeLBox.getSelectedItem().getLabel().startsWith("M") ? true : false;
 
 //        boolean isSynthetic = true;
 //        if(activityCount < activityLimit)
@@ -307,7 +343,7 @@ public class ProDriftController {
 //                ((Listitem)proDriftW.getFellow("reLog")).setSelected(true);
             ((Listitem) proDriftW.getFellow("ADWIN")).setSelected(true);
             ((Doublespinner) proDriftW.getFellow("noiseFilterSpinner")).setValue(10.0);
-            ((Doublespinner) proDriftW.getFellow("driftDetectionSensitivitySpinner")).setValue(0.50);
+            ((Combobox) proDriftW.getFellow("driftDetectionSensitivityCombo")).setSelectedIndex(1);
             winSizeIntBox.setValue(maxWinValueEventsIntBoX.getValue());
 //            }
         }else
@@ -323,29 +359,35 @@ public class ProDriftController {
     }
 
     public void showError(String error) {
-        portalContext.getMessageHandler().displayInfo(error);
-        Label errorLabel = (Label) this.proDriftW.getFellow("errorLabel");
-        errorLabel.setValue(error);
+        //portalContext.getMessageHandler().displayInfo(error);
+        //Label errorLabel = (Label) this.proDriftW.getFellow("errorLabel");
+        //errorLabel.setValue(error);
+
+        Clients.showNotification(error, "error", proDriftW, "top_left", 3000, true);
     }
 
-    protected void cancel() throws IOException {
-   //     boolean detach = !running;
-    //    if(detach)
-    //    {
-            showError(""); this.proDriftW.detach();
-    //    }
+    protected void cancel() {
+
+        if(isRunning)
+        {
+            cancelButton.setDisabled(true);
+            cancelOperation();
+        }else
+        {
+            this.proDriftW.detach();
+            if(subLogsSaved.isTrue())
+                portalContext.refreshContent();
+        }
 
     }
 
     protected void proDriftDetector() {
-        String message;
+
         if (xlog != null)
         {
 
-            Intbox winSizeIntBox = (Intbox) proDriftW.getFellow("winSizeIntBox");
             int winSize = winSizeIntBox.getValue();
 
-            Listbox driftDetMechLBox = (Listbox) proDriftW.getFellow("driftDetMechLBox");
             boolean isEventBased = driftDetMechLBox.getSelectedItem().getLabel().startsWith("E") ? true : false;
             Session sess = Sessions.getCurrent();
             sess.setAttribute("isEventBased", isEventBased);
@@ -353,28 +395,40 @@ public class ProDriftController {
             if((isEventBased && winSize <= eventCount / 2) || (!isEventBased && winSize <= caseCount / 2))
             {
 
-                showError("");
-                try {
 
-                    Checkbox gradDriftCBox = (Checkbox) proDriftW.getFellow("gradDriftCBox");
-                    boolean withGradual = gradDriftCBox.isChecked() ? true : false;
+                boolean withGradual = gradDriftCBox.isChecked() ? true : false;
 
-                    Listbox fWinOrAwinLBox = (Listbox) proDriftW.getFellow("fWinOrAwinLBox");
-                    boolean isAdwin = fWinOrAwinLBox.getSelectedItem().getLabel().startsWith("A") ? true : false;
+                boolean isAdwin = fWinOrAwinLBox.getSelectedItem().getLabel().startsWith("A") ? true : false;
 
-                    Doublespinner noiseFilterSpinner = (Doublespinner) proDriftW.getFellow("noiseFilterSpinner");
-                    float noiseFilterPercentage = (float)noiseFilterSpinner.getValue().doubleValue();
+                float noiseFilterPercentage = (float) noiseFilterSpinner.getValue().doubleValue();
 
-                    Doublespinner driftDetectionSensitivitySpinner = (Doublespinner) proDriftW.getFellow("driftDetectionSensitivitySpinner");
-                    float driftDetectionSensitivity = (float)driftDetectionSensitivitySpinner.getValue().doubleValue();
+                int ddSensitivityIndex = driftDetectionSensitivityCombo.getSelectedIndex();
+                DriftDetectionSensitivity ddSensitivity = DriftDetectionSensitivity.Low;
+                switch (ddSensitivityIndex) {
+                    case 0:
+                        ddSensitivity = DriftDetectionSensitivity.VeryLow;
+                        break;
+                    case 1:
+                        ddSensitivity = DriftDetectionSensitivity.Low;
+                        break;
+                    case 2:
+                        ddSensitivity = DriftDetectionSensitivity.Medium;
+                        break;
+                    case 3:
+                        ddSensitivity = DriftDetectionSensitivity.High;
+                        break;
+                    case 4:
+                        ddSensitivity = DriftDetectionSensitivity.VeryHigh;
+                        break;
+                }
 
-                    boolean withConflict = /*isSynthetic ? true : */false;
+                boolean withConflict = /*isSynthetic ? true : */false;
 
-                    Checkbox withCharacterizationCBox = (Checkbox) proDriftW.getFellow("withCharacterizationCBox");
-                    boolean withCharacterization = withCharacterizationCBox.isChecked() ? true : false;
+                Checkbox withCharacterizationCBox = (Checkbox) proDriftW.getFellow("withCharacterizationCBox");
+                boolean withCharacterization = withCharacterizationCBox.isChecked() ? true : false;
 
-                    Spinner cummulativeChangeSpinner = (Spinner) proDriftW.getFellow("cummulativeChangeSpinner");
-                    int cummulativeChange = cummulativeChangeSpinner.getValue().intValue();
+                Spinner cummulativeChangeSpinner = (Spinner) proDriftW.getFellow("cummulativeChangeSpinner");
+                int cummulativeChange = cummulativeChangeSpinner.getValue().intValue();
 
 //                    Rengine engineR = null;
 //                    Object obj = sess.getAttribute("engineR");
@@ -384,21 +438,11 @@ public class ProDriftController {
 //                    }else
 //                        engineR = (Rengine) obj;
 
-                    running = true;
 
-                    ProDriftDetectionResult result = proDriftDetectionService.proDriftDetector(xlog, eventStream, logFileName,
-                            isEventBased, withGradual, winSize, activityCount, isAdwin, noiseFilterPercentage, driftDetectionSensitivity, withConflict,
-                            withCharacterization, cummulativeChange/*, engineR*/);
-
-                    proDriftShowResults_(result, isEventBased, xlog, logFileName, withCharacterization, cummulativeChange);
-                    message = "Completed Successfully";
-                    portalContext.getMessageHandler().displayInfo(message);
-
-                } catch (Exception e) {
-                    message = "ProDrift failed (" + e.getMessage() + ")";
-                    showError(message);
-//                e.printStackTrace();
-                }
+                OKbutton.setDisabled(true);
+                startLongOperation(xlog, eventStream, logFileName, isEventBased,
+                        withGradual, winSize, activityCount,isAdwin, noiseFilterPercentage,
+                        ddSensitivity, withConflict, withCharacterization, cummulativeChange/*, engineR*/);
 
             }else
             {
@@ -409,24 +453,103 @@ public class ProDriftController {
                     showError("Window size cannot be bigger than " + caseCount / 2);
 
             }
-//            this.proDriftW.detach();
         }else
         {
             showError("Please select a log file first.");
         }
 
-        running = false;
     }
+
+    ProDriftDetectionResult result = null;
+
+    private void startLongOperation(XLog xlog, XLog eventStream, String logFileName, boolean isEventBased,
+                                   boolean withGradual, int winSize, int activityCount, boolean isAdwin,
+                                   float noiseFilterPercentage, DriftDetectionSensitivity ddSensitivity,
+                                   boolean withConflict, boolean withCharacterization, int cummulativeChange)
+    {
+        currentOperation = new LongOperation() {
+            @Override
+            protected void execute() throws InterruptedException
+            {
+                try
+                {
+                    isRunning = true;
+
+                    //System.out.println("Drift detection started");
+
+                    result = null;
+                    result = proDriftDetectionService.proDriftDetector(xlog, eventStream, logFileName,
+                            isEventBased, withGradual, winSize, activityCount, isAdwin, noiseFilterPercentage, ddSensitivity,
+                            withConflict, withCharacterization, cummulativeChange);
+
+                    //System.out.println("Drift detection ended");
+
+                } catch (ProDriftDetectionException e)
+                {
+                    //System.out.println("ProDrift failed (" + e.getMessage() + ")");
+                    showError("ProDrift failed (" + e.getMessage() + ")");
+
+                } catch (UndeclaredThrowableException e)
+                {
+                    if(e.getCause() instanceof  InterruptedException)
+                        throw (InterruptedException)e.getCause();
+
+                } catch (Exception e)
+                {
+                    if(e instanceof  InterruptedException)
+                        throw e;
+                }
+            }
+
+            @Override
+            protected void onFinish()
+            {
+
+                if(result != null)
+                {
+                    proDriftShowResults_(result, isEventBased, xlog, logFileName, withCharacterization, cummulativeChange);
+                }
+
+            }
+
+            @Override
+            protected void onCancel()
+            {
+                showError("ProDrift aborted!");
+
+            }
+
+            @Override
+            protected void onCleanup()
+            {
+                isRunning = false;
+                OKbutton.setDisabled(false);
+                cancelButton.setDisabled(false);
+            }
+
+
+        };
+
+        currentOperation.start();
+    }
+
+    public void cancelOperation() {
+        if(currentOperation != null)
+            currentOperation.cancel();
+    }
+
+
 
 
     protected void proDriftShowResults_(ProDriftDetectionResult result, boolean isEventBased, XLog xlog, String logFileName,
                                         boolean withCharacterization, int cummulativeChange) {
         try {
 
-            new ProDriftShowResult(portalContext, result, isEventBased, xlog, logFileName, withCharacterization, cummulativeChange);
+            new ProDriftShowResult(portalContext, result, isEventBased, xlog, logFileName, withCharacterization, cummulativeChange,
+                    eventLogService, logSummaryType, subLogsSaved);
 
         } catch (IOException | SuspendNotAllowedException e) {
-            Messagebox.show(e.getMessage(), "Attention", Messagebox.OK, Messagebox.ERROR);
+            showError(e.getMessage());
         }
     }
 

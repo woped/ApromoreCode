@@ -372,8 +372,8 @@ public class MainController extends BaseController implements MainControllerInte
             }
             displayMessage(message);
         } catch (Exception e) {
-            e.printStackTrace();
-            Messagebox.show("Deletion failed (" + e.getMessage() + ")", "Attention", Messagebox.OK, Messagebox.ERROR);
+//            e.printStackTrace();
+//            Messagebox.show("Deletion failed (" + e.getMessage() + ")", "Attention", Messagebox.OK, Messagebox.ERROR);
         }
     }
 
@@ -442,9 +442,17 @@ public class MainController extends BaseController implements MainControllerInte
     public void visualizeLog() {
         if(logVisualizerPlugin == null) {
             for (final PortalPlugin plugin : PortalPluginResolver.resolve()) {
-                if (plugin.getName().equals("Log Visualizer")) {
+                if (plugin.getName().equals("Process Discoverer")) {
                     logVisualizerPlugin = plugin;
                     break;
+                }
+            }
+            if(logVisualizerPlugin == null) {
+                for (final PortalPlugin plugin : PortalPluginResolver.resolve()) {
+                    if (plugin.getName().equals("Log Visualizer")) {
+                        logVisualizerPlugin = plugin;
+                        break;
+                    }
                 }
             }
         }
