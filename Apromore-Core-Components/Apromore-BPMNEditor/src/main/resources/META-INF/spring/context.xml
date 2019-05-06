@@ -33,18 +33,21 @@
     <context:spring-configured />
 
     <!-- Other OSGi services this component consumes -->
-	<list id="editorPlugins" interface="org.apromore.plugin.editor.EditorPlugin" availability="optional"/>
+	<list id="bpmnEditorPlugins" interface="org.apromore.plugin.editor.EditorPlugin" filter="(org.apromore.plugin.editor=bpmn.io)" availability="optional"/>
 	<reference id="managerClient" interface="org.apromore.manager.client.ManagerService"/>
     <reference id="portalConfig" interface="org.apromore.portal.ConfigBean"/>
     <reference id="processService" interface="org.apromore.service.ProcessService"/>
 
     <!-- Exposes the components as OSGi services -->
+    
+    <!-- 
     <beans:bean id="plugin" class="org.apromore.plugin.portal.bpmneditor.BPMNEditorPortalPlugin">
         <beans:property name="groupLabel" value="Redesign" />
         <beans:property name="label" value="Edit BPMN Model" />
     </beans:bean>
+    -->
 	
-	<context:component-scan base-package="org.apromore.plugin.portal.bpmneditor" />
-    <service ref="plugin" interface="org.apromore.plugin.portal.PortalPlugin" auto-export="interfaces" />
+	<!-- <context:component-scan base-package="org.apromore.plugin.portal.bpmneditor" /> -->
+    <!-- <service ref="plugin" interface="org.apromore.plugin.portal.PortalPlugin" auto-export="interfaces" /> -->
 
 </beans:beans>

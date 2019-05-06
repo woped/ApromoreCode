@@ -44,6 +44,7 @@ import org.apromore.portal.exception.ExceptionFormats;
 import org.zkoss.bind.annotation.Command;
 import org.zkoss.zk.ui.Component;
 import org.zkoss.zk.ui.Executions;
+import org.zkoss.zk.ui.SuspendNotAllowedException;
 import org.zkoss.zk.ui.event.*;
 import org.zkoss.zk.ui.event.EventListener;
 import org.zkoss.zk.ui.util.Clients;
@@ -105,6 +106,7 @@ public class MainController extends BaseController implements MainControllerInte
     public void onCreate() throws InterruptedException {
         try {
             loadProperties();
+            UserSessionManager.initializeUser(getService());
 
             Window mainW = (Window) this.getFellow("mainW");
             Hbox pagingandbuttons = (Hbox) mainW.getFellow("pagingandbuttons");
@@ -396,6 +398,7 @@ public class MainController extends BaseController implements MainControllerInte
         editSession.setLastUpdate(version.getLastUpdate());
         if (annotation == null) {
             editSession.setWithAnnotation(false);
+            editSession.setAnnotation(null);
         } else {
             editSession.setWithAnnotation(true);
             editSession.setAnnotation(annotation);
@@ -437,6 +440,38 @@ public class MainController extends BaseController implements MainControllerInte
         } catch (Exception e) {
             Messagebox.show("Cannot edit " + process.getName() + " (" + e.getMessage() + ")", "Attention", Messagebox.OK, Messagebox.ERROR);
         }
+    }
+    
+    public void editProcess2(final ProcessSummaryType process, final VersionSummaryType version, final String nativeType, final String annotation,
+            final String readOnly, Set<RequestParameterType<?>> requestParameterTypes, boolean newProcess) throws InterruptedException {
+        String instruction = "";
+
+        EditSessionType editSession = createEditSession(process, version, nativeType, annotation);
+
+        try {
+            String id = UUID.randomUUID().toString();
+            SignavioSession session = new SignavioSession(editSession, null, this, process, version, null, null, requestParameterTypes);
+            UserSessionManager.setEditSession(id, session);
+
+            String url = "macros/openModelInBPMNio.zul?id=" + id;
+            if (newProcess) url += "&newProcess=true";
+            instruction += "window.open('" + url + "');";
+
+            Clients.evalJavaScript(instruction);
+        } catch (Exception e) {
+            Messagebox.show("Cannot edit " + process.getName() + " (" + e.getMessage() + ")", "Attention", Messagebox.OK, Messagebox.ERROR);
+        }
+    }
+    
+    public void saveModel(ProcessSummaryType process, VersionSummaryType version, EditSessionType editSession,
+            boolean isNormalSave, String data) throws  InterruptedException {
+    	try {
+    		Window window = (Window) portalContext.getUI().createComponent(this.getClass().getClassLoader(), "macros/saveAsDialog.zul", null, null);
+    		SaveAsDialogController saveDiaglog = new SaveAsDialogController(process, version, editSession, isNormalSave, data, window);
+    	}
+    	catch (Exception e) {
+    		Messagebox.show("Cannot edit " + process.getName() + " (" + e.getMessage() + ")", "Attention", Messagebox.OK, Messagebox.ERROR);
+    	}
     }
 
     public void visualizeLog() {

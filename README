@@ -1,25 +1,5 @@
-Apromore Installation instructions
-
-There are two distributions of Apromore: a *one-click* distribution, which you can simply copy/paste somewhere and run, and a *full-fledged* distribution, which requires you to manually install and configure Apromore.
-The one-click distribution runs on the H2 database by default and does not support the PQL query language.
-The full-fledged distribution is for developers and advanced users.  It can work on H2 or MySQL and allows greater flexibility (e.g. you can decide whether to have PQL, configure the DB root...).
-
-
-ONE-CLICK INSTALLATION
-=======================
-
-REQUIREMENTS
-- Windows 7 or Mac OSX 10.8 to 10.11
-- Java "Server JRE" or "JDK" Edition 1.8 (available at http://www.oracle.com/technetwork/java/javase/downloads/index.html)
-
-* Download Apromore from http://http://apromore.org/platform/download
-* Unzip the file and open the folder Apromore-Server.
-* Start Apromore by executing the apromore.sh file in a Terminal if using Mac, or double-click on apromore.bat if using Windows.
-* Open Apromore by clicking on the apromore.html file.
-
-
-FULL-FLEDGED INSTALLATION
-=========================
+APROMORE INSTALLATION INSTRUCTIONS
+==================================
 
 REQUIREMENTS
 - Windows 7 or Mac OSX 10.8 to 10.11
@@ -89,8 +69,36 @@ Edit the top-level site.properties file, replacing the H2 declarations in "Datab
 Stop and restart the server so that it picks up the changes to site.properties.
 
 
+PROCESS DISCOVERY ADVANCED SETUP (OPTIONAL)
+===========================================
+
+The "Discover BPMN model" tool has an advanced option to "Annotate for BIMP Simulation".  When this is selected, the process discoverer will include information within the created BPMN model which preconfigures it for subsequent use by the "Simulate with BIMP" tool.  This feature requires external Python scripts to be installed.
+
+Check out the required Python scripts:
+$ git clone https://github.com/AdaptiveBProcess/SiMo-Discoverer.git
+
+See README.md in the SiMo-Discoverer checkout.  You will need Python 3.6 installed, and the following Python libraries:
+
+lxml==4.2.5
+matplotlib==2.2.3
+networkx==2.2
+numpy==1.15.4
+seaborn==0.9.0
+
+If you place the preceding 5 lines into a file named requirement.txt, you can install the libraries with the following command:
+$ pip install -r requirements.txt
+
+Copy Supplements/apromore-simo.py from the Apromore checkout into simo/apromore-simo.py in the SiMo checkout.
+In Apromore's site.properties, set the property simo.backend to the full path of the simo/apromore-simo.py script you just copied.
+In Apromore's site.properties, set the property simo.python to your Python 3 executable.
+
+Optionally, remove or comment out the @Ignore annotation from Apromore-Custom-Plugins/BPMNMiner-Logic/src/test/java/org/apromore/service/bpmnminer/impl/BPMNMinerServiceUnitTest.java.
+If you do this, the unit test passing with 0 skipped tests confirms that all configuration is correct.
+$ mvn test -pl :bpmnminer-logic
+
+
 PREDICTIVE MONITORING SETUP (OPTIONAL)
-==========================
+======================================
 
 Predictive monitoring requires the use of MySQL, as described in DATABASE SETUP (MySQL).
 Populate the database with additional tables as follows:
@@ -116,6 +124,12 @@ The following properties may usually by left at their default values:
 
 Stop and restart the server so that it picks up the changes to site.properties.
 
+Ensure that the following bundles are present in the Virgo pickup directory.
+You can manually copy them there, but the easiest option is to edit pickupRepo in build.xml so that "ant start-virgo" copies them there on startup.
+* Predictive-Monitor-Logic/target/predictive-monitor-logic-1.0.jar
+* Predictive-Monitor-Portal-Plugin/target/predictive-monitor-portal-plugin-1.0.war
+* Predictor-Training-Portal-Plugin/target/predictor-training-portal-plugin-1.0.war
+
 
 PQL SETUP
 =========
@@ -138,6 +152,62 @@ In build.xml, uncomment the inclusion of the following PQL components in the "pi
 
 Also, uncomment the following component in the "copy-virgo" target:
 * PQL-Indexer-Portal-Plugin/target/pql-indexer-portal-plugin-1.1.jar
+
+
+LDAP SETUP (ADVANCED)
+=====================
+
+As distributed, Apromore maintains its own catalogue of users and passwords.
+It can be modified to instead allow login based on an external LDAP directory.
+This requires recompiling server components rather than just changing to site.properties; you will need to be comfortable hacking Spring, LDAP, Java and ZUL.
+
+Edit the portal Spring configuration in Apromore-Core-Components/Apromore-Portal/src/main/resources/META-INF/spring/portalContext-security.xml, uncommenting the jaasAuthenticationProvider as so:
+
+    <!-- The remote authentication details -->
+    <authentication-manager id="authenticationManager">
+        <authentication-provider ref="jaasAuthenticationProvider"/>
+        <authentication-provider ref="remoteAuthenticationProvider"/>
+        <authentication-provider ref="rememberMeAuthenticationProvider"/>
+    </authentication-manager>
+
+    <!-- Uncommenting this bean and adding it to #authenticationManager (above) will enable LDAP logins.
+         See https://docs.spring.io/spring-security/site/docs/3.1.x/reference/jaas.html -->
+    <beans:bean id="jaasAuthenticationProvider" class="org.springframework.security.authentication.jaas.JaasAuthenticationProvider">
+        <beans:property name="loginConfig" value="/WEB-INF/login.conf"/>
+        <beans:property name="loginContextName" value="apromore"/>
+        <beans:property name="callbackHandlers">
+            <beans:list>
+                <beans:bean class="org.springframework.security.authentication.jaas.JaasNameCallbackHandler"/>
+                <beans:bean class="org.springframework.security.authentication.jaas.JaasPasswordCallbackHandler"/>
+            </beans:list>
+        </beans:property>
+        <beans:property name="authorityGranters">
+            <beans:list>
+                <beans:ref bean="authorityGranter"/>
+            </beans:list>
+        </beans:property>
+    </beans:bean>
+
+    <beans:bean id="authorityGranter" class="org.apromore.security.AuthorityGranterImpl">
+        <beans:property name="principalClassName" value="com.sun.security.auth.UserPrincipal"/>
+        <beans:property name="grants">
+            <beans:set>
+                <beans:value>ROLE_USER</beans:value>
+            </beans:set>
+        </beans:property>
+    </beans:bean>
+
+Unless you're using the University of Melbourne's central authentication, you will need to additionally edit the following files to match your local LDAP installation:
+* Apromore-Core-Components/Apromore-Portal/src/main/webapp/WEB-INF/login.conf
+* Apromore-Core-Components/Apromore-Portal/src/main/java/org/apromore/portal/common/UserSessionManager.java (constructUserType method)
+
+Since accounts will now be created automatically, you should also remove the "Forgot password?" and "No account yet? Register for free!" buttons on the login screen:
+* Apromore-Core-Components/Apromore-Portal/src/main/webapp/login.zul
+
+Recompile the Portal bundle and its dependencies:
+$ mvn clean install -pl :apromore-portal -amd
+
+When the server starts with the modified portal, it will automatically create new accounts for valid LDAP logins.
 
 
 ACCESSING THE PORTAL

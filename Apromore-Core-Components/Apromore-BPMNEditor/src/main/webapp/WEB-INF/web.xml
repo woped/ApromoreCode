@@ -104,7 +104,18 @@
 
     <servlet-mapping>
         <servlet-name>pluginHandlerServlet</servlet-name>
-        <url-pattern>/editor_plugins</url-pattern>
+        <url-pattern>/bpmneditor_plugins</url-pattern>
+    </servlet-mapping>
+    
+    <servlet>
+        <display-name>PDFServlet</display-name>
+        <servlet-name>PDFServlet</servlet-name>
+        <servlet-class>org.apromore.editor.server.AlternativesRenderer</servlet-class>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>PDFServlet</servlet-name>
+        <url-pattern>/editor/pdf</url-pattern>
     </servlet-mapping>
 
     <session-config>

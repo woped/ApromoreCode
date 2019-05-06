@@ -45,6 +45,8 @@ import org.deckfour.xes.factory.XFactory;
 import org.deckfour.xes.factory.XFactoryNaiveImpl;
 import org.deckfour.xes.in.*;
 import org.deckfour.xes.model.XLog;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.EventListener;
 import org.zkoss.zk.ui.event.UploadEvent;
@@ -62,6 +64,8 @@ import java.util.*;
  * Created by conforti on 10/04/15.
  */
 public class BPMNMinerController {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(BPMNMinerController.class.getCanonicalName());
 
     PortalContext portalContext;
     private Window bpmnMinerW;
@@ -204,7 +208,6 @@ public class BPMNMinerController {
 //            this.structProcess = new Radiogroup();
 //            this.structProcess.appendChild(this.bpmnMinerW.getFellow("structured"));
 //            this.structProcess.appendChild(this.bpmnMinerW.getFellow("notStructured"));
-
 
             this.interruptingEventTolerance = (Slider) this.bpmnMinerW.getFellow("bpmnMinerInterruptingEventTolerance");
             this.multiInstancePercentage = (Slider) this.bpmnMinerW.getFellow("bpmnMinerMultiInstancePercentage");
@@ -424,6 +427,7 @@ public class BPMNMinerController {
 
         } catch (Exception e) {
             e.printStackTrace();
+            Messagebox.show("Process mining failed (" + e.getMessage() + ")", "Attention", Messagebox.OK, Messagebox.ERROR);
         }
     }
 

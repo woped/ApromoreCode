@@ -20,6 +20,7 @@
 
 package org.apromore.plugin.portal.bpmneditor;
 
+import java.io.OutputStream;
 // Java 2 Standard packages
 import java.util.*;
 
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 import org.zkoss.zk.ui.Executions;
 import org.zkoss.zk.ui.event.Event;
 import org.zkoss.zk.ui.event.EventListener;
+
 import org.apromore.helper.Version;
 // Local packages
 import org.apromore.model.EditSessionType;
@@ -48,6 +50,7 @@ import org.apromore.portal.dialogController.MainController;
 import org.apromore.portal.dialogController.dto.SignavioSession;
 import org.apromore.portal.exception.ExceptionFormats;
 import org.apromore.service.ProcessService;
+import org.json.JSONException;
 
 public class BPMNEditorController extends BaseController {
 
@@ -77,6 +80,7 @@ public class BPMNEditorController extends BaseController {
         }
 
         String id = Executions.getCurrent().getParameter("id");
+        boolean newProcess = Boolean.valueOf(Executions.getCurrent().getParameter("newProcess"));
         if (id == null) {
             throw new AssertionError("No id parameter in URL");
         }
@@ -104,11 +108,34 @@ public class BPMNEditorController extends BaseController {
             String bpmnXML = (String) session.get("bpmnXML");
             
             if(bpmnXML == null) {
-            	bpmnXML = processService.getBPMNRepresentation(procName, procID, branch, version);
+            	if (newProcess) {
+            		bpmnXML = "<?xml version='1.0' encoding='UTF-8'?>" +
+            				  "<bpmn:definitions xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' " +
+            				                    "xmlns:bpmn='http://www.omg.org/spec/BPMN/20100524/MODEL' "  +
+            				                    "xmlns:bpmndi='http://www.omg.org/spec/BPMN/20100524/DI' " +
+            				                    "xmlns:dc='http://www.omg.org/spec/DD/20100524/DC' " +
+            				                    "targetNamespace='http://bpmn.io/schema/bpmn' " +
+            				                    "id='Definitions_1'>" +
+            				    "<bpmn:process id='Process_1' isExecutable='false'>" +
+            				      "<bpmn:startEvent id='StartEvent_1'/>" +
+            				    "</bpmn:process>" +
+            				    "<bpmndi:BPMNDiagram id='BPMNDiagram_1'>" +
+            				      "<bpmndi:BPMNPlane id='BPMNPlane_1' bpmnElement='Process_1'>" +
+            				        "<bpmndi:BPMNShape id='_BPMNShape_StartEvent_2' bpmnElement='StartEvent_1'>" +
+            				          "<dc:Bounds height='36.0' width='36.0' x='173.0' y='102.0'/>" +
+            				        "</bpmndi:BPMNShape>" +
+            				      "</bpmndi:BPMNPlane>" +
+            				    "</bpmndi:BPMNDiagram>" +
+            				  "</bpmn:definitions>";
+            	}
+            	else {
+            		bpmnXML = processService.getBPMNRepresentation(procName, procID, branch, version);
+            	}
+            	
                 title = editSession.getProcessName() + " (" + editSession.getNativeType() + ")";
                 this.setTitle(title);
 
-                param.put("bpmnXML",          escapeXML(bpmnXML));
+                param.put("bpmnXML",       escapeXML(bpmnXML));
                 param.put("url",           getURL(editSession.getNativeType()));
                 param.put("importPath",    getImportPath(editSession.getNativeType()));
                 param.put("exportPath",    getExportPath(editSession.getNativeType()));
@@ -148,7 +175,7 @@ public class BPMNEditorController extends BaseController {
                 }
             }
 
-            List<EditorPlugin> editorPlugins = EditorPluginResolver.resolve();
+            List<EditorPlugin> editorPlugins = EditorPluginResolver.resolve("bpmnEditorPlugins");
             param.put("plugins", editorPlugins);
 
             Executions.getCurrent().pushArg(param);
@@ -162,9 +189,9 @@ public class BPMNEditorController extends BaseController {
             @Override
             public void onEvent(final Event event) throws InterruptedException {
                 try {
-                    new SaveAsDialogController(process, vst, editSession, true, eventToString(event));
-                } catch (ExceptionFormats exceptionFormats) {
-                    LOGGER.error("Error saving model.", exceptionFormats);
+                	mainC.saveModel(process, vst, editSession, true, eventToString(event));
+                } catch (InterruptedException ex) {
+                    LOGGER.error("Error saving model.", ex);
                 }
             }
         });
@@ -172,9 +199,9 @@ public class BPMNEditorController extends BaseController {
             @Override
             public void onEvent(final Event event) throws InterruptedException {
                 try {
-                    new SaveAsDialogController(process, vst, editSession, false, eventToString(event));
-                } catch (ExceptionFormats exceptionFormats) {
-                    LOGGER.error("Error saving model.", exceptionFormats);
+                	mainC.saveModel(process, vst, editSession, true, eventToString(event));
+                } catch (InterruptedException ex) {
+                    LOGGER.error("Error saving model.", ex);
                 }
             }
         });
@@ -190,7 +217,8 @@ public class BPMNEditorController extends BaseController {
     private String escapeXML(String xml) {
 //    	String newline = System.getProperty("line.separator");
 //        return xml.replace(newline, " ").replace("\n", " ").trim();
-    	return xml.replaceAll("(\\r|\\n|\\r\\n)+", " ").replace("'", "");
+    	//return xml.replaceAll("(\\r|\\n|\\r\\n)+", " ").replace("'", "");
+    	return xml.replaceAll("(\\r|\\n|\\r\\n)+", " ").replace("'", "\\'");
     }
     
     /**

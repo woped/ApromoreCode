@@ -214,7 +214,7 @@ ORYX.Editor = {
             center: new Ext.Panel({
                 region: 'center',
                 cls: 'x-panel-editor-center',
-                autoScroll: true,
+                autoScroll: false,
                 items: {
                     layout: "fit",
                     autoHeight: true,
@@ -272,10 +272,13 @@ ORYX.Editor = {
             // IF NOT, use a panel and render it to the given id
         } else {
             layout_config.renderTo = this.id;
-            layout_config.height = layoutHeight;
+            //layout_config.height = layoutHeight;
+            layout_config.height = this.getEditorNode().clientHeight; // the panel and the containing div should be of the same height
             this.layout = new Ext.Panel(layout_config)
         }
 
+        this.layout_regions.east.hide();
+        this.layout_regions.west.hide();
         this.layout_regions.info.hide();
         if (Ext.isIPad && "undefined" != typeof iScroll) {
             this.getCanvas().iscroll = new iScroll(this.layout_regions.center.body.dom.firstChild, {
@@ -284,7 +287,7 @@ ORYX.Editor = {
         }
 
         // Set the editor to the center, and refresh the size
-        this.getEditorNode().setAttributeNS(null, 'align', 'center');
+        this.getEditorNode().setAttributeNS(null, 'align', 'left');
         this.getCanvas().rootNode.setAttributeNS(null, 'align', 'left');
         // this.getCanvas().setSize({
         //     width: ORYX.CONFIG.CANVAS_WIDTH,
@@ -640,6 +643,7 @@ ORYX.Editor = {
 
                 // get plugins.xml content
                 var resultXml = result.responseXML;
+                console.log('Plugin list:', resultXml);
 
                 // TODO: Describe how properties are handled.
                 // Get the globale Properties
@@ -771,6 +775,16 @@ ORYX.Editor = {
 
     _loadPluginsOnFails: function(result) {
         ORYX.Log.error("Plugin configuration file not available.");
+    },
+
+    toggleFullScreen: function () {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
     }
 };
 

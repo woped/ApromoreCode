@@ -37,12 +37,12 @@
     <http pattern="/zkau/**" security="none"/>
 
     <http pattern="/info.zul*" security="none"/>
-    <http pattern="/login.zul*" security="none"/>
     <http pattern="/register/**" security="none"/>
     <http pattern="/services/**" security="none"/>
 
     <http auto-config="false" access-denied-page="/denied.zul" use-expressions="true"
-          entry-point-ref="apromoreAuthenticationEntryPoint" authentication-manager-ref="remotingAuthenticationManager">
+          entry-point-ref="apromoreAuthenticationEntryPoint" authentication-manager-ref="authenticationManager">
+        <intercept-url pattern="/login.zul*" access="permitAll" requires-channel="any"/>
         <intercept-url pattern="/**" access="hasRole('ROLE_USER')" requires-channel="any"/>
 
         <logout logout-url="/j_spring_security_logout" logout-success-url="/login.zul" delete-cookies="JSESSIONID,Apromore"/>
@@ -55,10 +55,39 @@
 
 
     <!-- The remote authentication details -->
-    <authentication-manager id="remotingAuthenticationManager">
+    <authentication-manager id="authenticationManager">
+        <!-- <authentication-provider ref="jaasAuthenticationProvider"/> -->
         <authentication-provider ref="remoteAuthenticationProvider"/>
         <authentication-provider ref="rememberMeAuthenticationProvider"/>
     </authentication-manager>
+
+    <!-- Uncommenting this bean and adding it to #authenticationManager (above) will enable LDAP logins.
+         See https://docs.spring.io/spring-security/site/docs/3.1.x/reference/jaas.html
+    <beans:bean id="jaasAuthenticationProvider" class="org.springframework.security.authentication.jaas.JaasAuthenticationProvider">
+        <beans:property name="loginConfig" value="/WEB-INF/login.conf"/>
+        <beans:property name="loginContextName" value="apromore"/>
+        <beans:property name="callbackHandlers">
+            <beans:list>
+                <beans:bean class="org.springframework.security.authentication.jaas.JaasNameCallbackHandler"/>
+                <beans:bean class="org.springframework.security.authentication.jaas.JaasPasswordCallbackHandler"/>
+            </beans:list>
+        </beans:property>
+        <beans:property name="authorityGranters">
+            <beans:list>
+                <beans:ref bean="authorityGranter"/>
+            </beans:list>
+        </beans:property>
+    </beans:bean>
+
+    <beans:bean id="authorityGranter" class="org.apromore.security.AuthorityGranterImpl">
+        <beans:property name="principalClassName" value="com.sun.security.auth.UserPrincipal"/>
+        <beans:property name="grants">
+            <beans:set>
+                <beans:value>ROLE_USER</beans:value>
+            </beans:set>
+        </beans:property>
+    </beans:bean>
+    -->
 
     <beans:bean id="remoteAuthenticationProvider" class="org.apromore.security.provider.ApromoreRemoteAuthenticationProvider">
         <beans:property name="remoteAuthenticationManager" ref="remoteAuthenticationManager"/>
@@ -85,7 +114,7 @@
     </beans:bean>
 
     <beans:bean id="apromoreUsernamePasswordAuthenticationFilter" class="org.apromore.security.filter.ApromoreUsernamePasswordAuthenticationFilter">
-        <beans:property name="authenticationManager" ref="remotingAuthenticationManager"/>
+        <beans:property name="authenticationManager" ref="authenticationManager"/>
         <beans:property name="authenticationFailureHandler" ref="failureHandler"/>
         <beans:property name="authenticationSuccessHandler" ref="successHandler"/>
         <beans:property name="rememberMeServices" ref="rememberMeServices" />

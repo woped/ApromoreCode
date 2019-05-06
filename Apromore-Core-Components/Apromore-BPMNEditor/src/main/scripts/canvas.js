@@ -127,23 +127,34 @@ ORYX.Canvas = {
     },
 
     importXML: function(xml) {
-        this._editor.importXML(xml, function(err) {
+      // this._editor.importXML(xml, function(err) {
+      //   if (err) {
+      //     return console.error('could not import BPMN 2.0 diagram', err);
+      //   }
+      //   this.zoomFitToModel();
+      // }.bind(this));
 
-            if (err) {
-                return console.error('could not import BPMN 2.0 diagram', err);
-            }
-            // access modeler components
-            var canvas = this._editor.get('canvas');
-            // zoom to fit full viewport
-            canvas.zoom('fit-viewport');
-            var viewbox = canvas.viewbox();
-            canvas.viewbox({
-                x: viewbox.x - 200,
-                y: viewbox.y,
-                width: viewbox.outer.width*1.5,
-                height: viewbox.outer.height*1.5
-            });
-        }.bind(this));
+      //EXPERIMENTING WITH THE BELOW TO FIX ARROWS NOT SNAP TO EDGES WHEN OPENING MODELS
+      //Some BPMN files are not compatible with bpmn.io
+      var editor = this._editor;
+      this._editor.importXML(xml, function(err) {
+        if (err) {
+          return console.error('could not import BPMN 2.0 diagram', err);
+        }
+
+        var eventBus = editor.get('eventBus');
+        var connectionDocking = editor.get('connectionDocking');
+        var elementRegistry = editor.get('elementRegistry');
+        var connections = elementRegistry.filter(function(e) {
+          return e.waypoints;
+        });
+        connections.forEach(function(connection) {
+          connection.waypoints = connectionDocking.getCroppedWaypoints(connection);
+        });
+        eventBus.fire('elements.changed', { elements: connections });
+
+        this.zoomFitToModel();
+      }.bind(this));
     },
 
     getXML: function() {
@@ -163,7 +174,31 @@ ORYX.Canvas = {
     },
 
     zoomFitToModel: function() {
+        if (this._editor) {
+            var canvas = this._editor.get('canvas');
+            // zoom to fit full viewport
+            canvas.zoom('fit-viewport');
+            var viewbox = canvas.viewbox();
+            canvas.viewbox({
+                x: viewbox.x - 200,
+                y: viewbox.y,
+                width: viewbox.outer.width * 1.5,
+                height: viewbox.outer.height * 1.5
+            });
+        }
+    },
 
+    zoomIn: function() {
+        this._editor.get('editorActions').trigger('stepZoom', { value: 1 });
+    },
+
+
+    zoomOut: function() {
+        this._editor.get('editorActions').trigger('stepZoom', { value: -1 });
+    },
+
+    zoomDefault: function() {
+        editorActions.trigger('zoom', { value: 1 });
     },
 
     createShape: function(type, x, y, w, h) {
@@ -215,10 +250,26 @@ ORYX.Canvas = {
         modelling.setColor([element],{stroke:'red'});
     },
 
-    highlightColor: function (elementId, color) {
+    colorElements: function (elementIds, color) {
+        var elements = [];
+        var registry = this._editor.get('elementRegistry');
+        elementIds.forEach(function(elementId) {
+            elements.push(registry.get(elementId));
+        });
+        var modelling = this._editor.get('modeling');
+        modelling.setColor(elements, {stroke:color});
+    },
+
+    colorElement: function (elementId, color) {
         var modelling = this._editor.get('modeling');
         var element = this._editor.get('elementRegistry').get(elementId);
         modelling.setColor([element],{stroke:color});
+    },
+
+    fillColor: function (elementId, color) {
+        var modelling = this._editor.get('modeling');
+        var element = this._editor.get('elementRegistry').get(elementId);
+        modelling.setColor([element],{fill:color});
     },
 
     greyOut: function(elementIds) {
@@ -231,7 +282,12 @@ ORYX.Canvas = {
             visual.setAttributeNS(null, "style", "opacity: 0.25");
         });
 
+    },
 
+    normalizeAll: function() {
+        var registry = this._editor.get('elementRegistry');
+        var modelling = this._editor.get('modeling');
+        modelling.setColor(registry.getAll(), {stroke:'black'});
     },
 
     removeShapes: function(shapeIds) {
@@ -254,12 +310,6 @@ ORYX.Canvas = {
         return ids;
     },
 
-    normalizeAll: function() {
-        var registry = this._editor.get('elementRegistry');
-        var modelling = this._editor.get('modeling');
-        modelling.setColor(registry.getAll(), {stroke:'black'});
-    },
-
     shapeCenter: function (shapeId) {
         var position = {};
         var registry = this._editor.get('elementRegistry');
@@ -276,12 +326,12 @@ ORYX.Canvas = {
         this._editor.clear();
     },
 
-    registerHandler: function(handlerName, handler) {
+    registerActionHandler: function(handlerName, handler) {
         var commandStack = this._editor.get('commandStack');
         commandStack.registerHandler(handlerName, handler);
     },
 
-    executeHandler: function(handlerName, context) {
+    executeActionHandler: function(handlerName, context) {
         var commandStack = this._editor.get('commandStack');
         commandStack.execute(handlerName, context);
     },
@@ -292,7 +342,130 @@ ORYX.Canvas = {
             x: shape.x + (shape.width || 0) / 2,
             y: shape.y + (shape.height || 0) / 2
         }
+    },
+
+    // Center viewbox to an element
+    // From https://forum.bpmn.io/t/centering-zooming-view-to-a-specific-element/1536/6
+    centerElement: function(elementId) {
+        // assuming we center on a shape.
+        // for connections we must compute the bounding box
+        // based on the connection's waypoints
+        var bbox = elementRegistry.get(elementId);
+
+        var currentViewbox = canvas.viewbox();
+
+        var elementMid = {
+          x: bbox.x + bbox.width / 2,
+          y: bbox.y + bbox.height / 2
+        };
+
+        canvas.viewbox({
+          x: elementMid.x - currentViewbox.width / 2,
+          y: elementMid.y - currentViewbox.height / 2,
+          width: currentViewbox.width,
+          height: currentViewbox.height
+        });
+    },
+
+  _getActionStack: function() {
+    return this._editor.get('commandStack')._stack;
+  },
+
+  _getCurrentStackIndex: function() {
+    return this._editor.get('commandStack')._stackIdx;
+  },
+
+  // Get all base action indexes backward from the current command stack index
+  // The first element in the result is the earliest base action and so on
+  _getBaseActions: function() {
+    var actions = this._getActionStack();
+    var stackIndex = this._getCurrentStackIndex();
+    var baseActionIndexes = [];
+    for (var i=0; i<=stackIndex; i++) {
+      if (i==0 || (actions[i].id != actions[i-1].id)) {
+        baseActionIndexes.push(i);
+      }
     }
+    return baseActionIndexes;
+  },
+
+  undo: function() {
+    this._editor.get('commandStack').undo();
+  },
+
+  // Undo to the point before an action (actionName is the input)
+  // Nothing happens if the action is not found
+  // The number of undo times is the number of base actions from the current stack index
+  undoSeriesUntil: function(actionName) {
+    var actions = this._getActionStack();
+    var baseActions = this._getBaseActions();
+    var baseActionNum = 0;
+    for (var i=baseActions.length-1; i>=0; i--) {
+      if (actions[baseActions[i]].command == actionName) {
+        baseActionNum = baseActions.length - i;
+        break;
+      }
+    }
+
+    console.log('baseActionNum', baseActionNum);
+
+    while (baseActionNum > 0) {
+      this.undo();
+      baseActionNum--;
+    }
+  },
+
+  canUndo: function() {
+    if (!this._editor) {
+      return false;
+    }
+    else {
+      return this._editor.get('commandStack').canUndo();
+    }
+  },
+
+  redo: function() {
+    this._editor.get('commandStack').redo();
+  },
+
+  canRedo: function() {
+    if (!this._editor) {
+      return false;
+    }
+    else {
+      return this._editor.get('commandStack').canRedo();
+    }
+  },
+
+  getLastBaseAction: function() {
+    var actions = this._getActionStack();
+    var baseActions = this._getBaseActions();
+    if (baseActions.length > 0) {
+      return actions[baseActions[baseActions.length-1]].command;
+    }
+    else {
+      return '';
+    }
+  },
+
+  // Get the next latest base action in the command stack
+  // that is not in the excluding list
+  getNextBaseActionExcluding: function(excludingActions) {
+    var actions = this._getActionStack();
+    var baseActionIndexes = this._getBaseActions();
+    if (baseActionIndexes.length >= 2) {
+      for (var i = baseActionIndexes.length-2; i>=0; i--) {
+        if (excludingActions.indexOf(actions[baseActionIndexes[i]].command) < 0) {
+          return actions[baseActionIndexes[i]].command;
+        }
+      }
+    }
+    return '';
+  },
+
+  addCommandStackChangeListener: function(callback) {
+    this._editor.on('commandStack.changed', callback);
+  }
 
 };
 

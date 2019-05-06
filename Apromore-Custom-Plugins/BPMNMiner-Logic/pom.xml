@@ -54,12 +54,12 @@
                             org.apromore.eclipse-collections-osgi;bundle-version="[1.1,2.0]"
                         </Import-Bundle>
                         <Import-Package>
+                            org.apromore.service.ibpstruct; version="[1.1.0,2.0.0)",
                             com.raffaeleconforti.bpmnminer.*,
                             com.raffaeleconforti.context,
                             com.raffaeleconforti.foreignkeydiscovery.*,
                             com.raffaeleconforti.log.*,
                             com.raffaeleconforti.wrappers.settings.*,
-                            org.apromore.service.ibpstruct.*,
                             org.deckfour.xes.*,
                             org.eclipse.collections.*,
                             org.processmining.contexts.*;version="[1.0,2.0)",
@@ -70,7 +70,8 @@
                             javax.inject,
                             javax.swing,
                             org.slf4j,
-                            org.springframework.stereotype
+                            org.springframework.stereotype,
+                            *
                         </Import-Package>
                         <Export-Package>
                             org.apromore.service.bpmnminer
@@ -103,7 +104,7 @@
         <dependency>
             <groupId>org.apromore</groupId>
             <artifactId>raffaeleconforti-osgi</artifactId>
-            <version>1.1</version>
+            <version>1.1.1</version>
         </dependency>
         <dependency>
             <groupId>org.apromore</groupId>
@@ -113,6 +114,12 @@
         <dependency>
             <groupId>org.eclipse.collections</groupId>
             <artifactId>eclipse-collections</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

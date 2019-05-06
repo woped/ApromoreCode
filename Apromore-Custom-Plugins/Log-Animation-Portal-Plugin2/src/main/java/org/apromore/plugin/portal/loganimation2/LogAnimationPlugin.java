@@ -28,7 +28,6 @@ import javax.inject.Inject;
 
 // Third party packages
 import org.apromore.model.*;
-import org.springframework.stereotype.Component;
 import org.zkoss.zk.ui.util.Clients;
 import org.zkoss.zul.Messagebox;
 
@@ -38,15 +37,16 @@ import org.apromore.plugin.portal.DefaultPortalPlugin;
 import org.apromore.plugin.portal.PortalContext;
 import org.apromore.plugin.property.RequestParameterType;
 import org.apromore.portal.common.UserSessionManager;
+import org.apromore.portal.dialogController.MainController;
 import org.apromore.portal.dialogController.dto.SignavioSession;
 import org.apromore.service.EventLogService;
 import org.apromore.service.loganimation.LogAnimationService;
+import org.deckfour.xes.model.XLog;
 
-@Component("plugin")
 public class LogAnimationPlugin extends DefaultPortalPlugin {
 
-    private String label = "Animate Logs";
-    private String groupLabel = "Redesign";
+    private String label = ""; //initialized in Spring beans
+    private String groupLabel = ""; //initialized in Spring beans
 
     @Inject private EventLogService eventLogService;
     @Inject private LogAnimationService logAnimationService;
@@ -108,9 +108,10 @@ public class LogAnimationPlugin extends DefaultPortalPlugin {
         }
         
         String username = portalContext.getCurrentUser().getUsername();
+        MainController mainC = (MainController)portalContext.getMainController();
         EditSessionType editSession1 = createEditSession(username, process, vst, process.getOriginalNativeType(), null /*annotation*/);
         Set<RequestParameterType<?>> requestParameterTypes = new HashSet<>();
-        SignavioSession session = new SignavioSession(editSession1, null, null, process, vst, null, null, requestParameterTypes);
+        SignavioSession session = new SignavioSession(editSession1, null, mainC, process, vst, null, null, requestParameterTypes);
         session.put("logAnimationService", logAnimationService);
         session.put("logs", logs);
 
@@ -158,4 +159,14 @@ public class LogAnimationPlugin extends DefaultPortalPlugin {
         }
         return max.toString();
     }
+    
+    /**
+     * @param json
+     * @return the <var>json</var> escaped so that it can be quoted in Javascript.
+     *     Specifically, it replaces apostrophes with \\u0027 and removes embedded newlines and leading and trailing whitespace.
+     */
+    private static String escapeQuotedJavascript(String json) {
+        return json.replace("\n", " ").replace("'", "\\u0027").trim();
+    }
+   
 }

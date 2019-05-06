@@ -20,6 +20,7 @@
 
 package org.apromore.service.bpmnminer.impl;
 
+import java.io.File;
 import java.util.*;
 import javax.swing.UIManager;
 
@@ -185,5 +186,4 @@ public class BPMNMinerServiceImpl implements BPMNMinerService {
         }
         return primaryKeys_entityName;
     }
-
 }
