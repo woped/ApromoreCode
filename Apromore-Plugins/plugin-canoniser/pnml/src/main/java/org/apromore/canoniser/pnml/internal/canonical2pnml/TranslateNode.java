@@ -57,7 +57,8 @@ public class TranslateNode {
             data.setSubnet(tran);
         }
 
-        if (data.get_triggermap().containsKey(tran.getName().getText()) && data.get_triggermap_value(tran.getName().getText()) instanceof TransitionToolspecificType.Trigger) {
+        if (data.get_triggermap().containsKey((tran.getName() == null) ? "" : tran.getName().getText())
+                && data.get_triggermap_value(tran.getName().getText()) instanceof TransitionToolspecificType.Trigger) {
             trantool.setTool("WoPeD");
             trantool.setVersion("1.0");
             trantool.setTrigger((TransitionToolspecificType.Trigger) data.get_triggermap_value(tran.getName().getText()));
