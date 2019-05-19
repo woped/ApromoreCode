@@ -188,13 +188,24 @@ public class Canonical2PNML {
         SetMultimap<NodeType, ArcType> outgoingArcMultimap = HashMultimap.create();
 
         // Index graph connectivity
+        // Every arc in pnml-net is saved in IncomingMap with its target object and also in OutgoingMap with its source object.
+        //*
+        // Jeder Pfeil im PNML-Netz wird jeweils in die IncomingMap mit dem jeweiligen Zielobjekt und
+        // in die OutgoingMap mit dem jeweiligen Quellobjekt gespeichert.
         for (ArcType arc: data.getNet().getArc()) {
             incomingArcMultimap.put((NodeType) arc.getTarget(), arc);
             outgoingArcMultimap.put((NodeType) arc.getSource(), arc);
         }
 
         // When a synthetic place occurs adjacent to a silent transition on a branch, collapse them
+        // Every place, which is artificially produced by the system to have a correct pnml-net, will be proved.
+        // Jede künstlich hergestellte Stelle wird überprüft
         for (PlaceType place: data.getSynthesizedPlaces()) {
+            // When the artificially produced place has one incoming and one outgoing arc, then all of those arcs
+            // will be saved in an extra ArcType-Object with its intervening object (place or transition).
+            //*
+            // Wenn die künstlich hergestellte Stelle einen Eingangs- und einen Ausgangspfeil hat,
+            // dann werden Eingangs- und Ausgangspfeil in ein extra ArcType-Objekt und die dazwischenliegende Transition gespeichert.
             if (incomingArcMultimap.get(place).size() == 1 &&
                 outgoingArcMultimap.get(place).size() == 1) {
 
@@ -204,7 +215,14 @@ public class Canonical2PNML {
 
                 TransitionType transition = (TransitionType) outgoingArc.getTarget();
                 if (incomingArcMultimap.get(transition).size() == 1 && isSilent(transition)) {
-                    // Collapse synthesized place followed by silent transition
+                    // Collapse synthesized place followed by silent transition.
+                    // ("silent" means that the transition has no name and is likely to be artificially produced.
+                    // If the transition has one incoming arc and no name, then the arcs, the place and the transition will be deleted.
+                    // Afterwards the previous transition will be connected with follow-up place with an new arc.
+                    //*
+                    // Wenn die Transition einen Eingangspfeil hat und keinen Namen besitzt, dann werden die Pfeile, die Stelle und die Transition gelöscht.
+                    // Anschließend werden die vorherige Transition mit der nachfolgenden Stelle durch einen Pfeil verbunden.
+                    // --> silent bedeutet, dass die Transaktion keinen Namen besitzt und vermutlich auch künstlich hergestellt wurde
 
                     // Delete: --incomingArc-> (place) --outgoingArc-> [transition]
                     data.getNet().getArc().remove(incomingArc);
@@ -224,6 +242,11 @@ public class Canonical2PNML {
                     transition = (TransitionType) incomingArc.getSource();
                     if (outgoingArcMultimap.get(transition).size() == 1 && isSilent(transition)) {
                         // Collapse silent transition followed by synthesized place
+                        // If the transition has one outgoing arc and no name, then all of the incoming and outgoing arc, the place and the transition will be deleted.
+                        // Afterwards the previous transition will be connected with follow-up place with an new arc.
+                        //*
+                        // Wenn die Transition einen Ausgangspfeil hat und keinen Namen besitzt, werden die ein- und ausgehenden Pfeile, die Stelle und die Transition gelöscht.
+                        // Anschließend werden die vorherige Stelle und die nachfolgende Transition verbunden.
 
                         // Delete: [transition] --incomingArc-> (place) --outgoingArc->
                         data.getNet().getArc().remove(incomingArc);
@@ -242,6 +265,9 @@ public class Canonical2PNML {
                 }
             }
         }
+        // All of the artificially produced places, which are saved in an extra Array, will be deleted.
+        //*
+        // Jetzt werden die künstlich hergestellten Stellen, die in dem gesonderten Array synthesizedPlaces gespeichert sind, geleert.
         data.getSynthesizedPlaces().clear();
         //LOGGER.info("Performed structural simplifications");      
 
@@ -269,8 +295,8 @@ public class Canonical2PNML {
 
         //#2018Finger: Change duplicate positions
         //just correcting position if 2 elements are on the same spot.
-        //if they're on the same spot Im checking the previous element using the arc source. The element with the lower (higher in numbers) source is then moved down.
-
+        //if they're on the same spot it will check the previous element using the arc source.
+        // The element with the lower (higher in numbers) source is then moved down.
 
         List<PlaceType> placeList =  data.getNet().getPlace();
         List<TransitionType> transitionList = data.getNet().getTransition();
@@ -283,80 +309,104 @@ public class Canonical2PNML {
         allNode.addAll(getPNML().getNet().get(0).getPlace());
         allNode.addAll(getPNML().getNet().get(0).getTransition());
         Collections.sort(allNode, new NodeTypeComparator());*/
+
+        // --> warum kleiner 8???
         for (int i = 0; i < 8; i++){ //hier wäre eine while-schleife mögich, um sicherzustellen, dass alle elemente genügen abstand haben. Da die Elemente in der Liste aber nicht geordnet sind, bricht die Schleife manchmal nicht ab und 2 elemente verschieben sich ins unendliche nach unten. Nicht wünschenswert.
             flag = false;
+            // Every element of the pnml-net will compared with all the other elements of the same pnml-net.
+            //*
+            // Jeder Knoten des PNML-Netzes wird mit allen anderen Knoten des gleichen PNML-Netzes verglichen.
             for (NodeType node1 : allNodes) {
                 for (NodeType node2 : allNodes) {
+                    // The position values of the x-axis and the y-axis will be analysed.
+                    //*
+                    // Es werden die Positionswerte von der x- und y-Achse untersucht.
                     BigDecimal ntx = node1.getGraphics().getPosition().getX();
                     BigDecimal nty = node1.getGraphics().getPosition().getY();
                     BigDecimal ntsx = node2.getGraphics().getPosition().getX();
-                    BigInteger help = nty.toBigInteger();
-                    int iny1 = help.intValue();
+                    int iny1 = nty.intValue();
                     BigDecimal ntsy = node2.getGraphics().getPosition().getY();
-                    help = ntsy.toBigInteger();
                     int iny2 = ntsy.intValue();
+
+                    // If both elements are the same element (,so that the element is compared with itself), then do nothing.
+                    //*
+                    // Wenn beide Knoten derselbe Knoten sind (also der Knoten wird mit sich selbst verglichen), dann tue nichts.
                     if (node2.equals(node1)) {
                         //do nothing
                     }
+                    // If the value of the x-axis and the y-axis of the element has the same values like another element,
+                    // then the value of x-axis of the second element will be increased by 80.
+                    //*
+                    // Wenn der Wert der x-Achse und der y-Achse des Knotens dieselben Werte hat, wie ein anderer Knoten,
+                    // dann wird dem zweiten Knoten zum Wert der x-Achse 80 Pixel dazu gerechnet
                     else if ((ntx.compareTo(ntsx) == 0) && (nty.compareTo(ntsy) == 0)){
                         flag = true;
-                        BigDecimal y = node2.getGraphics().getPosition().getY();
-                        y = y.add(new BigDecimal((80)));
-                        compareSources(editedNodes, node1, node2, y, node1, node2, arcList, allNodes);
-
-
+                        nty = nty.add(new BigDecimal((80)));
+                        compareSources(editedNodes, node1, node2, nty, node1, node2, arcList, allNodes);
                     }
+                    // In the next 2 if-requests will be proofed, whether the two compared elements, which are vertical arranged,
+                    // have a difference of 75 in relation to the y-axis.
+                    // If it is not the case, the difference will be corrected to a difference of 80.
+                    // Afterwards it will be proofed, whether the relocation of the element has reduced the difference to another element.
+                    //*
+                    // Die nächsten 2 Abfragen überprüfen, ob die zwei miteinander verglichenen Knoten, die übereinander angeordnet sind,
+                    // in der y-Achse mindestens einen senkrechten Abstand von 75 Pixeln hat.
+                    // Wenn das nicht der Fall ist, wird der Abstand auf einen Abstand von 80 Pixeln korrigiert.
+                    // Anschließend wird überprüft, ob die Verschiebung des Knotens den Abstand zu einem wieder anderen Knoten verkürzt hat.
                     else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > -75 && iny1-iny2 < 0) {
-                        BigDecimal y = node2.getGraphics().getPosition().getY();
-                        y = y.add(new BigDecimal((80-Math.abs(iny1-iny2))));
-                        if (checkNewPosition(node2, y, allNodes)) {
-                            node2.getGraphics().getPosition().setY(y);
+                        nty = nty.add(new BigDecimal((80-Math.abs(iny1-iny2))));
+                        if (checkNewPosition(node2, nty, allNodes)) {
+                            node2.getGraphics().getPosition().setY(nty);
                             editedNodes.add(node2);
                         }
                     }
                     else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > 0 && iny1-iny2 < 75) {
-                        BigDecimal y = node1.getGraphics().getPosition().getY();
-                        y = y.add(new BigDecimal((80-Math.abs(iny1-iny2))));
-                        if (checkNewPosition(node1, y, allNodes)) {
-                            node1.getGraphics().getPosition().setY(y);
+                        nty = nty.add(new BigDecimal((80-Math.abs(iny1-iny2))));
+                        if (checkNewPosition(node1, nty, allNodes)) {
+                            node1.getGraphics().getPosition().setY(nty);
                             editedNodes.add(node1);
                         }
                     }
-
                 }
             }
-       }
-
-
-
+        }
 
         //correct arc positions
-        for(int i = 0; i< getPNML().getNet().get(0).getArc().size(); i++){
-            if(getPNML().getNet().get(0).getArc().get(i).getGraphics() != null)
-                if(getPNML().getNet().get(0).getArc().get(i).getGraphics().getPosition() != null)
-                    getPNML().getNet().get(0).getArc().get(i).getGraphics().getPosition().clear();
+        List<ArcType> arcs = getPNML().getNet().get(0).getArc();
+        for(int i = 0; i < arcs.size(); i++){
+            if(arcs.get(i).getGraphics() != null)
+                if(arcs.get(i).getGraphics().getPosition() != null)
+                    arcs.get(i).getGraphics().getPosition().clear();
         }
     }
+
     private void compareSources(List<NodeType> editedNodes, NodeType source1, NodeType source2, BigDecimal y, NodeType node1, NodeType node2, List<ArcType> arcList, List<NodeType> allNodes){
         NodeType tempSource1;
         NodeType tempSource2;
+        int tempSource1Y;
+        int tempSource2Y;
+
+        // All arcs, which has the second element as target, will be compared with all arcs.
+        //*
+        // Es werden diejenigen Pfeile, die als Ziel den zweiten Knoten (source2) haben, mit allen Pfeilen verglichen.
         for (ArcType arc : arcList){
             if (arc.getTarget().equals(source2)){
                 tempSource2 = (NodeType) arc.getSource();
                 for (ArcType arc2 : arcList){
                     if (arc2.getTarget().equals(source1)) {
                         tempSource1 = (NodeType) arc2.getSource();
+                        tempSource1Y = tempSource1.getGraphics().getPosition().getY().toBigInteger().intValue();
+                        tempSource2Y = tempSource2.getGraphics().getPosition().getY().toBigInteger().intValue();
+
                         //if (((source1.getGraphics().getPosition().getY().toBigInteger().intValue() - source2.getGraphics().getPosition().getY().toBigInteger().intValue()) < -20) || ((source1.getGraphics().getPosition().getY().toBigInteger().intValue() - source2.getGraphics().getPosition().getY().toBigInteger().intValue()) > 20)) {
                             //do nothing
                         //}
-                        if ((tempSource1.getGraphics().getPosition().getY().toBigInteger().intValue() - tempSource2.getGraphics().getPosition().getY().toBigInteger().intValue()) < 0) {
+                        if (( tempSource1Y - tempSource2Y) < 0) {
                             if (checkNewPosition(node2, y, allNodes)) {
                                 node2.getGraphics().getPosition().setY(y);
                                 editedNodes.add(node2);
                             }
-
-
-                        } else if ((tempSource1.getGraphics().getPosition().getY().toBigInteger().intValue() - tempSource2.getGraphics().getPosition().getY().toBigInteger().intValue()) > 0 ) {
+                        } else if ((tempSource1Y - tempSource2Y) > 0 ) {
                             if (checkNewPosition(node1, y, allNodes)) {
                                 node1.getGraphics().getPosition().setY(y);
                                 editedNodes.add(node1);
@@ -365,43 +415,58 @@ public class Canonical2PNML {
                         else if(tempSource1.equals(tempSource2) || node1.equals(node2)){
                            //do nothing;
                         }
-                        else if ((tempSource1.getGraphics().getPosition().getY().toBigInteger().intValue() - tempSource2.getGraphics().getPosition().getY().toBigInteger().intValue()) == 0) {
+                        else if ((tempSource1Y - tempSource2Y) == 0) {
                             compareSources(editedNodes, node1, node2, y, tempSource1, tempSource2, arcList, allNodes);
                         }
                     }
                 }
             }
         }
-
     }
+
+    // Method: correction of the values of the y-axis
+    //*
+    // Methode: Korrektur der y-Achse
     private boolean checkNewPosition(NodeType node, BigDecimal y, List<NodeType> allNodes){
-        for (NodeType node1 : allNodes) {
-            if (node1.equals(node)){
+        // x- and y-axis values of the node element
+        BigDecimal nodeX = node.getGraphics().getPosition().getX();
+        int        nodeY = y.toBigInteger().intValue();
+
+        for (NodeType tempNode : allNodes) {
+            BigDecimal tempNodeX = tempNode.getGraphics().getPosition().getX();
+            int        tempNodeY = tempNode.getGraphics().getPosition().getY().toBigInteger().intValue();
+
+            if (tempNode.equals(node)){
                 //do nothing
             }
-            else if (node1.getGraphics().getPosition().getX().compareTo(node.getGraphics().getPosition().getX()) == 0 && (y.toBigInteger().intValue() - node1.getGraphics().getPosition().getY().toBigInteger().intValue()) > -50 && (y.toBigInteger().intValue() - node1.getGraphics().getPosition().getY().toBigInteger().intValue()) < 50){
-
-                node1.getGraphics().getPosition().setY(y.add(new BigDecimal(50)));
+            else if (tempNodeX.compareTo(nodeX) == 0 && (nodeY - tempNodeY) > -50 && (nodeY - tempNodeY) < 50){
+                tempNode.getGraphics().getPosition().setY(y.add(new BigDecimal(50)));
                 return false;
             }
         }
         return true;
     }
+
+    // hier liegt das Problem für die Formatierungsfehler komplexer Verzweigungen
+    // Problem liegt beim Join
+    // Method: Relocate all nodes, so that the layout of the pnml-net looks good
     private void traverseNodes(NodeType node,java.util.List<NodeType> insertedNodesList, SetMultimap<org.apromore.pnml.NodeType, ArcType> outgoingArcMultimap,SetMultimap<org.apromore.pnml.NodeType, ArcType> incomingArcMultimap){
 
     	final BigDecimal minDistance = new BigDecimal(70);
     	final BigDecimal minDistanceY = new BigDecimal(80);
-    	Set<ArcType> tempArcs = outgoingArcMultimap.get(node);
+    	Set<ArcType> tempOutArcs = outgoingArcMultimap.get(node);
     	Set<ArcType> tempInArcs = incomingArcMultimap.get(node);
 
-    	if(!tempArcs.isEmpty()){
-    		for(ArcType arc: tempArcs){
-    			NodeType nodeTemp = (NodeType) arc.getTarget();
+    	if(!tempOutArcs.isEmpty()){
+    		for(ArcType arc: tempOutArcs){
+    			NodeType nextNode = (NodeType) arc.getTarget();
     			BigDecimal biggestX = new BigDecimal(0);
 
-    			if(nodeTemp.getGraphics().getPosition().isInsertedNode()){
-    				//x
-    				Set<ArcType> inGoingArcs = incomingArcMultimap.get(nodeTemp);
+    			if(nextNode.getGraphics().getPosition().isInsertedNode()){
+    				//x-axis
+    				Set<ArcType> inGoingArcs = incomingArcMultimap.get(nextNode);
+    				// --> diese for-Schleife sinnvoll? BiggestX wird später nicht mehr verwendet und es wird auch nicht zum Werte-Setzen verwendet.
+                    // Oder hab ich was übersehen?
     				for(ArcType inArc : inGoingArcs){
     					NodeType inNode = (NodeType) inArc.getSource();
     					if(inNode.getGraphics().getPosition().getX().compareTo(biggestX) == 1){
@@ -410,9 +475,9 @@ public class Canonical2PNML {
     				}
 
     				//set X of inserted nodes
-    				nodeTemp.getGraphics().getPosition().setX(node.getGraphics().getPosition().getX().add(minDistance));
+    				nextNode.getGraphics().getPosition().setX(node.getGraphics().getPosition().getX().add(minDistance));
 
-    				//y
+    				//y-axis
     				if(tempInArcs.size() > 1){
 
     					BigDecimal averageY = new BigDecimal(0);
@@ -423,51 +488,57 @@ public class Canonical2PNML {
     					node.getGraphics().getPosition().setY(averageY.divide(new BigDecimal(tempInArcs.size()), 2, RoundingMode.HALF_UP));
     				}
 
-    				double x = 0;
+    				double y = 0;
+    				BigDecimal nodeY = node.getGraphics().getPosition().getY();
 
-    				if(tempArcs.size() >1){
+    				if(tempOutArcs.size() >1){
 
-    					if (tempArcs.size()%2 == 0){
+    					if (tempOutArcs.size()%2 == 0){
 
-    						x = tempArcs.size()/2;
+    						y = tempOutArcs.size()/2;
 
-    						for (ArcType a: tempArcs){
+    						for (ArcType a: tempOutArcs){
     							NodeType n = (NodeType)a.getTarget();
-    							n.getGraphics().getPosition().setY(node.getGraphics().getPosition().getY().add(minDistanceY.multiply(new BigDecimal(x-0.5))));
-    							x--;
+    							n.getGraphics().getPosition().setY(nodeY.add(minDistanceY.multiply(new BigDecimal(y-0.5))));
+    							y--;
     						}
 
     					} else {
 
-    						x = Math.floor(tempArcs.size()/2);
+    						y = Math.floor(tempOutArcs.size()/2);
 
-    						for (ArcType a: tempArcs){
+    						for (ArcType a: tempOutArcs){
     							NodeType n = (NodeType)a.getTarget();
-    							n.getGraphics().getPosition().setY(node.getGraphics().getPosition().getY().add(minDistanceY.multiply(new BigDecimal(x))));
-    							x--;
+    							n.getGraphics().getPosition().setY(nodeY.add(minDistanceY.multiply(new BigDecimal(y))));
+    							y--;
     						}
 
     					}
 
-
     				}else{
-    					nodeTemp.getGraphics().getPosition().setY(node.getGraphics().getPosition().getY());
+    					nextNode.getGraphics().getPosition().setY(nodeY);
     				}
-
     			}
 
-				//move next nodes if mindistance is greater
-				Set<ArcType> outgoingArcs = outgoingArcMultimap.get(nodeTemp);
+				//move next nodes, if mindistance is greater
+				Set<ArcType> outgoingArcs = outgoingArcMultimap.get(nextNode);
 				for(ArcType outArc : outgoingArcs){
 					NodeType outNode = (NodeType) outArc.getTarget();
 
-					if(outNode.getGraphics().getPosition().getX().subtract(nodeTemp.getGraphics().getPosition().getX()).compareTo(minDistance.add(new BigDecimal(40))) == -1){
-						outNode.getGraphics().getPosition().setX(nodeTemp.getGraphics().getPosition().getX().add(minDistance.add(new BigDecimal(40))));
+					 // minDistance + 40 means the minimum distance with the width of the element (= 40)
+                    // (x-position of outNode) - (x-position of nextNode) will be compared with the minimum distance incl. the width of the element.
+                    // If the distance value is smaller, then the x-position of nextNode + minimum distance + 40 will be added to the x-position of outNode
+                    //*
+                    // minDistance + 40 bedeutet die Mindestdistanz mit der Breite des Elements (= 40)
+                    // (x-Position von outNode) - (x-Position von nextNode) wird verglichen mit der Mindestdistanz inkl. der Breite des Elements
+                    // Wenn der Distanz-Wert kleiner ist, wird die x-Position von nextNode + Mindestdistanz + 40 zur neuen x-Position von outNode
+					if(outNode.getGraphics().getPosition().getX().subtract(nextNode.getGraphics().getPosition().getX()).compareTo(minDistance.add(new BigDecimal(40))) == -1){
+						outNode.getGraphics().getPosition().setX(nextNode.getGraphics().getPosition().getX().add(minDistance.add(new BigDecimal(40))));
 					}
 				}
     		}
 
-    		for(ArcType arc: tempArcs){
+    		for(ArcType arc: tempOutArcs){
     			traverseNodes((NodeType) arc.getTarget(), insertedNodesList, outgoingArcMultimap, incomingArcMultimap);
     		}
     	}
@@ -485,7 +556,7 @@ public class Canonical2PNML {
         final String HELP_TEXT = "A document in CPF format is read from standard input.\n" +
                                  "The PNML conversion is written to standard output.\n" +
                                  "Options:\n" +
-                                 "-e  CPF edges treated as having a duration, converted tp PNML places\n" +
+                                 "-e  CPF edges treated as having a duration, converted to PNML places\n" +
                                  "-h  this help text\n" +
                                  "-t  CPF tasks treated as instantaneous, converted to PNML transitions\n" +
                                  "-v  validate input against the CPF XML schema";
