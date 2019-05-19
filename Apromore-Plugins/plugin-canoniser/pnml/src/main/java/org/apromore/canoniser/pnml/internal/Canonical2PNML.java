@@ -18,7 +18,7 @@
  * If not, see <http://www.gnu.org/licenses/lgpl-3.0.html>.
  */
 
-/**
+/*
  * TestCanonical2PNML is a class for converting an CanonicalProcessType
  *  object into a PnmlType object.
  * <p>
@@ -38,24 +38,19 @@ import org.apromore.cpf.CPFSchema;
 import org.apromore.cpf.CanonicalProcessType;
 import org.apromore.cpf.NetType;
 import org.apromore.cpf.ResourceTypeType;
-import org.apromore.pnml.PositionType;
 import org.apromore.pnml.*;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.*;
-import java.util.logging.Logger;
+// import java.util.logging.Logger;
 
 public class Canonical2PNML {
 
-    static final private Logger LOGGER = Logger.getLogger(Canonical2PNML.class.getCanonicalName());
+    // static final private Logger LOGGER = Logger.getLogger(Canonical2PNML.class.getCanonicalName());
 
     private DataHandler data = new DataHandler();
     private RemoveConnectorTasks removeConnectorTasks = new RemoveConnectorTasks();
-    private RemoveEvents removeEvents = new RemoveEvents();
-    private RemoveState removeState = new RemoveState();
-    private RemoveSplitJoins removeSplitJoins = new RemoveSplitJoins();
     private TranslateAnnotations ta = new TranslateAnnotations();
     private TranslateNet tn = new TranslateNet();
     private long ids = 0;  //System.currentTimeMillis();
@@ -103,8 +98,11 @@ public class Canonical2PNML {
     }
 
     // This method is used only in Canonical2PNMLUnitTest and can be ignored for the transformation process
-
     public Canonical2PNML(CanonicalProcessType cproc, AnnotationsType annotations, String filename) {
+        RemoveEvents removeEvents = new RemoveEvents();
+        RemoveState removeState = new RemoveState();
+        RemoveSplitJoins removeSplitJoins = new RemoveSplitJoins();
+
         for (ResourceTypeType res : cproc.getResourceType()) {
             data.put_resourcemap(String.valueOf(res.getId()), res);
         }
@@ -274,11 +272,11 @@ public class Canonical2PNML {
 
       //layout optimization
         ArrayList<NodeType> allNodes = new ArrayList<>();
-        List<NodeType> insertedNodes = Collections.synchronizedList(new ArrayList<>());
+        // List<NodeType> insertedNodes = Collections.synchronizedList(new ArrayList<>());
         allNodes.addAll(getPNML().getNet().get(0).getPlace());
         allNodes.addAll(getPNML().getNet().get(0).getTransition());
         Collections.sort(allNodes, new NodeTypeComparator());
-        final int value1 = 80;
+        // final int value1 = 80;
 
         int firstNonInsertedNode = 0;
         //find first non inserted node
@@ -289,7 +287,7 @@ public class Canonical2PNML {
         if(firstNonInsertedNode != 0){
             //search for inserted nodes in correct order
             NodeType nonInsertedNode = allNodes.get(firstNonInsertedNode);
-            traverseNodes(nonInsertedNode, insertedNodes, outgoingArcMultimap, incomingArcMultimap);
+            traverseNodes(nonInsertedNode, outgoingArcMultimap, incomingArcMultimap);
         }
 
 
@@ -298,10 +296,9 @@ public class Canonical2PNML {
         //if they're on the same spot it will check the previous element using the arc source.
         // The element with the lower (higher in numbers) source is then moved down.
 
-        List<PlaceType> placeList =  data.getNet().getPlace();
-        List<TransitionType> transitionList = data.getNet().getTransition();
+        //List<PlaceType> placeList =  data.getNet().getPlace();
+        //List<TransitionType> transitionList = data.getNet().getTransition();
         List<ArcType> arcList = data.getNet().getArc();
-        Boolean flag = true;
         List<NodeType> editedNodes = new ArrayList<>();
 /*
         ArrayList<NodeType> allNode = new ArrayList<>();
@@ -312,7 +309,6 @@ public class Canonical2PNML {
 
         // --> warum kleiner 8???
         for (int i = 0; i < 8; i++){ //hier wäre eine while-schleife mögich, um sicherzustellen, dass alle elemente genügen abstand haben. Da die Elemente in der Liste aber nicht geordnet sind, bricht die Schleife manchmal nicht ab und 2 elemente verschieben sich ins unendliche nach unten. Nicht wünschenswert.
-            flag = false;
             // Every element of the pnml-net will compared with all the other elements of the same pnml-net.
             //*
             // Jeder Knoten des PNML-Netzes wird mit allen anderen Knoten des gleichen PNML-Netzes verglichen.
@@ -331,40 +327,39 @@ public class Canonical2PNML {
                     // If both elements are the same element (,so that the element is compared with itself), then do nothing.
                     //*
                     // Wenn beide Knoten derselbe Knoten sind (also der Knoten wird mit sich selbst verglichen), dann tue nichts.
-                    if (node2.equals(node1)) {
-                        //do nothing
-                    }
-                    // If the value of the x-axis and the y-axis of the element has the same values like another element,
-                    // then the value of x-axis of the second element will be increased by 80.
-                    //*
-                    // Wenn der Wert der x-Achse und der y-Achse des Knotens dieselben Werte hat, wie ein anderer Knoten,
-                    // dann wird dem zweiten Knoten zum Wert der x-Achse 80 Pixel dazu gerechnet
-                    else if ((ntx.compareTo(ntsx) == 0) && (nty.compareTo(ntsy) == 0)){
-                        flag = true;
-                        nty = nty.add(new BigDecimal((80)));
-                        compareSources(editedNodes, node1, node2, nty, node1, node2, arcList, allNodes);
-                    }
-                    // In the next 2 if-requests will be proofed, whether the two compared elements, which are vertical arranged,
-                    // have a difference of 75 in relation to the y-axis.
-                    // If it is not the case, the difference will be corrected to a difference of 80.
-                    // Afterwards it will be proofed, whether the relocation of the element has reduced the difference to another element.
-                    //*
-                    // Die nächsten 2 Abfragen überprüfen, ob die zwei miteinander verglichenen Knoten, die übereinander angeordnet sind,
-                    // in der y-Achse mindestens einen senkrechten Abstand von 75 Pixeln hat.
-                    // Wenn das nicht der Fall ist, wird der Abstand auf einen Abstand von 80 Pixeln korrigiert.
-                    // Anschließend wird überprüft, ob die Verschiebung des Knotens den Abstand zu einem wieder anderen Knoten verkürzt hat.
-                    else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > -75 && iny1-iny2 < 0) {
-                        nty = nty.add(new BigDecimal((80-Math.abs(iny1-iny2))));
-                        if (checkNewPosition(node2, nty, allNodes)) {
-                            node2.getGraphics().getPosition().setY(nty);
-                            editedNodes.add(node2);
+                    if (!node2.equals(node1)) {
+
+                        // If the value of the x-axis and the y-axis of the element has the same values like another element,
+                        // then the value of x-axis of the second element will be increased by 80.
+                        //*
+                        // Wenn der Wert der x-Achse und der y-Achse des Knotens dieselben Werte hat, wie ein anderer Knoten,
+                        // dann wird dem zweiten Knoten zum Wert der x-Achse 80 Pixel dazu gerechnet
+                        if ((ntx.compareTo(ntsx) == 0) && (nty.compareTo(ntsy) == 0)){
+                            nty = nty.add(new BigDecimal((80)));
+                            compareSources(editedNodes, node1, node2, nty, node1, node2, arcList, allNodes);
                         }
-                    }
-                    else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > 0 && iny1-iny2 < 75) {
-                        nty = nty.add(new BigDecimal((80-Math.abs(iny1-iny2))));
-                        if (checkNewPosition(node1, nty, allNodes)) {
-                            node1.getGraphics().getPosition().setY(nty);
-                            editedNodes.add(node1);
+                        // In the next 2 if-requests will be proofed, whether the two compared elements, which are vertical arranged,
+                        // have a difference of 75 in relation to the y-axis.
+                        // If it is not the case, the difference will be corrected to a difference of 80.
+                        // Afterwards it will be proofed, whether the relocation of the element has reduced the difference to another element.
+                        //*
+                        // Die nächsten 2 Abfragen überprüfen, ob die zwei miteinander verglichenen Knoten, die übereinander angeordnet sind,
+                        // in der y-Achse mindestens einen senkrechten Abstand von 75 Pixeln hat.
+                        // Wenn das nicht der Fall ist, wird der Abstand auf einen Abstand von 80 Pixeln korrigiert.
+                        // Anschließend wird überprüft, ob die Verschiebung des Knotens den Abstand zu einem wieder anderen Knoten verkürzt hat.
+                        else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > -75 && iny1-iny2 < 0) {
+                            nty = nty.add(new BigDecimal((80-Math.abs(iny1-iny2))));
+                            if (checkNewPosition(node2, nty, allNodes)) {
+                                node2.getGraphics().getPosition().setY(nty);
+                                editedNodes.add(node2);
+                            }
+                        }
+                        else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > 0 && iny1-iny2 < 75) {
+                            nty = nty.add(new BigDecimal((80-Math.abs(iny1-iny2))));
+                            if (checkNewPosition(node1, nty, allNodes)) {
+                                node1.getGraphics().getPosition().setY(nty);
+                                editedNodes.add(node1);
+                            }
                         }
                     }
                 }
@@ -372,11 +367,10 @@ public class Canonical2PNML {
         }
 
         //correct arc positions
-        List<ArcType> arcs = getPNML().getNet().get(0).getArc();
-        for(int i = 0; i < arcs.size(); i++){
-            if(arcs.get(i).getGraphics() != null)
-                if(arcs.get(i).getGraphics().getPosition() != null)
-                    arcs.get(i).getGraphics().getPosition().clear();
+        for (ArcType arc : getPNML().getNet().get(0).getArc()){
+            if (arc.getGraphics()!= null)
+                if(arc.getGraphics().getPosition() != null)
+                    arc.getGraphics().getPosition().clear();
         }
     }
 
@@ -412,11 +406,10 @@ public class Canonical2PNML {
                                 editedNodes.add(node1);
                             }
                         }
-                        else if(tempSource1.equals(tempSource2) || node1.equals(node2)){
-                           //do nothing;
-                        }
-                        else if ((tempSource1Y - tempSource2Y) == 0) {
-                            compareSources(editedNodes, node1, node2, y, tempSource1, tempSource2, arcList, allNodes);
+                        else if(!tempSource1.equals(tempSource2) || !node1.equals(node2)){
+                            if ((tempSource1Y - tempSource2Y) == 0) {
+                                compareSources(editedNodes, node1, node2, y, tempSource1, tempSource2, arcList, allNodes);
+                            }
                         }
                     }
                 }
@@ -436,12 +429,11 @@ public class Canonical2PNML {
             BigDecimal tempNodeX = tempNode.getGraphics().getPosition().getX();
             int        tempNodeY = tempNode.getGraphics().getPosition().getY().toBigInteger().intValue();
 
-            if (tempNode.equals(node)){
-                //do nothing
-            }
-            else if (tempNodeX.compareTo(nodeX) == 0 && (nodeY - tempNodeY) > -50 && (nodeY - tempNodeY) < 50){
-                tempNode.getGraphics().getPosition().setY(y.add(new BigDecimal(50)));
-                return false;
+            if (!tempNode.equals(node)){
+                if (tempNodeX.compareTo(nodeX) == 0 && (nodeY - tempNodeY) > -50 && (nodeY - tempNodeY) < 50) {
+                    tempNode.getGraphics().getPosition().setY(y.add(new BigDecimal(50)));
+                    return false;
+                }
             }
         }
         return true;
@@ -450,7 +442,7 @@ public class Canonical2PNML {
     // hier liegt das Problem für die Formatierungsfehler komplexer Verzweigungen
     // Problem liegt beim Join
     // Method: Relocate all nodes, so that the layout of the pnml-net looks good
-    private void traverseNodes(NodeType node,java.util.List<NodeType> insertedNodesList, SetMultimap<org.apromore.pnml.NodeType, ArcType> outgoingArcMultimap,SetMultimap<org.apromore.pnml.NodeType, ArcType> incomingArcMultimap){
+    private void traverseNodes(NodeType node, SetMultimap<org.apromore.pnml.NodeType, ArcType> outgoingArcMultimap,SetMultimap<org.apromore.pnml.NodeType, ArcType> incomingArcMultimap){
 
     	final BigDecimal minDistance = new BigDecimal(70);
     	final BigDecimal minDistanceY = new BigDecimal(80);
@@ -469,7 +461,7 @@ public class Canonical2PNML {
                     // Oder hab ich was übersehen?
     				for(ArcType inArc : inGoingArcs){
     					NodeType inNode = (NodeType) inArc.getSource();
-    					if(inNode.getGraphics().getPosition().getX().compareTo(biggestX) == 1){
+    					if(inNode.getGraphics().getPosition().getX().compareTo(biggestX) > 0){
     						biggestX = inNode.getGraphics().getPosition().getX();
     					}
     				}
@@ -488,7 +480,7 @@ public class Canonical2PNML {
     					node.getGraphics().getPosition().setY(averageY.divide(new BigDecimal(tempInArcs.size()), 2, RoundingMode.HALF_UP));
     				}
 
-    				double y = 0;
+    				double y;
     				BigDecimal nodeY = node.getGraphics().getPosition().getY();
 
     				if(tempOutArcs.size() >1){
@@ -532,19 +524,19 @@ public class Canonical2PNML {
                     // minDistance + 40 bedeutet die Mindestdistanz mit der Breite des Elements (= 40)
                     // (x-Position von outNode) - (x-Position von nextNode) wird verglichen mit der Mindestdistanz inkl. der Breite des Elements
                     // Wenn der Distanz-Wert kleiner ist, wird die x-Position von nextNode + Mindestdistanz + 40 zur neuen x-Position von outNode
-					if(outNode.getGraphics().getPosition().getX().subtract(nextNode.getGraphics().getPosition().getX()).compareTo(minDistance.add(new BigDecimal(40))) == -1){
+					if(outNode.getGraphics().getPosition().getX().subtract(nextNode.getGraphics().getPosition().getX()).compareTo(minDistance.add(new BigDecimal(40))) < 0){
 						outNode.getGraphics().getPosition().setX(nextNode.getGraphics().getPosition().getX().add(minDistance.add(new BigDecimal(40))));
 					}
 				}
     		}
 
     		for(ArcType arc: tempOutArcs){
-    			traverseNodes((NodeType) arc.getTarget(), insertedNodesList, outgoingArcMultimap, incomingArcMultimap);
+    			traverseNodes((NodeType) arc.getTarget(), outgoingArcMultimap, incomingArcMultimap);
     		}
     	}
     }
     /**
-     * @param transition
+     * @param transition transition, which should be checked
      * @return whether <var>transition</var> is silent
      */
     private boolean isSilent(TransitionType transition) {
