@@ -483,8 +483,10 @@ public class Canonical2PNML {
     				double y;
     				BigDecimal nodeY = node.getGraphics().getPosition().getY();
 
+    				// If there are Splits, then move target element down
     				if(tempOutArcs.size() >1){
 
+    				    // If there are an even number of outgoing arcs
     					if (tempOutArcs.size()%2 == 0){
 
     						y = tempOutArcs.size()/2;
