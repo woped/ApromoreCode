@@ -126,7 +126,7 @@ public class RemoveConnectorTasks {
                     }
                 } else if (node instanceof MessageType) {
                     if (node.getOriginalID() == null) {
-                        nodemap.put(node.getName(), node);
+                        nodemap.put(node.getId(), node);
                         TriggerType tt = new TriggerType();
                         GraphicsSimpleType gt = new GraphicsSimpleType();
                         DimensionType dt = new DimensionType();
@@ -140,7 +140,7 @@ public class RemoveConnectorTasks {
                     }
                 } else if (node instanceof TimerType) {
                     if (node.getOriginalID() == null) {
-                        nodemap.put(node.getName(), node);
+                        nodemap.put(node.getId(), node);
                         TriggerType tt = new TriggerType();
                         GraphicsSimpleType gt = new GraphicsSimpleType();
                         DimensionType dt = new DimensionType();
