@@ -87,6 +87,7 @@ public class Canonical2PNML {
         cproc = removeConnectorTasks.getCanonicalProcess();
         decanonise(cproc, annotations);
         ta.setValue(data);
+
         if (annotations != null) {
             ta.mapNodeAnnotations(annotations);
         }
@@ -98,8 +99,10 @@ public class Canonical2PNML {
         ids = ax.getIds();
         cproc = ax.getCanonicalProcess();
 
+
         // Structural simplifications
-        simplify();
+        simplify(annotations != null);
+
     }
 
     // This method is used only in Canonical2PNMLUnitTest and can be ignored for the transformation process
@@ -143,7 +146,6 @@ public class Canonical2PNML {
         uso.setValues(data, ids);
         uso.add(cproc);
         ids = uso.getIds();
-        cproc = uso.getCanonicalProcess();
         if (data.getSubnet() != null) {
             if (data.getSubnet().size() == 1) {
                 TransitionType obj = data.getSubnet().get(0);
@@ -154,7 +156,6 @@ public class Canonical2PNML {
                 ts.addSubnet();
                 data = ts.getdata();
             }
-
         }
     }
 
@@ -181,7 +182,7 @@ public class Canonical2PNML {
         data.getPnml().getNet().add(data.getNet());
     }
 
-    private void simplify() {
+    private void simplify(boolean hasAnnotations) {
         //LOGGER.info("Performing structural simplifications"); 
 
         SetMultimap<NodeType, ArcType> incomingArcMultimap = HashMultimap.create();
@@ -248,31 +249,50 @@ public class Canonical2PNML {
 
       //layout optimization
         ArrayList<NodeType> allNodes = new ArrayList<>();
+        ArrayList<ArcType> allArcs = new ArrayList<>();
         List<NodeType> insertedNodes = Collections.synchronizedList(new ArrayList<>());
+        ArrayList<NodeType> nodesBeforeFirstNonInserted = new ArrayList<>();
         allNodes.addAll(getPNML().getNet().get(0).getPlace());
         allNodes.addAll(getPNML().getNet().get(0).getTransition());
         Collections.sort(allNodes, new NodeTypeComparator());
-        final int value1 = 80;
+        allArcs.addAll(getPNML().getNet().get(0).getArc());
 
-        int firstNonInsertedNode = 0;
-        //find first non inserted node
-        while(firstNonInsertedNode < allNodes.size()-1 && allNodes.get(firstNonInsertedNode).getGraphics().getPosition().isInsertedNode()){
-        	firstNonInsertedNode += 1;
+        //Find the first node in the graph
+        NodeType firstNonInsertedNode = findStartElement(allNodes, allArcs);
+        NodeType followingNode;
+
+        //Find out which is the first node that was not inserted afterwards
+        //(by checking if position-data are not 0, 0 - isInsertedNode does not work trustworthy for this case)
+        while(hasAnnotations && firstNonInsertedNode.getGraphics().getPosition().getX() == BigDecimal.ZERO) {
+            for(ArcType arc : allArcs) {
+                if (arc.getSource().equals(firstNonInsertedNode)) {
+                    followingNode = (NodeType) arc.getTarget();
+                    nodesBeforeFirstNonInserted.add(firstNonInsertedNode);
+                    firstNonInsertedNode = followingNode;
+                    break;
+                }
+            }
+
         }
 
-        if(firstNonInsertedNode != 0){
-            //search for inserted nodes in correct order
-            NodeType nonInsertedNode = allNodes.get(firstNonInsertedNode);
-            traverseNodes(nonInsertedNode, insertedNodes, outgoingArcMultimap, incomingArcMultimap);
-        }
+        traverseNodes(firstNonInsertedNode, insertedNodes, outgoingArcMultimap, incomingArcMultimap);
 
+        //Correct the position of Nodes before first firstNonInsertedNode since traverseNodes only goes in one direction
+        if (nodesBeforeFirstNonInserted.size() != 0) {
+            int quantity = nodesBeforeFirstNonInserted.size();
+            for (NodeType node : nodesBeforeFirstNonInserted) {
+                node.getGraphics().getPosition().setY(firstNonInsertedNode.getGraphics().getPosition().getY());
+                node.getGraphics().getPosition().setX(firstNonInsertedNode.getGraphics().getPosition().getX().subtract(BigDecimal.valueOf(70 * quantity)));
+                quantity = quantity - 1;
+            }
+        }
 
         //#2018Finger: Change duplicate positions
         //just correcting position if 2 elements are on the same spot.
         //if they're on the same spot Im checking the previous element using the arc source. The element with the lower (higher in numbers) source is then moved down.
 
 
-        List<PlaceType> placeList =  data.getNet().getPlace();
+        List<PlaceType> placeList = data.getNet().getPlace();
         List<TransitionType> transitionList = data.getNet().getTransition();
         List<ArcType> arcList = data.getNet().getArc();
         Boolean flag = true;
@@ -283,7 +303,7 @@ public class Canonical2PNML {
         allNode.addAll(getPNML().getNet().get(0).getPlace());
         allNode.addAll(getPNML().getNet().get(0).getTransition());
         Collections.sort(allNode, new NodeTypeComparator());*/
-        for (int i = 0; i < 8; i++){ //hier wäre eine while-schleife mögich, um sicherzustellen, dass alle elemente genügen abstand haben. Da die Elemente in der Liste aber nicht geordnet sind, bricht die Schleife manchmal nicht ab und 2 elemente verschieben sich ins unendliche nach unten. Nicht wünschenswert.
+        for (int i = 0; i < 8; i++) { //hier wäre eine while-schleife mögich, um sicherzustellen, dass alle elemente genügen abstand haben. Da die Elemente in der Liste aber nicht geordnet sind, bricht die Schleife manchmal nicht ab und 2 elemente verschieben sich ins unendliche nach unten. Nicht wünschenswert.
             flag = false;
             for (NodeType node1 : allNodes) {
                 for (NodeType node2 : allNodes) {
@@ -297,26 +317,22 @@ public class Canonical2PNML {
                     int iny2 = ntsy.intValue();
                     if (node2.equals(node1)) {
                         //do nothing
-                    }
-                    else if ((ntx.compareTo(ntsx) == 0) && (nty.compareTo(ntsy) == 0)){
+                    } else if ((ntx.compareTo(ntsx) == 0) && (nty.compareTo(ntsy) == 0)) {
                         flag = true;
                         BigDecimal y = node2.getGraphics().getPosition().getY();
                         y = y.add(new BigDecimal((80)));
                         compareSources(editedNodes, node1, node2, y, node1, node2, arcList, allNodes);
 
-
-                    }
-                    else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > -75 && iny1-iny2 < 0) {
+                    } else if ((ntx.compareTo(ntsx) == 0) && iny1 - iny2 > -75 && iny1 - iny2 < 0) {
                         BigDecimal y = node2.getGraphics().getPosition().getY();
-                        y = y.add(new BigDecimal((80-Math.abs(iny1-iny2))));
+                        y = y.add(new BigDecimal((80 - Math.abs(iny1 - iny2))));
                         if (checkNewPosition(node2, y, allNodes)) {
                             node2.getGraphics().getPosition().setY(y);
                             editedNodes.add(node2);
                         }
-                    }
-                    else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > 0 && iny1-iny2 < 75) {
+                    } else if ((ntx.compareTo(ntsx) == 0) && iny1 - iny2 > 0 && iny1 - iny2 < 75) {
                         BigDecimal y = node1.getGraphics().getPosition().getY();
-                        y = y.add(new BigDecimal((80-Math.abs(iny1-iny2))));
+                        y = y.add(new BigDecimal((80 - Math.abs(iny1 - iny2))));
                         if (checkNewPosition(node1, y, allNodes)) {
                             node1.getGraphics().getPosition().setY(y);
                             editedNodes.add(node1);
@@ -325,7 +341,8 @@ public class Canonical2PNML {
 
                 }
             }
-       }
+        }
+
 
 
 
@@ -516,5 +533,35 @@ public class Canonical2PNML {
 
         CanonicalProcessType cpf = CPFSchema.unmarshalCanonicalFormat(System.in, validate).getValue();
         PNMLSchema.marshalPNMLFormat(System.out, (new Canonical2PNML(cpf, null, isCpfTaskPnmlTransition, isCpfEdgePnmlPlace)).getPNML(), false);
+    }
+
+    public NodeType findStartElement(List<NodeType> allNodes, List<ArcType> allArcs){
+        List<NodeType> helperListAllNodes = new ArrayList<>();
+        helperListAllNodes.addAll(allNodes);
+        List<NodeType> helperListRemovedNodes = new ArrayList<>();
+        List<NodeType> helperListRetainedNodes = new ArrayList<>();
+
+        //remove all nodes that have an incoming arc
+        for (ArcType arc : allArcs) {
+            for (NodeType node : helperListAllNodes) {
+                if(arc.getTarget().equals(node))
+                    helperListRemovedNodes.add(node);
+            }
+        }
+
+        helperListAllNodes.removeAll(helperListRemovedNodes);
+
+        //remove all nodes that have no outgoing arc
+        if(helperListAllNodes.size() > 1) {
+            for (ArcType arc : allArcs) {
+                for (NodeType node : helperListAllNodes) {
+                    if (arc.getSource().equals(node))
+                        helperListRetainedNodes.add(node);
+                }
+            }
+            helperListAllNodes.retainAll(helperListRetainedNodes);
+        }
+
+        return helperListAllNodes.get(0);
     }
 }
