@@ -507,7 +507,7 @@ public class Canonical2PNML {
     				// If there are Splits, then move target element down
     				if(tempOutArcs.size() >1){
 
-    				    // If there are an even number of outgoing arcs
+    				    // If there is an even number of outgoing arcs
     					if (tempOutArcs.size()%2 == 0){
 
     						y = tempOutArcs.size()/2;
@@ -610,7 +610,7 @@ public class Canonical2PNML {
         List<NodeType> helperListRemovedNodes = new ArrayList<>();
         List<NodeType> helperListRetainedNodes = new ArrayList<>();
 
-        //remove all nodes that have an incoming arc
+        //remove all nodes that do have an incoming arc
         for (ArcType arc : allArcs) {
             for (NodeType node : helperListAllNodes) {
                 if(arc.getTarget().equals(node))
@@ -620,7 +620,7 @@ public class Canonical2PNML {
 
         helperListAllNodes.removeAll(helperListRemovedNodes);
 
-        //remove all nodes that have no outgoing arc
+        //remove all nodes that do not have an outgoing arc
         if(helperListAllNodes.size() > 1) {
             for (ArcType arc : allArcs) {
                 for (NodeType node : helperListAllNodes) {
@@ -631,6 +631,7 @@ public class Canonical2PNML {
             helperListAllNodes.retainAll(helperListRetainedNodes);
         }
 
+        //return last remaining
         return helperListAllNodes.get(0);
     }
 }
