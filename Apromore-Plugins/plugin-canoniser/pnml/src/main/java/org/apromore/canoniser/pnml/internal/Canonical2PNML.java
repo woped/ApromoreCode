@@ -285,7 +285,8 @@ public class Canonical2PNML {
         allArcs.addAll(getPNML().getNet().get(0).getArc());
 
         //Find the first node in the graph
-        NodeType firstNonInsertedNode = findStartElement(allNodes, allArcs);
+        NodeType firstNode = findStartElement(allNodes, allArcs);
+        NodeType firstNonInsertedNode = firstNode;
         NodeType followingNode;
 
         //Find out which is the first node that was not inserted afterwards
@@ -311,6 +312,16 @@ public class Canonical2PNML {
                 node.getGraphics().getPosition().setY(firstNonInsertedNode.getGraphics().getPosition().getY());
                 node.getGraphics().getPosition().setX(firstNonInsertedNode.getGraphics().getPosition().getX().subtract(MIN_DISTANCE_X.multiply(BigDecimal.valueOf(quantity))));
                 quantity = quantity - 1;
+            }
+        }
+
+        //Check if there are nodes that have negative x-coordinates
+        BigDecimal firstNodePosX = firstNode.getGraphics().getPosition().getX();
+        if(firstNodePosX.compareTo(BigDecimal.ZERO) < 0){
+            //correct x-coordinate of all nodes, so that there isn't any node with a negative x-coordinate
+            for(NodeType node : allNodes){
+                BigDecimal posX = node.getGraphics().getPosition().getX();
+                node.getGraphics().getPosition().setX(posX.add(firstNodePosX.abs()));
             }
         }
 
