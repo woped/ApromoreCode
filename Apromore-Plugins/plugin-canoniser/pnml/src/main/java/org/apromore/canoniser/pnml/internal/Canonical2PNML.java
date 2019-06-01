@@ -46,6 +46,9 @@ import java.util.*;
 // import java.util.logging.Logger;
 
 public class Canonical2PNML {
+    //Constants
+    public static final BigDecimal MIN_DISTANCE_X = new BigDecimal(70);
+    public static final BigDecimal MIN_DISTANCE_Y = new BigDecimal(80);
 
     // static final private Logger LOGGER = Logger.getLogger(Canonical2PNML.class.getCanonicalName());
 
@@ -306,7 +309,7 @@ public class Canonical2PNML {
             int quantity = nodesBeforeFirstNonInserted.size();
             for (NodeType node : nodesBeforeFirstNonInserted) {
                 node.getGraphics().getPosition().setY(firstNonInsertedNode.getGraphics().getPosition().getY());
-                node.getGraphics().getPosition().setX(firstNonInsertedNode.getGraphics().getPosition().getX().subtract(BigDecimal.valueOf(70 * quantity)));
+                node.getGraphics().getPosition().setX(firstNonInsertedNode.getGraphics().getPosition().getX().subtract(MIN_DISTANCE_X.multiply(BigDecimal.valueOf(quantity))));
                 quantity = quantity - 1;
             }
         }
@@ -354,9 +357,9 @@ public class Canonical2PNML {
                         // then the value of x-axis of the second element will be increased by 80.
                         //*
                         // Wenn der Wert der x-Achse und der y-Achse des Knotens dieselben Werte hat, wie ein anderer Knoten,
-                        // dann wird dem zweiten Knoten zum Wert der x-Achse 80 Pixel dazu gerechnet
+                        // dann wird dem zweiten Knoten zum Wert der y-Achse 80 Pixel dazu gerechnet
                         if ((ntx.compareTo(ntsx) == 0) && (nty.compareTo(ntsy) == 0)){
-                            nty = nty.add(new BigDecimal((80)));
+                            nty = nty.add(MIN_DISTANCE_Y);
                             compareSources(editedNodes, node1, node2, nty, node1, node2, arcList, allNodes);
                         }
                         // In the next 2 if-requests will be proofed, whether the two compared elements, which are vertical arranged,
@@ -369,14 +372,14 @@ public class Canonical2PNML {
                         // Wenn das nicht der Fall ist, wird der Abstand auf einen Abstand von 80 Pixeln korrigiert.
                         // Anschließend wird überprüft, ob die Verschiebung des Knotens den Abstand zu einem wieder anderen Knoten verkürzt hat.
                         else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > -75 && iny1-iny2 < 0) {
-                            nty = nty.add(new BigDecimal((80-Math.abs(iny1-iny2))));
+                            nty = nty.add(MIN_DISTANCE_Y.subtract(BigDecimal.valueOf(Math.abs(iny1-iny2))));
                             if (checkNewPosition(node2, nty, allNodes)) {
                                 node2.getGraphics().getPosition().setY(nty);
                                 editedNodes.add(node2);
                             }
                         }
                         else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > 0 && iny1-iny2 < 75) {
-                            nty = nty.add(new BigDecimal((80-Math.abs(iny1-iny2))));
+                            nty = nty.add(MIN_DISTANCE_Y.subtract(BigDecimal.valueOf(Math.abs(iny1-iny2))));
                             if (checkNewPosition(node1, nty, allNodes)) {
                                 node1.getGraphics().getPosition().setY(nty);
                                 editedNodes.add(node1);
@@ -465,9 +468,7 @@ public class Canonical2PNML {
     // Method: Relocate all nodes, so that the layout of the pnml-net looks good
     private void traverseNodes(NodeType node, SetMultimap<org.apromore.pnml.NodeType, ArcType> outgoingArcMultimap,SetMultimap<org.apromore.pnml.NodeType, ArcType> incomingArcMultimap){
 
-    	final BigDecimal minDistance = new BigDecimal(70);
-    	final BigDecimal minDistanceY = new BigDecimal(80);
-    	Set<ArcType> tempOutArcs = outgoingArcMultimap.get(node);
+        Set<ArcType> tempOutArcs = outgoingArcMultimap.get(node);
     	Set<ArcType> tempInArcs = incomingArcMultimap.get(node);
 
     	if(!tempOutArcs.isEmpty()){
@@ -488,7 +489,7 @@ public class Canonical2PNML {
     				}
 
     				//set X of inserted nodes
-    				nextNode.getGraphics().getPosition().setX(node.getGraphics().getPosition().getX().add(minDistance));
+    				nextNode.getGraphics().getPosition().setX(node.getGraphics().getPosition().getX().add(MIN_DISTANCE_X));
 
     				//y-axis
     				if(tempInArcs.size() > 1){
@@ -514,7 +515,7 @@ public class Canonical2PNML {
 
     						for (ArcType a: tempOutArcs){
     							NodeType n = (NodeType)a.getTarget();
-    							n.getGraphics().getPosition().setY(nodeY.add(minDistanceY.multiply(new BigDecimal(y-0.5))));
+    							n.getGraphics().getPosition().setY(nodeY.add(MIN_DISTANCE_Y.multiply(new BigDecimal(y-0.5))));
     							y--;
     						}
 
@@ -524,7 +525,7 @@ public class Canonical2PNML {
 
     						for (ArcType a: tempOutArcs){
     							NodeType n = (NodeType)a.getTarget();
-    							n.getGraphics().getPosition().setY(nodeY.add(minDistanceY.multiply(new BigDecimal(y))));
+    							n.getGraphics().getPosition().setY(nodeY.add(MIN_DISTANCE_Y.multiply(new BigDecimal(y))));
     							y--;
     						}
 
@@ -547,8 +548,8 @@ public class Canonical2PNML {
                     // minDistance + 40 bedeutet die Mindestdistanz mit der Breite des Elements (= 40)
                     // (x-Position von outNode) - (x-Position von nextNode) wird verglichen mit der Mindestdistanz inkl. der Breite des Elements
                     // Wenn der Distanz-Wert kleiner ist, wird die x-Position von nextNode + Mindestdistanz + 40 zur neuen x-Position von outNode
-					if(outNode.getGraphics().getPosition().getX().subtract(nextNode.getGraphics().getPosition().getX()).compareTo(minDistance.add(new BigDecimal(40))) < 0){
-						outNode.getGraphics().getPosition().setX(nextNode.getGraphics().getPosition().getX().add(minDistance.add(new BigDecimal(40))));
+					if(outNode.getGraphics().getPosition().getX().subtract(nextNode.getGraphics().getPosition().getX()).compareTo(MIN_DISTANCE_X.add(new BigDecimal(40))) < 0){
+						outNode.getGraphics().getPosition().setX(nextNode.getGraphics().getPosition().getX().add(MIN_DISTANCE_X.add(new BigDecimal(40))));
 					}
 				}
     		}
