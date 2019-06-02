@@ -286,44 +286,14 @@ public class Canonical2PNML {
 
         //Find the first node in the graph
         NodeType firstNode = findStartElement(allNodes, allArcs);
-        NodeType firstNonInsertedNode = firstNode;
-        NodeType followingNode;
 
         //Find out which is the first node that was not inserted afterwards
-        //(by checking if position-data are not 0, 0 - isInsertedNode does not work trustworthy for this case)
-        while(hasAnnotations && firstNonInsertedNode.getGraphics().getPosition().getX() == BigDecimal.ZERO) {
-            for(ArcType arc : allArcs) {
-                if (arc.getSource().equals(firstNonInsertedNode)) {
-                    followingNode = (NodeType) arc.getTarget();
-                    nodesBeforeFirstNonInserted.add(firstNonInsertedNode);
-                    firstNonInsertedNode = followingNode;
-                    break;
-                }
-            }
-
-        }
+        NodeType firstNonInsertedNode = findFirstNonInsertedNode(firstNode, allArcs, nodesBeforeFirstNonInserted, hasAnnotations);
 
         traverseNodes(firstNonInsertedNode, outgoingArcMultimap, incomingArcMultimap);
 
         //Correct the position of Nodes before first firstNonInsertedNode since traverseNodes only goes in one direction
-        if (nodesBeforeFirstNonInserted.size() != 0) {
-            int quantity = nodesBeforeFirstNonInserted.size();
-            for (NodeType node : nodesBeforeFirstNonInserted) {
-                node.getGraphics().getPosition().setY(firstNonInsertedNode.getGraphics().getPosition().getY());
-                node.getGraphics().getPosition().setX(firstNonInsertedNode.getGraphics().getPosition().getX().subtract(MIN_DISTANCE_X.multiply(BigDecimal.valueOf(quantity))));
-                quantity = quantity - 1;
-            }
-        }
-
-        //Check if there are nodes that have negative x-coordinates
-        BigDecimal firstNodePosX = firstNode.getGraphics().getPosition().getX();
-        if(firstNodePosX.compareTo(BigDecimal.ZERO) < 0){
-            //correct x-coordinate of all nodes, so that there isn't any node with a negative x-coordinate
-            for(NodeType node : allNodes){
-                BigDecimal posX = node.getGraphics().getPosition().getX();
-                node.getGraphics().getPosition().setX(posX.add(firstNodePosX.abs()));
-            }
-        }
+        correctBeginningNodesPosition(firstNonInsertedNode, nodesBeforeFirstNonInserted, firstNode, allNodes);
 
         //#2018Finger: Change duplicate positions
         //just correcting position if 2 elements are on the same spot.
@@ -570,6 +540,85 @@ public class Canonical2PNML {
     		}
     	}
     }
+
+    public NodeType findStartElement(List<NodeType> allNodes, List<ArcType> allArcs){
+        List<NodeType> helperListAllNodes = new ArrayList<>();
+        helperListAllNodes.addAll(allNodes);
+        List<NodeType> helperListRemovedNodes = new ArrayList<>();
+        List<NodeType> helperListRetainedNodes = new ArrayList<>();
+
+        //remove all nodes that do have an incoming arc
+        for (ArcType arc : allArcs) {
+            for (NodeType node : helperListAllNodes) {
+                if(arc.getTarget().equals(node))
+                    helperListRemovedNodes.add(node);
+            }
+        }
+
+        helperListAllNodes.removeAll(helperListRemovedNodes);
+
+        //remove all nodes that do not have an outgoing arc
+        if(helperListAllNodes.size() > 1) {
+            for (ArcType arc : allArcs) {
+                for (NodeType node : helperListAllNodes) {
+                    if (arc.getSource().equals(node))
+                        helperListRetainedNodes.add(node);
+                }
+            }
+            helperListAllNodes.retainAll(helperListRetainedNodes);
+        }
+
+        //return last remaining
+        return helperListAllNodes.get(0);
+    }
+
+    public NodeType findFirstNonInsertedNode(NodeType startElement,
+                                             ArrayList<ArcType> allArcs,
+                                             ArrayList<NodeType> nodesBeforeFirstNonInserted,
+                                             boolean hasAnnotations){
+        NodeType followingNode;
+        NodeType firstNonInsertedNode = startElement;
+
+        //by checking if position-data are not 0, 0 - isInsertedNode does not work trustworthy for this case
+        while(hasAnnotations && firstNonInsertedNode.getGraphics().getPosition().getX() == BigDecimal.ZERO) {
+            for(ArcType arc : allArcs) {
+                if (arc.getSource().equals(firstNonInsertedNode)) {
+                    followingNode = (NodeType) arc.getTarget();
+                    nodesBeforeFirstNonInserted.add(firstNonInsertedNode);
+                    firstNonInsertedNode = followingNode;
+                    break;
+                }
+            }
+        }
+        return  firstNonInsertedNode;
+    }
+
+    public void correctBeginningNodesPosition(NodeType firstNonInsertedNode,
+                                              ArrayList<NodeType> nodesBeforeFirstNonInserted,
+                                              NodeType firstNode,
+                                              ArrayList<NodeType> allNodes){
+
+        //First, set positions of all nodesBeforeFirstNonInserted
+        if (nodesBeforeFirstNonInserted.size() != 0) {
+            int quantity = nodesBeforeFirstNonInserted.size();
+            for (NodeType node : nodesBeforeFirstNonInserted) {
+                node.getGraphics().getPosition().setY(firstNonInsertedNode.getGraphics().getPosition().getY());
+                node.getGraphics().getPosition().setX(firstNonInsertedNode.getGraphics().getPosition().getX().subtract(MIN_DISTANCE_X.multiply(BigDecimal.valueOf(quantity))));
+                quantity = quantity - 1;
+            }
+        }
+
+        //Second, check if there are nodes that have negative x-coordinates
+        BigDecimal firstNodePosX = firstNode.getGraphics().getPosition().getX();
+        if(firstNodePosX.compareTo(BigDecimal.ZERO) < 0){
+            //correct x-coordinate of all nodes, so that there isn't any node with a negative x-coordinate
+            for(NodeType node : allNodes){
+                BigDecimal posX = node.getGraphics().getPosition().getX();
+                node.getGraphics().getPosition().setX(posX.add(firstNodePosX.abs()));
+            }
+        }
+    }
+
     /**
      * @param transition transition, which should be checked
      * @return whether <var>transition</var> is silent
@@ -614,36 +663,5 @@ public class Canonical2PNML {
 
         CanonicalProcessType cpf = CPFSchema.unmarshalCanonicalFormat(System.in, validate).getValue();
         PNMLSchema.marshalPNMLFormat(System.out, (new Canonical2PNML(cpf, null, isCpfTaskPnmlTransition, isCpfEdgePnmlPlace)).getPNML(), false);
-    }
-
-    public NodeType findStartElement(List<NodeType> allNodes, List<ArcType> allArcs){
-        List<NodeType> helperListAllNodes = new ArrayList<>();
-        helperListAllNodes.addAll(allNodes);
-        List<NodeType> helperListRemovedNodes = new ArrayList<>();
-        List<NodeType> helperListRetainedNodes = new ArrayList<>();
-
-        //remove all nodes that do have an incoming arc
-        for (ArcType arc : allArcs) {
-            for (NodeType node : helperListAllNodes) {
-                if(arc.getTarget().equals(node))
-                    helperListRemovedNodes.add(node);
-            }
-        }
-
-        helperListAllNodes.removeAll(helperListRemovedNodes);
-
-        //remove all nodes that do not have an outgoing arc
-        if(helperListAllNodes.size() > 1) {
-            for (ArcType arc : allArcs) {
-                for (NodeType node : helperListAllNodes) {
-                    if (arc.getSource().equals(node))
-                        helperListRetainedNodes.add(node);
-                }
-            }
-            helperListAllNodes.retainAll(helperListRetainedNodes);
-        }
-
-        //return last remaining
-        return helperListAllNodes.get(0);
     }
 }
