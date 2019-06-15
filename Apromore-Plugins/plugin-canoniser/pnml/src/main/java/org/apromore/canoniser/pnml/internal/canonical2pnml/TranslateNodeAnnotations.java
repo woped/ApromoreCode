@@ -101,8 +101,8 @@ public class TranslateNodeAnnotations {
 
         assert cGraphInfo != null;
         if (cGraphInfo.getPosition() != null && cGraphInfo.getPosition().size() > 0) {
-        //Neuer Code (MK&JR)
             try{
+                //Calculate center of CPF-Nodes since they can be taller than PNML-Nodes
                 BigDecimal dimy = ((GraphicsType) annotation).getSize().getHeight();
                 dimy = dimy.round(new MathContext(3, RoundingMode.HALF_UP));
                 dimy = dimy.subtract(BigDecimal.valueOf(40));
@@ -110,15 +110,17 @@ public class TranslateNodeAnnotations {
                 dimy = dimy.add(cGraphInfo.getPosition().get(0).getY());
                 dimy = dimy.round(new MathContext(3, RoundingMode.HALF_UP));
 
-                pos.setX(cGraphInfo.getPosition().get(0).getX());
-                //pos.setY(cGraphInfo.getPosition().get(0).getY());
+                BigDecimal annotationWidth = ((GraphicsType) annotation).getSize().getWidth();
+                BigDecimal annotaionX = cGraphInfo.getPosition().get(0).getX();
+                BigDecimal alteredX = annotaionX.add(annotationWidth.divide(BigDecimal.valueOf(2), RoundingMode.UP).subtract(BigDecimal.valueOf(20)));
+
                 pos.setY(dimy);
+                pos.setX(alteredX);
             } catch (Exception e) {
                 /*Do nothing*/
             }
 
         }
-        //
         graphics.setPosition(pos);
         graphics.setDimension(dim);
 
