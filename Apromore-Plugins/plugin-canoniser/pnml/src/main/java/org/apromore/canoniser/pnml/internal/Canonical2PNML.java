@@ -86,20 +86,30 @@ public class Canonical2PNML {
         decanonise(cproc, annotations);
         ta.setValue(data);
 
-        if (annotations != null) {
-            ta.mapNodeAnnotations(annotations);
+         if (annotations != null) {
+             ta.mapNodeAnnotations(annotations);
+         }
+
+        //Not needed anymore since XORs are na translated as Places
+        boolean runAddXorOperators = false;
+        // Expand XOR (and OR) routing from from PNML transitions to their complete structures
+        if(runAddXorOperators) {
+            AddXorOperators ax = new AddXorOperators();
+            ax.setValues(data, ids);
+            ax.add(cproc);
+            ids = ax.getIds();
+            cproc = ax.getCanonicalProcess();
         }
 
-        // Expand XOR (and OR) routing from from PNML transitions to their complete structures
-        AddXorOperators ax = new AddXorOperators();
-        ax.setValues(data, ids);
-        ax.add(cproc);
-        ids = ax.getIds();
-        cproc = ax.getCanonicalProcess();
+        //New positioning algorithm
+        positionSyntheticElements(annotations != null);
 
-
+        //Not needed anymore - Replaced by positionSyntheticElements
         // Structural simplifications
-        simplify(annotations != null);
+        boolean runSimplify = false;
+        if(runSimplify) {
+            simplify(annotations != null);
+        }
 
     }
 
@@ -328,18 +338,16 @@ public class Canonical2PNML {
                     int iny1 = nty.intValue();
                     BigDecimal ntsy = node2.getGraphics().getPosition().getY();
                     int iny2 = ntsy.intValue();
-
-                    // If both elements are the same element (,so that the element is compared with itself), then do nothing.
+                 // If both elements are the same element (,so that the element is compared with itself), then do nothing.
                     //*
                     // Wenn beide Knoten derselbe Knoten sind (also der Knoten wird mit sich selbst verglichen), dann tue nichts.
                     if (!node2.equals(node1)) {
-
-                        // If the value of the x-axis and the y-axis of the element has the same values like another element,
+                     // If the value of the x-axis and the y-axis of the element has the same values like another element,
                         // then the value of x-axis of the second element will be increased by 80.
                         //*
                         // Wenn der Wert der x-Achse und der y-Achse des Knotens dieselben Werte hat, wie ein anderer Knoten,
                         // dann wird dem zweiten Knoten zum Wert der y-Achse 80 Pixel dazu gerechnet
-                        if ((ntx.compareTo(ntsx) == 0) && (nty.compareTo(ntsy) == 0)){
+                        if ((ntx.compareTo(ntsx) == 0) && (nty.compareTo(ntsy) == 0)) {
                             nty = nty.add(MIN_DISTANCE_Y);
                             compareSources(editedNodes, node1, node2, nty, node1, node2, arcList, allNodes);
                         }
@@ -352,15 +360,14 @@ public class Canonical2PNML {
                         // in der y-Achse mindestens einen senkrechten Abstand von 75 Pixeln hat.
                         // Wenn das nicht der Fall ist, wird der Abstand auf einen Abstand von 80 Pixeln korrigiert.
                         // Anschließend wird überprüft, ob die Verschiebung des Knotens den Abstand zu einem wieder anderen Knoten verkürzt hat.
-                        else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > -75 && iny1-iny2 < 0) {
-                            nty = nty.add(MIN_DISTANCE_Y.subtract(BigDecimal.valueOf(Math.abs(iny1-iny2))));
+                        else if ((ntx.compareTo(ntsx) == 0) && iny1 - iny2 > -75 && iny1 - iny2 < 0) {
+                            nty = nty.add(MIN_DISTANCE_Y.subtract(BigDecimal.valueOf(Math.abs(iny1 - iny2))));
                             if (checkNewPosition(node2, nty, allNodes)) {
                                 node2.getGraphics().getPosition().setY(nty);
                                 editedNodes.add(node2);
                             }
-                        }
-                        else if ((ntx.compareTo(ntsx) == 0) && iny1-iny2 > 0 && iny1-iny2 < 75) {
-                            nty = nty.add(MIN_DISTANCE_Y.subtract(BigDecimal.valueOf(Math.abs(iny1-iny2))));
+                        } else if ((ntx.compareTo(ntsx) == 0) && iny1 - iny2 > 0 && iny1 - iny2 < 75) {
+                            nty = nty.add(MIN_DISTANCE_Y.subtract(BigDecimal.valueOf(Math.abs(iny1 - iny2))));
                             if (checkNewPosition(node1, nty, allNodes)) {
                                 node1.getGraphics().getPosition().setY(nty);
                                 editedNodes.add(node1);
@@ -370,7 +377,6 @@ public class Canonical2PNML {
                 }
             }
         }
-
         //correct arc positions
         for (ArcType arc : getPNML().getNet().get(0).getArc()){
             if (arc.getGraphics()!= null)
@@ -457,7 +463,9 @@ public class Canonical2PNML {
     			NodeType nextNode = (NodeType) arc.getTarget();
     			BigDecimal biggestX = new BigDecimal(0);
 
-    			if(nextNode.getGraphics().getPosition().isInsertedNode()){
+    			//if(nextNode.getGraphics().getPosition().isInsertedNode()){ --> isInsertedNode sometimes wrong?
+    			if(nextNode.getGraphics().getPosition().getX().equals(BigDecimal.ZERO)
+                        && nextNode.getGraphics().getPosition().getY().equals(BigDecimal.ZERO)){
     				//x-axis
     				Set<ArcType> inGoingArcs = incomingArcMultimap.get(nextNode);
     				// --> diese for-Schleife sinnvoll? BiggestX wird später nicht mehr verwendet und es wird auch nicht zum Werte-Setzen verwendet.
@@ -529,7 +537,9 @@ public class Canonical2PNML {
                     // minDistance + 40 bedeutet die Mindestdistanz mit der Breite des Elements (= 40)
                     // (x-Position von outNode) - (x-Position von nextNode) wird verglichen mit der Mindestdistanz inkl. der Breite des Elements
                     // Wenn der Distanz-Wert kleiner ist, wird die x-Position von nextNode + Mindestdistanz + 40 zur neuen x-Position von outNode
-					if(outNode.getGraphics().getPosition().getX().subtract(nextNode.getGraphics().getPosition().getX()).compareTo(MIN_DISTANCE_X.add(new BigDecimal(40))) < 0){
+					if(outNode.getGraphics().getPosition().getX().subtract(nextNode.getGraphics().getPosition().getX()).compareTo(
+
+					        MIN_DISTANCE_X.add(new BigDecimal(40))) < 0){
 						outNode.getGraphics().getPosition().setX(nextNode.getGraphics().getPosition().getX().add(MIN_DISTANCE_X.add(new BigDecimal(40))));
 					}
 				}
@@ -541,7 +551,7 @@ public class Canonical2PNML {
     	}
     }
 
-    public NodeType findStartElement(List<NodeType> allNodes, List<ArcType> allArcs){
+    private NodeType findStartElement(List<NodeType> allNodes, List<ArcType> allArcs){
         List<NodeType> helperListAllNodes = new ArrayList<>();
         helperListAllNodes.addAll(allNodes);
         List<NodeType> helperListRemovedNodes = new ArrayList<>();
@@ -572,7 +582,7 @@ public class Canonical2PNML {
         return helperListAllNodes.get(0);
     }
 
-    public NodeType findFirstNonInsertedNode(NodeType startElement,
+    private NodeType findFirstNonInsertedNode(NodeType startElement,
                                              ArrayList<ArcType> allArcs,
                                              ArrayList<NodeType> nodesBeforeFirstNonInserted,
                                              boolean hasAnnotations){
@@ -580,7 +590,9 @@ public class Canonical2PNML {
         NodeType firstNonInsertedNode = startElement;
 
         //by checking if position-data are not 0, 0 - isInsertedNode does not work trustworthy for this case
-        while(hasAnnotations && firstNonInsertedNode.getGraphics().getPosition().getX() == BigDecimal.ZERO) {
+        while(hasAnnotations
+                && firstNonInsertedNode.getGraphics().getPosition().getX().equals(BigDecimal.ZERO)
+                && firstNonInsertedNode.getGraphics().getPosition().getY().equals(BigDecimal.ZERO)) {
             for(ArcType arc : allArcs) {
                 if (arc.getSource().equals(firstNonInsertedNode)) {
                     followingNode = (NodeType) arc.getTarget();
@@ -593,7 +605,7 @@ public class Canonical2PNML {
         return  firstNonInsertedNode;
     }
 
-    public void correctBeginningNodesPosition(NodeType firstNonInsertedNode,
+    private void correctBeginningNodesPosition(NodeType firstNonInsertedNode,
                                               ArrayList<NodeType> nodesBeforeFirstNonInserted,
                                               NodeType firstNode,
                                               ArrayList<NodeType> allNodes){
@@ -619,6 +631,108 @@ public class Canonical2PNML {
         }
     }
 
+    private void positionSyntheticElements(boolean hasAnnotations){
+        ArrayList<NodeType> allNodes = new ArrayList<>();
+        allNodes.addAll(getPNML().getNet().get(0).getPlace());
+        allNodes.addAll(getPNML().getNet().get(0).getTransition());
+
+        //Multimap with all nodes an their corresponding arcs
+        SetMultimap<NodeType, ArcType> incomingArcMultimap = HashMultimap.create();
+        SetMultimap<NodeType, ArcType> outgoingArcMultimap = HashMultimap.create();
+
+        for (ArcType arc: data.getNet().getArc()) {
+            incomingArcMultimap.put((NodeType) arc.getTarget(), arc);
+            outgoingArcMultimap.put((NodeType) arc.getSource(), arc);
+        }
+
+        //Traverse each node (no specific order)
+        for(org.apromore.pnml.NodeType node : allNodes){
+
+            //All incoming and outgoing arcs for current node
+            ArrayList<ArcType> inArcs = new ArrayList<>(incomingArcMultimap.get(node));
+            ArrayList<ArcType> outArcs = new ArrayList<>(outgoingArcMultimap.get(node));
+
+            if(node.getGraphics().getPosition().getX() != null && node.getGraphics().getPosition().getY() != null) {
+
+                //Only position nodes that do not yet have a position (meaning x,y = 0,0)
+                if (node.getGraphics().getPosition().getX().equals(BigDecimal.ZERO)
+                        && node.getGraphics().getPosition().getY().equals(BigDecimal.ZERO)
+                        && inArcs.size() != 0 && outArcs.size() != 0) {
+
+                    //get incoming and outgoing node from current node
+                    org.apromore.pnml.NodeType inNode = (org.apromore.pnml.NodeType) inArcs.get(0).getSource();
+                    org.apromore.pnml.NodeType outNode = (org.apromore.pnml.NodeType) outArcs.get(0).getTarget();
+
+                    //get positions of incoming and outgoing node
+                    BigDecimal posXInNode = inNode.getGraphics().getPosition().getX();
+                    BigDecimal posYInNode = inNode.getGraphics().getPosition().getY();
+                    BigDecimal posXOutNode = outNode.getGraphics().getPosition().getX();
+                    BigDecimal posYOutNode = outNode.getGraphics().getPosition().getY();
+
+                    BigDecimal centeredX;
+                    BigDecimal centeredY;
+
+                    //Calculate center of incoming and outgoing node considering case if incoming or outgoing node have position x,y = 0,0.
+                    //(Must be improved!)
+                    if ((posXInNode.equals(BigDecimal.ZERO)
+                            && posYInNode.equals(BigDecimal.ZERO))) {
+
+                        ArrayList<ArcType> inNodeInArcs = new ArrayList<>(incomingArcMultimap.get(inNode));
+                        inNode = (org.apromore.pnml.NodeType) inNodeInArcs.get(0).getSource();
+                        posXInNode = inNode.getGraphics().getPosition().getX();
+                        posYInNode = inNode.getGraphics().getPosition().getY();
+                        BigDecimal centeredXComplete = (posXInNode.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+                        BigDecimal centeredYComplete = (posYInNode.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+
+                        centeredX = (centeredXComplete.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+                        centeredY = (centeredYComplete.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+
+                    } else if (posXOutNode.equals(BigDecimal.ZERO)
+                            && posYOutNode.equals(BigDecimal.ZERO)) {
+
+                        ArrayList<ArcType> outNodeOutArcs = new ArrayList<>(outgoingArcMultimap.get(outNode));
+                        outNode = (org.apromore.pnml.NodeType) outNodeOutArcs.get(0).getSource();
+                        posXOutNode = outNode.getGraphics().getPosition().getX();
+                        posYOutNode = outNode.getGraphics().getPosition().getY();
+                        BigDecimal centeredXComplete = (posXInNode.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+                        BigDecimal centeredYComplete = (posYInNode.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+
+                        centeredX = (posXInNode.add(centeredXComplete)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+                        centeredY = (posYInNode.add(centeredYComplete)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+
+                    } else {
+
+                        centeredX = (posXInNode.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+                        centeredY = (posYInNode.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+
+                    }
+                    //Finally, set the position as the calculated center
+                    node.getGraphics().getPosition().setX(centeredX);
+                    node.getGraphics().getPosition().setY(centeredY);
+                }
+            }
+        }
+
+        //correct arc positions
+        for (ArcType arc : getPNML().getNet().get(0).getArc()) {
+            if (arc.getGraphics() != null)
+                if (arc.getGraphics().getPosition() != null)
+                    arc.getGraphics().getPosition().clear();
+        }
+
+        //Finally, position synthetic nodes at the very beginnig of the graph (e. g. in case of Message / Timer Event)
+        ArrayList<ArcType> allArcs = new ArrayList<>(getPNML().getNet().get(0).getArc());
+        ArrayList<NodeType> nodesBeforeFirstNonInserted = new ArrayList<>();
+
+        //Find the first node in the graph
+        NodeType firstNode = findStartElement(allNodes, allArcs);
+
+        //Find out which is the first node that was not inserted afterwards
+        NodeType firstNonInsertedNode = findFirstNonInsertedNode(firstNode, allArcs, nodesBeforeFirstNonInserted, hasAnnotations);
+
+        //Correct the position of Nodes before first firstNonInsertedNode since traverseNodes only goes in one direction
+        correctBeginningNodesPosition(firstNonInsertedNode, nodesBeforeFirstNonInserted, firstNode, allNodes);
+    }
     /**
      * @param transition transition, which should be checked
      * @return whether <var>transition</var> is silent
