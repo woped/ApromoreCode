@@ -22,6 +22,8 @@ package org.apromore.canoniser.pnml.internal.canonical2pnml;
 
 import org.apromore.cpf.EdgeType;
 import org.apromore.cpf.NodeType;
+import org.apromore.cpf.XORJoinType;
+import org.apromore.cpf.XORSplitType;
 import org.apromore.pnml.ArcNameType;
 import org.apromore.pnml.ArcType;
 import org.apromore.pnml.PlaceType;
@@ -58,6 +60,60 @@ public class TranslateEdge {
 
         if (data.getEndNodeMap().containsKey(target)) {
             arctarget = data.getStartNodeMap().get(target);
+        }
+
+        /*XOR edges must be extended by a transition so that the actual decision from the BPMN is also mapped.
+        * (This does not happen in translateOperators - XORs are only translated as places)*/
+
+        // Synthesize Transition in case of an edge that originates from a XOR-Split
+        if(data.getxorconnectors().contains(source) && source instanceof XORSplitType){
+
+            // Create an additional arc
+            ArcType arcXOR = new ArcType();
+            arcXOR.setId(String.valueOf(ids++));
+
+            // Create the synthetic transition
+            TransitionType transitionXOR = new TransitionType();
+            transitionXOR.setId(String.valueOf(ids++));
+            transitionXOR.setGraphics(TranslateNode.newGraphicsNodeType(TranslateNode.dummyPosition(), TranslateNode.transitionDefaultDimension()));
+            data.getNet().getTransition().add(transitionXOR);
+            //Todo: Expand dataHandler with synthesizedTransitions
+            //data.getSynthesizedPlaces().add(place);
+            data.put_pnmlRefMap(transitionXOR.getId(), transitionXOR);
+
+            // Set the created arc between original edge source and the synthesized transition
+            arcXOR.setSource(arcsource);
+            arcXOR.setTarget(transitionXOR);
+            data.getNet().getArc().add(arcXOR);
+            data.put_pnmlRefMap(arcXOR.getId(), arcXOR);
+
+            // In the ongoing translation of the original edge, ignore the synthesized arc
+            arcsource = transitionXOR;
+
+        //Synthesize Transition in case of an edge that directs into a XOR-Join
+        }else if(data.getxorconnectors().contains(target) && target instanceof XORJoinType){
+
+            // Create an additional arc
+            ArcType arc2XOR = new ArcType();
+            arc2XOR.setId(String.valueOf(ids++));
+
+            // Create the synthetic transition
+            TransitionType transitionXOR = new TransitionType();
+            transitionXOR.setId(String.valueOf(ids++));
+            transitionXOR.setGraphics(TranslateNode.newGraphicsNodeType(TranslateNode.dummyPosition(), TranslateNode.transitionDefaultDimension()));
+            data.getNet().getTransition().add(transitionXOR);
+            //Todo: Expand dataHandler with synthesizedTransitions
+            //data.getSynthesizedPlaces().add(place);
+            data.put_pnmlRefMap(transitionXOR.getId(), transitionXOR);
+
+            // Set the created arc between the synthesized transition and the original edge target
+            arc2XOR.setSource(transitionXOR);
+            arc2XOR.setTarget(arctarget);
+            data.getNet().getArc().add(arc2XOR);
+            data.put_pnmlRefMap(arc2XOR.getId(), arc2XOR);
+
+            // In the ongoing translation of the original edge, ignore the synthesized arc
+            arctarget = transitionXOR;
         }
 
         if (data.isCpfEdgePnmlPlace()) {
@@ -148,6 +204,29 @@ public class TranslateEdge {
 
                 // Our original arc now targets the synthesized place
                 arctarget = place;
+            }
+
+            //Synthesize a transition in the case of an edge between two places
+            if (arcsource instanceof PlaceType && arctarget instanceof PlaceType) {
+                // Create the synthetic transition
+                TransitionType transition = new TransitionType();
+                transition.setId(String.valueOf(ids++));
+                transition.setGraphics(TranslateNode.newGraphicsNodeType(TranslateNode.dummyPosition(), TranslateNode.transitionDefaultDimension()));
+                data.getNet().getTransition().add(transition);
+                //Todo: Expand dataHandler with synthesizedTransitions
+                //data.getSynthesizedPlaces().add(place);
+                data.put_pnmlRefMap(transition.getId(), transition);
+
+                // Create outgoing arc from the synthetic transition to the original arc's target
+                ArcType arc2 = new ArcType();
+                arc2.setId(String.valueOf(ids++));
+                arc2.setSource(transition);
+                arc2.setTarget(arctarget);
+                data.getNet().getArc().add(arc2);
+                data.put_pnmlRefMap(arc2.getId(), arc2);
+
+                // Our original arc now targets the synthesized transition
+                arctarget = transition;
             }
 
             arc.setSource(arcsource);
