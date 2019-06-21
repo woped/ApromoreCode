@@ -672,35 +672,73 @@ public class Canonical2PNML {
                     BigDecimal centeredX;
                     BigDecimal centeredY;
 
-                    //Calculate center of incoming and outgoing node considering case if incoming or outgoing node have position x,y = 0,0.
-                    //(Must be improved!)
+                    //Calculate center of incoming and outgoing node
                     if ((posXInNode.equals(BigDecimal.ZERO)
                             && posYInNode.equals(BigDecimal.ZERO))) {
+                        /*
+                        * Case if incoming node has position x,y = 0,0.
+                        * Formula:
+                        * C = O + (1/3) * OP
+                        * OP = P-O
+                        *
+                        * C -> current node position
+                        * O -> outgoing node position
+                        * P -> incoming node of the incoming node
+                        * OP -> distance between O and P
+                        * */
 
                         ArrayList<ArcType> inNodeInArcs = new ArrayList<>(incomingArcMultimap.get(inNode));
                         inNode = (org.apromore.pnml.NodeType) inNodeInArcs.get(0).getSource();
                         posXInNode = inNode.getGraphics().getPosition().getX();
                         posYInNode = inNode.getGraphics().getPosition().getY();
-                        BigDecimal centeredXComplete = (posXInNode.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+
+                        centeredX = posXOutNode.add((posXInNode.subtract(posXOutNode)).divide(BigDecimal.valueOf(3), BigDecimal.ROUND_UP));
+                        centeredY = posYOutNode.add((posYInNode.subtract(posYOutNode)).divide(BigDecimal.valueOf(3), BigDecimal.ROUND_UP));
+
+                        /*BigDecimal centeredXComplete = (posXInNode.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
                         BigDecimal centeredYComplete = (posYInNode.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
 
                         centeredX = (centeredXComplete.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
-                        centeredY = (centeredYComplete.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+                        centeredY = (centeredYComplete.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);*/
 
                     } else if (posXOutNode.equals(BigDecimal.ZERO)
                             && posYOutNode.equals(BigDecimal.ZERO)) {
+                        /*
+                         * Case if outgoing node has position x,y = 0,0.
+                         * Formula:
+                         * C = I + (1/3) * IA
+                         * IA = A-I
+                         *
+                         * C -> current node position
+                         * I -> incoming node position
+                         * A -> outgoing node of the outgoing node
+                         * IA -> distance between I and A
+                         * */
 
                         ArrayList<ArcType> outNodeOutArcs = new ArrayList<>(outgoingArcMultimap.get(outNode));
-                        outNode = (org.apromore.pnml.NodeType) outNodeOutArcs.get(0).getSource();
+                        outNode = (org.apromore.pnml.NodeType) outNodeOutArcs.get(0).getTarget();
                         posXOutNode = outNode.getGraphics().getPosition().getX();
                         posYOutNode = outNode.getGraphics().getPosition().getY();
-                        BigDecimal centeredXComplete = (posXInNode.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+
+                        centeredX = posXInNode.add((posXOutNode.subtract(posXInNode)).divide(BigDecimal.valueOf(3), BigDecimal.ROUND_UP));
+                        centeredY = posYInNode.add((posYOutNode.subtract(posYInNode)).divide(BigDecimal.valueOf(3), BigDecimal.ROUND_UP));
+
+                        /*BigDecimal centeredXComplete = (posXInNode.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
                         BigDecimal centeredYComplete = (posYInNode.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
 
                         centeredX = (posXInNode.add(centeredXComplete)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
-                        centeredY = (posYInNode.add(centeredYComplete)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
+                        centeredY = (posYInNode.add(centeredYComplete)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);*/
 
                     } else {
+                        /*
+                         * Case if incoming and outgoing nodes have a valid position.
+                         * Formula:
+                         * C = (I + O) / 2
+                         *
+                         * C -> current node position (center point)
+                         * I -> incoming node position
+                         * O -> outgoing node position
+                         * */
 
                         centeredX = (posXInNode.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
                         centeredY = (posYInNode.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
