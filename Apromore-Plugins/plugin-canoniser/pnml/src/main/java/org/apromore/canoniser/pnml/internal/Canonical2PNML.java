@@ -695,12 +695,6 @@ public class Canonical2PNML {
                         centeredX = posXOutNode.add((posXInNode.subtract(posXOutNode)).divide(BigDecimal.valueOf(3), BigDecimal.ROUND_UP));
                         centeredY = posYOutNode.add((posYInNode.subtract(posYOutNode)).divide(BigDecimal.valueOf(3), BigDecimal.ROUND_UP));
 
-                        /*BigDecimal centeredXComplete = (posXInNode.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
-                        BigDecimal centeredYComplete = (posYInNode.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
-
-                        centeredX = (centeredXComplete.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
-                        centeredY = (centeredYComplete.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);*/
-
                     } else if (posXOutNode.equals(BigDecimal.ZERO)
                             && posYOutNode.equals(BigDecimal.ZERO)) {
                         /*
@@ -722,12 +716,6 @@ public class Canonical2PNML {
 
                         centeredX = posXInNode.add((posXOutNode.subtract(posXInNode)).divide(BigDecimal.valueOf(3), BigDecimal.ROUND_UP));
                         centeredY = posYInNode.add((posYOutNode.subtract(posYInNode)).divide(BigDecimal.valueOf(3), BigDecimal.ROUND_UP));
-
-                        /*BigDecimal centeredXComplete = (posXInNode.add(posXOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
-                        BigDecimal centeredYComplete = (posYInNode.add(posYOutNode)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
-
-                        centeredX = (posXInNode.add(centeredXComplete)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);
-                        centeredY = (posYInNode.add(centeredYComplete)).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP);*/
 
                     } else {
                         /*
