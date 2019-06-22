@@ -294,6 +294,9 @@ public class Canonical2PNML {
         Collections.sort(allNodes, new NodeTypeComparator());
         allArcs.addAll(getPNML().getNet().get(0).getArc());
 
+        /*
+        Commented out since simplify() does not support multiple starting nodes
+
         //Find the first node in the graph
         NodeType firstNode = findStartElement(allNodes, allArcs);
 
@@ -304,6 +307,7 @@ public class Canonical2PNML {
 
         //Correct the position of Nodes before first firstNonInsertedNode since traverseNodes only goes in one direction
         correctBeginningNodesPosition(firstNonInsertedNode, nodesBeforeFirstNonInserted, firstNode, allNodes);
+        */
 
         //#2018Finger: Change duplicate positions
         //just correcting position if 2 elements are on the same spot.
@@ -551,11 +555,11 @@ public class Canonical2PNML {
     	}
     }
 
-    private NodeType findStartElement(List<NodeType> allNodes, List<ArcType> allArcs){
-        List<NodeType> helperListAllNodes = new ArrayList<>();
-        helperListAllNodes.addAll(allNodes);
-        List<NodeType> helperListRemovedNodes = new ArrayList<>();
-        List<NodeType> helperListRetainedNodes = new ArrayList<>();
+    private ArrayList<NodeType> findStartElement(List<NodeType> allNodes, List<ArcType> allArcs){
+
+        ArrayList<NodeType> helperListAllNodes = new ArrayList<>(allNodes);
+        ArrayList<NodeType> helperListRemovedNodes = new ArrayList<>();
+        ArrayList<NodeType> helperListRetainedNodes = new ArrayList<>();
 
         //remove all nodes that do have an incoming arc
         for (ArcType arc : allArcs) {
@@ -564,7 +568,6 @@ public class Canonical2PNML {
                     helperListRemovedNodes.add(node);
             }
         }
-
         helperListAllNodes.removeAll(helperListRemovedNodes);
 
         //remove all nodes that do not have an outgoing arc
@@ -579,54 +582,62 @@ public class Canonical2PNML {
         }
 
         //return last remaining
-        return helperListAllNodes.get(0);
+        return helperListAllNodes;
     }
 
-    private NodeType findFirstNonInsertedNode(NodeType startElement,
-                                             ArrayList<ArcType> allArcs,
-                                             ArrayList<NodeType> nodesBeforeFirstNonInserted,
-                                             boolean hasAnnotations){
-        NodeType followingNode;
-        NodeType firstNonInsertedNode = startElement;
+    private ArrayList<NodeType> findFirstNonInsertedNode(ArrayList<NodeType> startElementList,
+                                                         ArrayList<ArcType> allArcs,
+                                                         ArrayList<NodeType> nodesBeforeFirstNonInserted,
+                                                         boolean hasAnnotations){
 
-        //by checking if position-data are not 0, 0 - isInsertedNode does not work trustworthy for this case
-        while(hasAnnotations
-                && firstNonInsertedNode.getGraphics().getPosition().getX().equals(BigDecimal.ZERO)
-                && firstNonInsertedNode.getGraphics().getPosition().getY().equals(BigDecimal.ZERO)) {
-            for(ArcType arc : allArcs) {
-                if (arc.getSource().equals(firstNonInsertedNode)) {
-                    followingNode = (NodeType) arc.getTarget();
-                    nodesBeforeFirstNonInserted.add(firstNonInsertedNode);
-                    firstNonInsertedNode = followingNode;
-                    break;
+        ArrayList<NodeType> firstNonInsertedNodeList = new ArrayList<>();
+
+        for(NodeType startElement : startElementList) {
+
+            NodeType followingNode;
+            NodeType firstNonInsertedNode = startElement;
+
+            //by checking if position-data are not 0, 0 - isInsertedNode does not work trustworthy for this case
+            while (hasAnnotations
+                    && firstNonInsertedNode.getGraphics().getPosition().getX().equals(BigDecimal.ZERO)
+                    && firstNonInsertedNode.getGraphics().getPosition().getY().equals(BigDecimal.ZERO)) {
+                for (ArcType arc : allArcs) {
+                    if (arc.getSource().equals(firstNonInsertedNode)) {
+                        followingNode = (NodeType) arc.getTarget();
+                        nodesBeforeFirstNonInserted.add(firstNonInsertedNode);
+                        firstNonInsertedNode = followingNode;
+                        firstNonInsertedNodeList.add(firstNonInsertedNode);
+                        break;
+                    }
                 }
             }
         }
-        return  firstNonInsertedNode;
+        return  firstNonInsertedNodeList;
     }
 
-    private void correctBeginningNodesPosition(NodeType firstNonInsertedNode,
-                                              ArrayList<NodeType> nodesBeforeFirstNonInserted,
-                                              NodeType firstNode,
+    private void correctBeginningNodesPosition(ArrayList<NodeType> firstNonInsertedNodeList,
+                                              ArrayList<NodeType> nodesBeforeFirstNonInsertedList,
+                                              ArrayList<NodeType> firstNodeList,
                                               ArrayList<NodeType> allNodes){
 
-        //First, set positions of all nodesBeforeFirstNonInserted
-        if (nodesBeforeFirstNonInserted.size() != 0) {
-            int quantity = nodesBeforeFirstNonInserted.size();
-            for (NodeType node : nodesBeforeFirstNonInserted) {
-                node.getGraphics().getPosition().setY(firstNonInsertedNode.getGraphics().getPosition().getY());
-                node.getGraphics().getPosition().setX(firstNonInsertedNode.getGraphics().getPosition().getX().subtract(MIN_DISTANCE_X.multiply(BigDecimal.valueOf(quantity))));
-                quantity = quantity - 1;
-            }
+        int sizeNodesBeforeNonInsertedList = nodesBeforeFirstNonInsertedList.size();
+        for(int i=0; i<sizeNodesBeforeNonInsertedList; i++) {
+            //First, set positions of all nodesBeforeFirstNonInserted
+            nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setY(
+                    firstNonInsertedNodeList.get(i).getGraphics().getPosition().getY());
+            nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setX(
+                    firstNonInsertedNodeList.get(i).getGraphics().getPosition().getX().subtract(MIN_DISTANCE_X));
         }
 
-        //Second, check if there are nodes that have negative x-coordinates
-        BigDecimal firstNodePosX = firstNode.getGraphics().getPosition().getX();
-        if(firstNodePosX.compareTo(BigDecimal.ZERO) < 0){
-            //correct x-coordinate of all nodes, so that there isn't any node with a negative x-coordinate
-            for(NodeType node : allNodes){
-                BigDecimal posX = node.getGraphics().getPosition().getX();
-                node.getGraphics().getPosition().setX(posX.add(firstNodePosX.abs()));
+        for(NodeType firstNode : firstNodeList) {
+            //Second, check if there are nodes that have negative x-coordinates
+            BigDecimal firstNodePosX = firstNode.getGraphics().getPosition().getX();
+            if (firstNodePosX.compareTo(BigDecimal.ZERO) < 0) {
+                //correct x-coordinate of all nodes, so that there isn't any node with a negative x-coordinate
+                for (NodeType node : allNodes) {
+                    BigDecimal posX = node.getGraphics().getPosition().getX();
+                    node.getGraphics().getPosition().setX(posX.add(firstNodePosX.abs()));
+                }
             }
         }
     }
@@ -751,13 +762,13 @@ public class Canonical2PNML {
         ArrayList<NodeType> nodesBeforeFirstNonInserted = new ArrayList<>();
 
         //Find the first node in the graph
-        NodeType firstNode = findStartElement(allNodes, allArcs);
+        ArrayList<NodeType> firstNodeList = findStartElement(allNodes, allArcs);
 
         //Find out which is the first node that was not inserted afterwards
-        NodeType firstNonInsertedNode = findFirstNonInsertedNode(firstNode, allArcs, nodesBeforeFirstNonInserted, hasAnnotations);
+        ArrayList<NodeType> firstNonInsertedNodeList = findFirstNonInsertedNode(firstNodeList, allArcs, nodesBeforeFirstNonInserted, hasAnnotations);
 
         //Correct the position of Nodes before first firstNonInsertedNode since traverseNodes only goes in one direction
-        correctBeginningNodesPosition(firstNonInsertedNode, nodesBeforeFirstNonInserted, firstNode, allNodes);
+        correctBeginningNodesPosition(firstNonInsertedNodeList, nodesBeforeFirstNonInserted, firstNodeList, allNodes);
     }
     /**
      * @param transition transition, which should be checked
