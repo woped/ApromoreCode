@@ -49,6 +49,7 @@ public class Canonical2PNML {
     //Constants
     public static final BigDecimal MIN_DISTANCE_X = new BigDecimal(70);
     public static final BigDecimal MIN_DISTANCE_Y = new BigDecimal(80);
+    public static final BigDecimal MIN_SIZE = new BigDecimal(80);
 
     // static final private Logger LOGGER = Logger.getLogger(Canonical2PNML.class.getCanonicalName());
 
@@ -103,6 +104,9 @@ public class Canonical2PNML {
 
         //New positioning algorithm
         positionSyntheticElements(annotations != null);
+
+        // Define the factor magnification to evenly enlarge the model so that all synthetic elements have enough space.
+        factorEnlargementOfModel();
 
         //Not needed anymore - Replaced by positionSyntheticElements
         // Structural simplifications
@@ -553,6 +557,75 @@ public class Canonical2PNML {
     			traverseNodes((NodeType) arc.getTarget(), outgoingArcMultimap, incomingArcMultimap);
     		}
     	}
+    }
+
+    //Method: Define the factor magnification to evenly enlarge the model so that all synthetic elements have enough space.
+    private void factorEnlargementOfModel(){
+
+        // find the shortest arc and its length
+        ArcType shortestArc = findShortestEdge();
+        double lengthOfShortestArc = absoluteLengthOfArc(shortestArc);
+
+        // enlarge the shortest edge to an reasonable size of MIN_SIZE
+        if (lengthOfShortestArc < MIN_SIZE.toBigInteger().intValue()){
+            double relation = MIN_SIZE.toBigInteger().intValue() / lengthOfShortestArc;
+
+            // get all nodes in once
+            ArrayList<NodeType> allNodes = new ArrayList<>();
+            allNodes.addAll(getPNML().getNet().get(0).getPlace());
+            allNodes.addAll(getPNML().getNet().get(0).getTransition());
+
+            // iterate all nodes to reposition the nodes, so that the nodes will have more distance,
+            // but it still has the old appearance and relation between the nodes
+            for(NodeType node : allNodes){
+                double nodeX = node.getGraphics().getPosition().getX().toBigInteger().intValue();
+                double nodeY = node.getGraphics().getPosition().getY().toBigInteger().intValue();
+                node.getGraphics().getPosition().setX(new BigDecimal(nodeX * relation));
+                node.getGraphics().getPosition().setY(new BigDecimal(nodeY * relation));
+            }
+        }
+    }
+
+    // Method: find the shortest arc in the whole model by absolute value of edge length
+    private ArcType findShortestEdge(){
+        ArcType arc = new ArcType();
+
+        // Initialize variable absoluteLength and help with the same value
+        // absoluteLength shall save the shortest length of all arcs
+        // help shall iterate all lengths of the arcs to find a length with is smaller than the length, which is saved in absoluteLength
+        // If it is smaller, the value of help will be saved in absoluteLength.
+        double absoluteLength = absoluteLengthOfArc(data.getNet().getArc().get(0));
+        double help = absoluteLength;
+
+        for (ArcType tempArc: data.getNet().getArc()) {
+            help = absoluteLengthOfArc(tempArc);
+
+            if(help < absoluteLength){
+                arc = tempArc;
+                absoluteLength = help;
+            }
+        }
+
+        return arc;
+    }
+
+    // Method: Calculation of vector length of the arc
+    private double absoluteLengthOfArc (ArcType arc){
+        NodeType source = (NodeType) arc.getSource();
+        NodeType target = (NodeType) arc.getTarget();
+
+        // get the position of the source and the target of the arc
+        int sourceX = source.getGraphics().getPosition().getX().toBigInteger().intValue();
+        int sourceY = source.getGraphics().getPosition().getY().toBigInteger().intValue();
+        int targetX = target.getGraphics().getPosition().getX().toBigInteger().intValue();
+        int targetY = target.getGraphics().getPosition().getY().toBigInteger().intValue();
+
+        // Calculate vector components
+        int vectorArcX = targetX - sourceX;
+        int vectorArcY = targetY - sourceY;
+
+        // Calculate absolute value of vector
+        return Math.sqrt(vectorArcX * vectorArcX + vectorArcY * vectorArcY);
     }
 
     private ArrayList<NodeType> findStartElement(List<NodeType> allNodes, List<ArcType> allArcs){
