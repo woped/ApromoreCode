@@ -32,13 +32,14 @@ package org.apromore.canoniser.pnml.internal;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
+import org.apromore.anf.AnnotationType;
 import org.apromore.anf.AnnotationsType;
+import org.apromore.anf.GraphicsType;
 import org.apromore.canoniser.pnml.internal.canonical2pnml.*;
-import org.apromore.cpf.CPFSchema;
-import org.apromore.cpf.CanonicalProcessType;
+import org.apromore.cpf.*;
 import org.apromore.cpf.NetType;
-import org.apromore.cpf.ResourceTypeType;
 import org.apromore.pnml.*;
+import org.apromore.pnml.NodeType;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -47,10 +48,9 @@ import java.util.*;
 
 public class Canonical2PNML {
     //Constants
-    public static final BigDecimal MIN_DISTANCE_X = new BigDecimal(70);
-    public static final BigDecimal MIN_DISTANCE_Y = new BigDecimal(80);
-    public static final BigDecimal MIN_SIZE = new BigDecimal(80);
-
+    private static final BigDecimal MIN_DISTANCE_X = new BigDecimal(70);
+    private static final BigDecimal MIN_DISTANCE_Y = new BigDecimal(80);
+    private static final BigDecimal MIN_SIZE = new BigDecimal(80);
     // static final private Logger LOGGER = Logger.getLogger(Canonical2PNML.class.getCanonicalName());
 
     private DataHandler data = new DataHandler();
@@ -89,6 +89,7 @@ public class Canonical2PNML {
 
          if (annotations != null) {
              ta.mapNodeAnnotations(annotations);
+             positionDoubleBendedArcs(annotations);
          }
 
         //Not needed anymore since XORs are na translated as Places
@@ -103,7 +104,7 @@ public class Canonical2PNML {
         }
 
         //New positioning algorithm
-        positionSyntheticElements(annotations != null);
+        positionSyntheticElements();
 
         // Define the factor magnification to evenly enlarge the model so that all synthetic elements have enough space.
         factorEnlargementOfModel();
@@ -560,7 +561,7 @@ public class Canonical2PNML {
     }
 
     //Method: Define the factor magnification to evenly enlarge the model so that all synthetic elements have enough space.
-    private void factorEnlargementOfModel(){
+    private double factorEnlargementOfModel(){
 
         // find the shortest arc and its length
         ArcType shortestArc = findShortestEdge();
@@ -583,7 +584,9 @@ public class Canonical2PNML {
                 node.getGraphics().getPosition().setX(new BigDecimal(nodeX * relation));
                 node.getGraphics().getPosition().setY(new BigDecimal(nodeY * relation));
             }
+            return relation;
         }
+        return 1;
     }
 
     // Method: find the shortest arc in the whole model by absolute value of edge length
@@ -660,8 +663,7 @@ public class Canonical2PNML {
 
     private ArrayList<NodeType> findFirstNonInsertedNode(ArrayList<NodeType> startElementList,
                                                          ArrayList<ArcType> allArcs,
-                                                         ArrayList<NodeType> nodesBeforeFirstNonInserted,
-                                                         boolean hasAnnotations){
+                                                         ArrayList<NodeType> nodesBeforeFirstNonInserted){
 
         ArrayList<NodeType> firstNonInsertedNodeList = new ArrayList<>();
 
@@ -671,8 +673,7 @@ public class Canonical2PNML {
             NodeType firstNonInsertedNode = startElement;
 
             //by checking if position-data are not 0, 0 - isInsertedNode does not work trustworthy for this case
-            while (hasAnnotations
-                    && firstNonInsertedNode.getGraphics().getPosition().getX().equals(BigDecimal.ZERO)
+            while (firstNonInsertedNode.getGraphics().getPosition().getX().equals(BigDecimal.ZERO)
                     && firstNonInsertedNode.getGraphics().getPosition().getY().equals(BigDecimal.ZERO)) {
                 for (ArcType arc : allArcs) {
                     if (arc.getSource().equals(firstNonInsertedNode)) {
@@ -715,7 +716,7 @@ public class Canonical2PNML {
         }
     }
 
-    private void positionSyntheticElements(boolean hasAnnotations){
+    private void positionSyntheticElements(){
         ArrayList<NodeType> allNodes = new ArrayList<>();
         allNodes.addAll(getPNML().getNet().get(0).getPlace());
         allNodes.addAll(getPNML().getNet().get(0).getTransition());
@@ -838,7 +839,7 @@ public class Canonical2PNML {
         ArrayList<NodeType> firstNodeList = findStartElement(allNodes, allArcs);
 
         //Find out which is the first node that was not inserted afterwards
-        ArrayList<NodeType> firstNonInsertedNodeList = findFirstNonInsertedNode(firstNodeList, allArcs, nodesBeforeFirstNonInserted, hasAnnotations);
+        ArrayList<NodeType> firstNonInsertedNodeList = findFirstNonInsertedNode(firstNodeList, allArcs, nodesBeforeFirstNonInserted);
 
         //Correct the position of Nodes before first firstNonInsertedNode since traverseNodes only goes in one direction
         correctBeginningNodesPosition(firstNonInsertedNodeList, nodesBeforeFirstNonInserted, firstNodeList, allNodes);
@@ -849,6 +850,77 @@ public class Canonical2PNML {
      */
     private boolean isSilent(TransitionType transition) {
         return transition.getName() == null;
+    }
+
+    //Method: Returns a Map containing ANF-PositionTypes of original ANF-Arcs that have two Arc-Points (e.g. loops) mapped with their original CPF-ID
+    private Map<String, List<org.apromore.anf.PositionType>> findDoubleBendedArcs(AnnotationsType annotations){
+
+        Map<String, List<org.apromore.anf.PositionType>> doubleBendedArcs = new HashMap();
+
+        //Iterate all annotations and add to map if it has 4 Position-information
+        //First position -> start point of arc; second -> arc point 1; third -> arc point 2; fourth -> end point of arc
+        for(AnnotationType annotation : annotations.getAnnotation()){
+            GraphicsType annotationGraphics = (GraphicsType) annotation;
+            List<org.apromore.anf.PositionType> positionList = annotationGraphics.getPosition();
+
+            if(positionList.size() == 4){
+                ArrayList<org.apromore.anf.PositionType> arcPoints = new ArrayList<>();
+                //Add 1 and 2 since they are the arc points
+                arcPoints.add(positionList.get(1));
+                arcPoints.add(positionList.get(2));
+                doubleBendedArcs.put(annotation.getCpfId(), arcPoints);
+            }
+        }
+        return doubleBendedArcs;
+    }
+
+    //Method: Position pnml nodes that are synthetic and between double bended anf-arcs
+    private void positionDoubleBendedArcs(AnnotationsType annotations){
+
+        //find all double bended arcs in anf
+        Map<String, List<org.apromore.anf.PositionType>> doubleBendedArcs = findDoubleBendedArcs(annotations);
+        List<ArcType> allArcs = getPNML().getNet().get(0).getArc();
+
+        //iterate all pnml-arcs
+        for(ArcType arc : allArcs){
+            String arcId = arc.getId();
+            Map<String, String> idMap = data.get_id_map();
+            String arcOriginalId = getKeyByValue(idMap, arcId);
+
+            //Check if pnml-arc is one replacing a double bended anf-arc
+            if(doubleBendedArcs.containsKey(arcOriginalId)){
+                List<org.apromore.anf.PositionType> arcPoints = doubleBendedArcs.get(arcOriginalId);
+                org.apromore.anf.PositionType firstArcPoint = arcPoints.get(0);
+                org.apromore.anf.PositionType secondArcPoint = arcPoints.get(1);
+
+                //Calculate center between arc-points
+                BigDecimal centeredX = (firstArcPoint.getX().add(secondArcPoint.getX())).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP).subtract(BigDecimal.valueOf(20));
+                BigDecimal centeredY = (firstArcPoint.getY().add(secondArcPoint.getY())).divide(BigDecimal.valueOf(2), BigDecimal.ROUND_UP).subtract(BigDecimal.valueOf(20));
+
+                //find Node that was synthesized for double bended arc
+                NodeType arcNode = (NodeType) arc.getTarget();
+
+                if(!arcNode.getGraphics().getPosition().getY().equals(BigDecimal.ZERO)
+                        && !arcNode.getGraphics().getPosition().getX().equals(BigDecimal.ZERO)){
+                    arcNode = (NodeType) arc.getSource();
+                }
+
+                //finally, position node in center of arc points
+                arcNode.getGraphics().getPosition().setX(centeredX);
+                arcNode.getGraphics().getPosition().setY(centeredY);
+            }
+        }
+
+
+    }
+
+    public static <T, E> T getKeyByValue(Map<T, E> map, E value) {
+        for (Map.Entry<T, E> entry : map.entrySet()) {
+            if (Objects.equals(value, entry.getValue())) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     public static void main(String[] args) throws Exception {
