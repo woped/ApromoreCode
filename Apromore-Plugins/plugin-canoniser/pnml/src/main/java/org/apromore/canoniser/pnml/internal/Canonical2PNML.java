@@ -570,7 +570,7 @@ public class Canonical2PNML {
     }
 
     //Method: Define the factor magnification to evenly enlarge the model so that all synthetic elements have enough space.
-    private double factorEnlargementOfModel(){
+    private void factorEnlargementOfModel(){
 
         // find the shortest arc and its length
         ArcType shortestArc = findShortestEdge();
@@ -585,17 +585,29 @@ public class Canonical2PNML {
             allNodes.addAll(getPNML().getNet().get(0).getPlace());
             allNodes.addAll(getPNML().getNet().get(0).getTransition());
 
+            // find those nodes, which are nearest on the right side and on the top side
+            NodeType nodeWithSmallestX = findNodeWithSmallestPositionValue(allNodes,true);
+            NodeType nodeWithSmallestY = findNodeWithSmallestPositionValue(allNodes,false);
+
+            // Calculate the correction values for the positions of the nodes, which are nearest on the right side and on the top side,
+            // so that the model is not so far away from the beginning of the window
+            int xSmallestPosition = nodeWithSmallestX.getGraphics().getPosition().getX().toBigInteger().intValue();
+            int ySmallestPosition = nodeWithSmallestY.getGraphics().getPosition().getY().toBigInteger().intValue();
+
+            // the default point in the graphics is P(100/100), where the model shall begin to be drawn
+            double correctionXPosition = xSmallestPosition * relation - 100;
+            double correctionYPosition = ySmallestPosition * relation - 100;
+
             // iterate all nodes to reposition the nodes, so that the nodes will have more distance,
             // but it still has the old appearance and relation between the nodes
+            // also the correctionPosition corrects the position of the model, so that the model is positioned at the beginning of the file
             for(NodeType node : allNodes){
                 double nodeX = node.getGraphics().getPosition().getX().toBigInteger().intValue();
                 double nodeY = node.getGraphics().getPosition().getY().toBigInteger().intValue();
-                node.getGraphics().getPosition().setX(new BigDecimal(nodeX * relation));
-                node.getGraphics().getPosition().setY(new BigDecimal(nodeY * relation));
+                node.getGraphics().getPosition().setX(new BigDecimal(nodeX * relation - correctionXPosition));
+                node.getGraphics().getPosition().setY(new BigDecimal(nodeY * relation - correctionYPosition));
             }
-            return relation;
         }
-        return 1;
     }
 
     // Method: find the shortest arc in the whole model by absolute value of edge length
@@ -638,6 +650,38 @@ public class Canonical2PNML {
 
         // Calculate absolute value of vector
         return Math.sqrt(vectorArcX * vectorArcX + vectorArcY * vectorArcY);
+    }
+
+    // Method: finds the node, which is nearest to the right side, when boolean is set true
+    //         or finds the node, which is nearest to the top, when boolean is set false
+    private NodeType findNodeWithSmallestPositionValue(ArrayList<NodeType> allNodes, boolean xValueNotYValue){
+        // get a default node to have a comparison value to find the searched node
+        NodeType node = allNodes.get(0);
+        int smallestPositionValue = 0;
+        // it depends on, whether the algorithm shall find the node with smallest x-position or with smallest y-position
+        if (xValueNotYValue){
+            smallestPositionValue = node.getGraphics().getPosition().getX().toBigInteger().intValue();
+        } else {
+            smallestPositionValue = node.getGraphics().getPosition().getY().toBigInteger().intValue();
+        }
+        int help = smallestPositionValue;
+
+        // iterate all nodes, so that x-positions or y-positions will be compared to those of the other nodes to find the smallest value
+        for (NodeType tempNode : allNodes) {
+            if (xValueNotYValue) {
+                help = tempNode.getGraphics().getPosition().getX().toBigInteger().intValue();
+            }
+            else {
+                help = tempNode.getGraphics().getPosition().getY().toBigInteger().intValue();
+            }
+
+            if (help < smallestPositionValue) {
+                node = tempNode;
+                smallestPositionValue = help;
+            }
+        }
+
+        return node;
     }
 
     private ArrayList<NodeType> findStartElement(List<NodeType> allNodes, List<ArcType> allArcs){
