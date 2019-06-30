@@ -87,33 +87,29 @@ public class Canonical2PNML {
         decanonise(cproc, annotations);
         ta.setValue(data);
 
-         if (annotations != null) {
-             ta.mapNodeAnnotations(annotations);
-             positionDoubleBendedArcs(annotations);
-         }
-
-        //Not needed anymore since XORs are na translated as Places
-        boolean runAddXorOperators = false;
-        // Expand XOR (and OR) routing from from PNML transitions to their complete structures
-        if(runAddXorOperators) {
+        //If annotation exists, run new ANF-dependent layout algorithm, else run old
+        if (annotations != null) {
+            //map ANF and pnml
+            ta.mapNodeAnnotations(annotations);
+            //position double bended arcs (e. g. loops)
+            positionDoubleBendedArcs(annotations);
+            //ANF-dependent algorithm
+            positionSyntheticElements();
+            // Define the factor magnification to evenly enlarge the model so that all synthetic elements have enough space.
+            factorEnlargementOfModel();
+        }else {
+            //Not needed anymore since XORs are na translated as Places
+            /* Commented out because of new translation-order in decanonise
+            // Expand XOR (and OR) routing from from PNML transitions to their complete structures
             AddXorOperators ax = new AddXorOperators();
             ax.setValues(data, ids);
             ax.add(cproc);
             ids = ax.getIds();
             cproc = ax.getCanonicalProcess();
-        }
-
-        //New positioning algorithm
-        positionSyntheticElements();
-
-        // Define the factor magnification to evenly enlarge the model so that all synthetic elements have enough space.
-        factorEnlargementOfModel();
-
-        //Not needed anymore - Replaced by positionSyntheticElements
-        // Structural simplifications
-        boolean runSimplify = false;
-        if(runSimplify) {
-            simplify(annotations != null);
+            */
+            //Not needed anymore - Replaced by positionSyntheticElements
+            // Structural simplifications
+            simplify();
         }
 
     }
@@ -198,7 +194,7 @@ public class Canonical2PNML {
         data.getPnml().getNet().add(data.getNet());
     }
 
-    private void simplify(boolean hasAnnotations) {
+    private void simplify() {
         //LOGGER.info("Performing structural simplifications"); 
 
         SetMultimap<NodeType, ArcType> incomingArcMultimap = HashMultimap.create();
@@ -299,20 +295,33 @@ public class Canonical2PNML {
         Collections.sort(allNodes, new NodeTypeComparator());
         allArcs.addAll(getPNML().getNet().get(0).getArc());
 
-        /*
-        Commented out since simplify() does not support multiple starting nodes
+
+        /*Commented out some parts since simplify() does not support multiple starting nodes
 
         //Find the first node in the graph
-        NodeType firstNode = findStartElement(allNodes, allArcs);
+        ArrayList<NodeType> firstNodeList = findStartElement(allNodes, allArcs);
 
-        //Find out which is the first node that was not inserted afterwards
-        NodeType firstNonInsertedNode = findFirstNonInsertedNode(firstNode, allArcs, nodesBeforeFirstNonInserted, hasAnnotations);
+        //Cant find first non inserted Node since aleways annotation = null
+        //Find out which is the first node that was not inserted afterwards;
+        ArrayList<NodeType> firstNonInsertedNode = findFirstNonInsertedNode(firstNodeList, allArcs, nodesBeforeFirstNonInserted);*/
 
+        NodeType firstNonInsertedNode = allNodes.get(0);
+
+        for(NodeType node : allNodes){
+            if(node.getGraphics().getPosition().getX().equals(BigDecimal.ZERO)
+                    && node.getGraphics().getPosition().getY().equals(BigDecimal.ZERO)){
+                firstNonInsertedNode = node;
+                break;
+            }
+        }
+
+        //get(0) since traverseNodes does not support multiple start elements
         traverseNodes(firstNonInsertedNode, outgoingArcMultimap, incomingArcMultimap);
 
+        /* Commented out since incompability with old algorithm (traverse nodes)
         //Correct the position of Nodes before first firstNonInsertedNode since traverseNodes only goes in one direction
-        correctBeginningNodesPosition(firstNonInsertedNode, nodesBeforeFirstNonInserted, firstNode, allNodes);
-        */
+        correctBeginningNodesPosition(firstNonInsertedNode, nodesBeforeFirstNonInserted, firstNodeList, allNodes);*/
+
 
         //#2018Finger: Change duplicate positions
         //just correcting position if 2 elements are on the same spot.
