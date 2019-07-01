@@ -89,6 +89,7 @@ public class Canonical2PNML {
 
         //If annotation exists, run new ANF-dependent layout algorithm, else run old
         if (annotations != null) {
+            removeElements();
             //map ANF and pnml
             ta.mapNodeAnnotations(annotations);
             //position double bended arcs (e. g. loops)
@@ -194,8 +195,8 @@ public class Canonical2PNML {
         data.getPnml().getNet().add(data.getNet());
     }
 
-    private void simplify() {
-        //LOGGER.info("Performing structural simplifications"); 
+    private void removeElements(){
+        //LOGGER.info("Performing structural simplifications");
 
         SetMultimap<NodeType, ArcType> incomingArcMultimap = HashMultimap.create();
         SetMultimap<NodeType, ArcType> outgoingArcMultimap = HashMultimap.create();
@@ -220,7 +221,7 @@ public class Canonical2PNML {
             // Wenn die künstlich hergestellte Stelle einen Eingangs- und einen Ausgangspfeil hat,
             // dann werden Eingangs- und Ausgangspfeil in ein extra ArcType-Objekt und die dazwischenliegende Transition gespeichert.
             if (incomingArcMultimap.get(place).size() == 1 &&
-                outgoingArcMultimap.get(place).size() == 1) {
+                    outgoingArcMultimap.get(place).size() == 1) {
 
                 // Assign: --incomingArc-> (place) --outgoingArc->
                 ArcType incomingArc = incomingArcMultimap.get(place).iterator().next();
@@ -282,8 +283,13 @@ public class Canonical2PNML {
         //*
         // Jetzt werden die künstlich hergestellten Stellen, die in dem gesonderten Array synthesizedPlaces gespeichert sind, geleert.
         data.getSynthesizedPlaces().clear();
-        //LOGGER.info("Performed structural simplifications");      
+        //LOGGER.info("Performed structural simplifications");
 
+    }
+
+    private void simplify() {
+
+        removeElements();
 
       //layout optimization
         ArrayList<NodeType> allNodes = new ArrayList<>();
@@ -316,7 +322,7 @@ public class Canonical2PNML {
         }
 
         //get(0) since traverseNodes does not support multiple start elements
-        traverseNodes(firstNonInsertedNode, outgoingArcMultimap, incomingArcMultimap);
+        traverseNodes(firstNonInsertedNode, createOutgoingArcMultimap(), createIncomingArcMultimap());
 
         /* Commented out since incompability with old algorithm (traverse nodes)
         //Correct the position of Nodes before first firstNonInsertedNode since traverseNodes only goes in one direction
@@ -612,7 +618,7 @@ public class Canonical2PNML {
 
     // Method: find the shortest arc in the whole model by absolute value of edge length
     private ArcType findShortestEdge(){
-        ArcType arc = new ArcType();
+        ArcType arc = data.getNet().getArc().get(0);
 
         // Initialize variable absoluteLength and help with the same value
         // absoluteLength shall save the shortest length of all arcs
@@ -808,6 +814,10 @@ public class Canonical2PNML {
                 }
             }
         }
+    }
+
+    public boolean hasXor(){
+        return data.getxorconnectors().size()==1?true:false;
     }
 
     //creates multimap with all nodes an their corresponding incoming arcs

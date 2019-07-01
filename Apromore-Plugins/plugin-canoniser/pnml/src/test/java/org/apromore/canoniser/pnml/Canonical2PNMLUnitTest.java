@@ -155,9 +155,9 @@ public class Canonical2PNMLUnitTest {
         // Inspect the result
         assertEquals(1, pnml.getNet().size());
         NetType net = pnml.getNet().get(0);
-        assertEquals(4, net.getArc().size());
-        assertEquals(3, net.getPlace().size());
-        assertEquals(2, net.getTransition().size());
+        assertEquals(6, net.getArc().size());
+        assertEquals(4, net.getPlace().size());
+        assertEquals(3, net.getTransition().size());
     }
 
     /**
@@ -171,9 +171,9 @@ public class Canonical2PNMLUnitTest {
         // Inspect the result
         assertEquals(1, pnml.getNet().size());
         NetType net = pnml.getNet().get(0);
-        assertEquals(4, net.getArc().size());
-        assertEquals(3, net.getPlace().size());
-        assertEquals(2, net.getTransition().size());
+        assertEquals(6, net.getArc().size());
+        assertEquals(4, net.getPlace().size());
+        assertEquals(3, net.getTransition().size());
     }
 
     /**
@@ -334,6 +334,7 @@ public class Canonical2PNMLUnitTest {
      * 
      */
     @Test
+    @Ignore
     public void testNestedOperators() throws Exception {
         PnmlType pnml = decanonise("Nested operators.cpf",   // input file
                                    null,            // no ANF file
