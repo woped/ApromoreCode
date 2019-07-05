@@ -89,7 +89,10 @@ public class Canonical2PNML {
 
         //If annotation exists, run new ANF-dependent layout algorithm, else run old
         if (annotations != null) {
-            removeElements();
+            // removeElements is not working at this point, because all y-axis-values are 0 after this method
+            // and all elements of the model are in one line. This doesn´t look good.
+            // If this method work properly, it is useful here, because it delets some unnecessary synthetic elements.
+            //removeElements();
             //map ANF and pnml
             ta.mapNodeAnnotations(annotations);
             //position double bended arcs (e. g. loops)
