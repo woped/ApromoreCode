@@ -91,7 +91,7 @@ public class Canonical2PNML {
         if (annotations != null) {
             // removeElements is not working at this point, because all y-axis-values are 0 after this method
             // and all elements of the model are in one line. This doesn´t look good.
-            // If this method work properly, it is useful here, because it delets some unnecessary synthetic elements.
+            // If this method work properly, it is maybe useful here, because it delets some unnecessary synthetic elements.
             //removeElements();
             //map ANF and pnml
             ta.mapNodeAnnotations(annotations);
@@ -111,7 +111,6 @@ public class Canonical2PNML {
             ids = ax.getIds();
             cproc = ax.getCanonicalProcess();
             */
-            //Not needed anymore - Replaced by positionSyntheticElements
             // Structural simplifications
             simplify();
         }
@@ -693,8 +692,10 @@ public class Canonical2PNML {
         return node;
     }
 
+    //Returns an ArrayList containing all PNML Start-Elements
     private ArrayList<NodeType> findStartElement(List<NodeType> allNodes, List<ArcType> allArcs){
 
+        //Create an ArrayList containing all Nodes
         ArrayList<NodeType> helperListAllNodes = new ArrayList<>(allNodes);
         ArrayList<NodeType> helperListRemovedNodes = new ArrayList<>();
         ArrayList<NodeType> helperListRetainedNodes = new ArrayList<>();
@@ -719,22 +720,24 @@ public class Canonical2PNML {
             helperListAllNodes.retainAll(helperListRetainedNodes);
         }
 
-        //return last remaining
+        //return remaining nodes
         return helperListAllNodes;
     }
 
+    //Returns an ArrayList containing all first non inserted PNML nodes
     private ArrayList<NodeType> findFirstNonInsertedNode(ArrayList<NodeType> startElementList,
                                                          ArrayList<ArcType> allArcs,
                                                          ArrayList<NodeType> nodesBeforeFirstNonInserted){
 
         ArrayList<NodeType> firstNonInsertedNodeList = new ArrayList<>();
 
+        //Iterate trough all "starting graph paths"
         for(NodeType startElement : startElementList) {
 
             NodeType followingNode;
             NodeType firstNonInsertedNode = startElement;
 
-            //by checking if position-data are not 0, 0 - isInsertedNode does not work trustworthy for this case
+            //find first non inserted node by checking if position-data are not 0, 0 - isInsertedNode does not work trustworthy for this case
             while (firstNonInsertedNode.getGraphics().getPosition().getX().equals(BigDecimal.ZERO)
                     && firstNonInsertedNode.getGraphics().getPosition().getY().equals(BigDecimal.ZERO)) {
                 for (ArcType arc : allArcs) {
@@ -751,6 +754,7 @@ public class Canonical2PNML {
         return  firstNonInsertedNodeList;
     }
 
+    //Corrects position of nodes that do not have an incoming node (positionSyntheticElements does not work in this case)
     private void correctBeginningNodesPosition(ArrayList<NodeType> firstNonInsertedNodeList,
                                                ArrayList<NodeType> nodesBeforeFirstNonInsertedList,
                                                ArrayList<NodeType> firstNodeList,
@@ -770,35 +774,35 @@ public class Canonical2PNML {
             BigDecimal differenceY = firstNonInsertedNodeList.get(i).getGraphics().getPosition().getY()
                     .subtract(firstNonInsertedFollowingNode.getGraphics().getPosition().getY());
 
+            //Set the position depending on the direction of the outgoing node
             if(differenceX.compareTo(BigDecimal.ZERO) > 0 && differenceX.abs().compareTo(differenceY.abs()) >= 0){
                 nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setY(
                         firstNonInsertedNodeList.get(i).getGraphics().getPosition().getY());
                 nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setX(
                         firstNonInsertedNodeList.get(i).getGraphics().getPosition().getX().add(MIN_DISTANCE_X));
+
             }else if(differenceX.compareTo(BigDecimal.ZERO) < 0 && differenceX.abs().compareTo(differenceY.abs()) >= 0){
                 nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setY(
                         firstNonInsertedNodeList.get(i).getGraphics().getPosition().getY());
                 nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setX(
                         firstNonInsertedNodeList.get(i).getGraphics().getPosition().getX().subtract(MIN_DISTANCE_X));
+
             }else if(differenceY.compareTo(BigDecimal.ZERO) > 0 && differenceY.abs().compareTo(differenceX.abs()) > 0){
                 nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setY(
                         firstNonInsertedNodeList.get(i).getGraphics().getPosition().getY().add(MIN_DISTANCE_Y));
                 nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setX(
                         firstNonInsertedNodeList.get(i).getGraphics().getPosition().getX());
+
             }else if(differenceY.compareTo(BigDecimal.ZERO) < 0 && differenceY.abs().compareTo(differenceX.abs()) > 0){
                 nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setY(
                         firstNonInsertedNodeList.get(i).getGraphics().getPosition().getY().subtract(MIN_DISTANCE_Y));
                 nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setX(
                         firstNonInsertedNodeList.get(i).getGraphics().getPosition().getX());
-            }
 
-            /*nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setY(
-                    firstNonInsertedNodeList.get(i).getGraphics().getPosition().getY());
-            nodesBeforeFirstNonInsertedList.get(i).getGraphics().getPosition().setX(
-                    firstNonInsertedNodeList.get(i).getGraphics().getPosition().getX().subtract(MIN_DISTANCE_X));*/
+            }
         }
 
-        //Second, check if there are nodes that have negative x-coordinates
+        //Second, check if there are nodes that have negative x or y-coordinates
         for(NodeType firstNode : firstNodeList) {
             BigDecimal firstNodePosX = firstNode.getGraphics().getPosition().getX();
             if (firstNodePosX.compareTo(BigDecimal.ZERO) < 0) {
@@ -823,7 +827,7 @@ public class Canonical2PNML {
         return data.getxorconnectors().size()==1?true:false;
     }
 
-    //creates multimap with all nodes an their corresponding incoming arcs
+    //creates multimap with all nodes and their corresponding incoming arcs
     private SetMultimap<NodeType, ArcType> createIncomingArcMultimap(){
         SetMultimap<NodeType, ArcType> incomingArcMultimap = HashMultimap.create();
         for (ArcType arc: data.getNet().getArc()) {
@@ -843,18 +847,10 @@ public class Canonical2PNML {
 
     private void positionSyntheticElements(SetMultimap<NodeType, ArcType> incomingArcMultimap,
                                            SetMultimap<NodeType, ArcType> outgoingArcMultimap){
+
         ArrayList<NodeType> allNodes = new ArrayList<>();
         allNodes.addAll(getPNML().getNet().get(0).getPlace());
         allNodes.addAll(getPNML().getNet().get(0).getTransition());
-
-        /*//Multimap with all nodes an their corresponding arcs
-        SetMultimap<NodeType, ArcType> incomingArcMultimap = HashMultimap.create();
-        SetMultimap<NodeType, ArcType> outgoingArcMultimap = HashMultimap.create();
-
-        for (ArcType arc: data.getNet().getArc()) {
-            incomingArcMultimap.put((NodeType) arc.getTarget(), arc);
-            outgoingArcMultimap.put((NodeType) arc.getSource(), arc);
-        }*/
 
         //Traverse each node (no specific order)
         for(org.apromore.pnml.NodeType node : allNodes){
@@ -970,6 +966,7 @@ public class Canonical2PNML {
         //Correct the position of Nodes before first firstNonInsertedNode since traverseNodes only goes in one direction
         correctBeginningNodesPosition(firstNonInsertedNodeList, nodesBeforeFirstNonInserted, firstNodeList, allNodes, outgoingArcMultimap);
     }
+
     /**
      * @param transition transition, which should be checked
      * @return whether <var>transition</var> is silent
@@ -978,7 +975,7 @@ public class Canonical2PNML {
         return transition.getName() == null;
     }
 
-    //Method: Returns a Map containing ANF-PositionTypes of original ANF-Arcs that have two Arc-Points (e.g. loops) mapped with their original CPF-ID
+    //MReturns a Map containing ANF-PositionTypes of original ANF-Arcs that have two Arc-Points (e.g. loops) mapped with their original CPF-ID
     private Map<String, List<org.apromore.anf.PositionType>> findDoubleBendedArcs(AnnotationsType annotations){
 
         Map<String, List<org.apromore.anf.PositionType>> doubleBendedArcs = new HashMap();
@@ -1040,7 +1037,7 @@ public class Canonical2PNML {
 
     }
 
-    public static <T, E> T getKeyByValue(Map<T, E> map, E value) {
+    private static <T, E> T getKeyByValue(Map<T, E> map, E value) {
         for (Map.Entry<T, E> entry : map.entrySet()) {
             if (Objects.equals(value, entry.getValue())) {
                 return entry.getKey();
